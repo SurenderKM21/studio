@@ -100,7 +100,6 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
 export async function classifyAllZonesAction() {
   const zones = db.getZones();
   const users = db.getUsers();
-  const classifications: { zoneId: string; density: DensityCategory }[] = [];
   
   try {
     const zoneUserCounts = zones.reduce((acc, zone) => {
@@ -129,11 +128,10 @@ export async function classifyAllZonesAction() {
       });
       
       db.updateZone(zone.id, { density: result.densityCategory });
-      classifications.push({ zoneId: zone.id, density: result.densityCategory });
     }
     revalidatePath('/user');
     revalidatePath('/admin');
-    return { success: true, classifications };
+    return { success: true };
   } catch (e) {
     console.error(e);
     return { error: 'Failed to classify zone densities.' };

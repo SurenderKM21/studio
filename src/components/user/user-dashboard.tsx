@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
@@ -12,16 +13,15 @@ import { classifyAllZonesAction, getRouteAction, identifyUserZoneAction, updateU
 import { useToast } from '@/hooks/use-toast';
 import { DensityLegend } from './density-legend';
 import { LocationTracker } from './location-tracker';
-import { db } from '@/lib/data';
 
 interface UserDashboardProps {
   initialZones: Zone[];
+  initialUser: User;
 }
 
-const MOCK_USER: User = { id: 'user-1', name: 'John Doe' };
 const UPDATE_INTERVAL_MS = 30000; // 30 seconds
 
-export function UserDashboard({ initialZones }: UserDashboardProps) {
+export function UserDashboard({ initialZones, initialUser }: UserDashboardProps) {
   const [zones, setZones] = useState<Zone[]>(initialZones);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [currentZone, setCurrentZone] = useState<{ zoneId: string; zoneName: string} | null>(null);
@@ -30,17 +30,12 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
   const [isSendingLocation, setIsSendingLocation] = useState(false);
   const [lastLocationUpdate, setLastLocationUpdate] = useState<Date | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
   const { toast } = useToast();
   
   useEffect(() => {
-    const zoneRefreshInterval = setInterval(() => {
-       const updatedZones = db.getZones();
-       setZones(updatedZones);
-    }, 10000);
-    
-    return () => clearInterval(zoneRefreshInterval);
-  }, []);
+    // Zones are passed as props and will be updated by server-side revalidation
+    setZones(initialZones);
+  }, [initialZones]);
 
   const getLocationAndUpdate = useCallback(() => {
     if (!navigator.geolocation) {
@@ -59,7 +54,7 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
         const { latitude, longitude } = position.coords;
         
         Promise.all([
-           updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude),
+           updateUserLocationAction(initialUser.id, initialUser.name, latitude, longitude, initialUser.groupSize),
            identifyUserZoneAction(latitude, longitude)
         ]).then(([locationUpdateResult, zoneResult]) => {
             setLastLocationUpdate(new Date());
@@ -102,7 +97,7 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
       },
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
-  }, [toast]);
+  }, [toast, initialUser.id, initialUser.name, initialUser.groupSize]);
   
   useEffect(() => {
     const initialTimeout = setTimeout(() => {
@@ -148,14 +143,9 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
           description: result.error,
         });
       } else {
-        const updatedZones = zones.map(z => {
-            const classification = result.classifications?.find(c => c.zoneId === z.id);
-            return classification ? { ...z, density: classification.density } : z;
-        });
-        setZones(updatedZones);
         toast({
           title: 'Densities Updated',
-          description: 'Zone crowd levels have been re-calculated.',
+          description: 'Zone crowd levels have been re-calculated. The map will update on the next data refresh.',
         });
       }
     });

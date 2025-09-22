@@ -23,6 +23,7 @@ export type AppSettings = {
 export type User = {
   id: string;
   name: string;
+  groupSize: number;
   lastLatitude?: number;
   lastLongitude?: number;
   lastSeen?: string;

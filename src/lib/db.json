@@ -1,6 +1,13 @@
-
 {
   "zones": [],
-  "users": [],
+  "users": [
+    {
+      "id": "user-1",
+      "name": "John Doe",
+      "lastLatitude": 12.858777500000002,
+      "lastLongitude": 80.08448200000001,
+      "lastSeen": "2025-09-22T19:19:18.339Z"
+    }
+  ],
   "settings": {}
 }
