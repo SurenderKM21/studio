@@ -7,9 +7,11 @@ import { useState, useEffect } from 'react';
 
 interface LocationTrackerProps {
   currentZoneName: string;
+  isSending: boolean;
+  lastUpdated: Date | null;
 }
 
-export function LocationTracker({ currentZoneName }: LocationTrackerProps) {
+export function LocationTracker({ currentZoneName, isSending, lastUpdated }: LocationTrackerProps) {
     const [online, setOnline] = useState(true);
 
     useEffect(() => {
@@ -17,13 +19,26 @@ export function LocationTracker({ currentZoneName }: LocationTrackerProps) {
         const handleOffline = () => setOnline(false);
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
-        // Set initial state
-        setOnline(navigator.onLine);
+        
+        if (typeof navigator !== 'undefined') {
+            setOnline(navigator.onLine);
+        }
+
         return () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
         };
     }, []);
+
+    const getStatusText = () => {
+        if (isSending) {
+            return 'Sending location...';
+        }
+        if (lastUpdated) {
+            return `Last update: ${lastUpdated.toLocaleTimeString()}`;
+        }
+        return 'Your current zone is updated automatically.';
+    }
 
   return (
     <Card className="shadow-lg">
@@ -41,7 +56,7 @@ export function LocationTracker({ currentZoneName }: LocationTrackerProps) {
           )}
         </div>
         <p className="text-xs text-muted-foreground pt-2">
-            Your current zone is updated automatically.
+            {getStatusText()}
         </p>
       </CardContent>
     </Card>

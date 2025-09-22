@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
-import type { Zone, AppSettings, RouteDetails, User } from '@/lib/types';
+import { useState, useTransition, useEffect, useRef } from 'react';
+import type { Zone, RouteDetails, User } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -15,24 +15,33 @@ import { LocationTracker } from './location-tracker';
 
 interface UserDashboardProps {
   initialZones: Zone[];
-  settings: AppSettings;
 }
 
 // Mock user for demonstration. In a real app, this would come from auth.
 const MOCK_USER: User = { id: 'user-1', name: 'John Doe' };
 const UPDATE_INTERVAL_MS = 30000; // 30 seconds
 
-export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
+export function UserDashboard({ initialZones }: UserDashboardProps) {
   const [zones, setZones] = useState<Zone[]>(initialZones);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [currentZone, setCurrentZone] = useState<{ zoneId: string; zoneName: string} | null>(null);
   const [isPlanning, startRoutePlanning] = useTransition();
   const [isClassifying, startClassification] = useTransition();
+  const [isSendingLocation, setIsSendingLocation] = useState(false);
+  const [lastLocationUpdate, setLastLocationUpdate] = useState<Date | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const { toast } = useToast();
 
   useEffect(() => {
-    const getLocation = () => {
+    // Clear any existing intervals when the component mounts or dependencies change
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    const getLocationAndUpdate = () => {
       if (!navigator.geolocation) {
+        console.error("Geolocation is not supported by this browser.");
         toast({
           variant: "destructive",
           title: "Unsupported Browser",
@@ -40,59 +49,63 @@ export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
         });
         return;
       }
-
-      const handleSuccess = (position: GeolocationPosition) => {
-        const { latitude, longitude } = position.coords;
-
-        // Send data to admin view
-        updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude);
-
-        // Identify and update the user's current zone
-        identifyUserZoneAction(latitude, longitude).then(result => {
-          if (result.data) {
-            setCurrentZone(prevZone => {
-              if (prevZone?.zoneId !== result.data.zoneId && result.data.zoneId !== 'unknown') {
-                toast({
-                  title: "You've entered a new zone!",
-                  description: `You are now in: ${result.data.zoneName}`,
-                });
-              }
-              return result.data;
-            });
-          }
-        });
-      };
-
-      const handleError = (error: GeolocationPositionError) => {
-        console.error("Geolocation error:", error);
-        let description = "Could not get your location. Please ensure location services are enabled.";
-        if (error.code === error.PERMISSION_DENIED) {
-          description = "Location permission denied. Please enable it in your browser settings to use this feature.";
-        }
-        toast({
-          variant: "destructive",
-          title: "Location Error",
-          description: description,
-        });
-      };
       
-      navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      });
+      setIsSendingLocation(true);
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude)
+            .then(() => {
+                setLastLocationUpdate(new Date());
+            });
+
+          identifyUserZoneAction(latitude, longitude).then(result => {
+            if (result.data) {
+                setCurrentZone(prevZone => {
+                  if (prevZone?.zoneId !== result.data.zoneId && result.data.zoneId !== 'unknown') {
+                    toast({
+                      title: "You've entered a new zone!",
+                      description: `You are now in: ${result.data.zoneName}`,
+                    });
+                  }
+                  return result.data;
+                });
+            }
+          });
+          setIsSendingLocation(false);
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          let description = "Could not get your location. Please ensure location services are enabled.";
+          if (error.code === error.PERMISSION_DENIED) {
+            description = "Location permission denied. Please enable it in your browser settings to use this feature.";
+          }
+          toast({
+            variant: "destructive",
+            title: "Location Error",
+            description,
+          });
+          setIsSendingLocation(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
     };
-    
-    // Get initial position immediately after login.
-    getLocation();
 
-    // Set an interval to send updates every 30 seconds.
-    const intervalId = setInterval(getLocation, UPDATE_INTERVAL_MS);
+    // Run once immediately
+    getLocationAndUpdate();
 
-    // Clean up the interval when the component unmounts.
-    return () => clearInterval(intervalId);
+    // Then set up the interval
+    intervalRef.current = setInterval(getLocationAndUpdate, UPDATE_INTERVAL_MS);
+
+    // Cleanup function to clear the interval when the component unmounts
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
   }, [toast]);
-
 
   const handlePlanRoute = (sourceZone: string, destinationZone: string) => {
     startRoutePlanning(async () => {
@@ -155,13 +168,17 @@ export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
 
     <div className="grid lg:grid-cols-3 gap-8">
       <div className="lg:col-span-1 flex flex-col gap-8">
-        <LocationTracker currentZoneName={currentZone?.zoneName ?? 'Locating...'} />
+        <LocationTracker 
+            currentZoneName={currentZone?.zoneName ?? 'Locating...'} 
+            isSending={isSendingLocation}
+            lastUpdated={lastLocationUpdate}
+        />
         <RoutePlanner
-          zones={zones}
+          zones={initialZones}
           onPlanRoute={handlePlanRoute}
           isPlanning={isPlanning}
         />
-        <RouteInfo routeDetails={routeDetails} isPlanning={isPlanning} zones={zones} />
+        <RouteInfo routeDetails={routeDetails} isPlanning={isPlanning} zones={initialZones} />
       </div>
       <div className="lg:col-span-2">
         <Card className="h-full min-h-[600px] shadow-lg">
@@ -172,7 +189,7 @@ export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <MapView zones={zones} route={routeDetails?.route ?? []} alternativeRoute={routeDetails?.alternativeRoute ?? []} />
+            <MapView zones={initialZones} route={routeDetails?.route ?? []} alternativeRoute={routeDetails?.alternativeRoute ?? []} />
           </CardContent>
         </Card>
       </div>
