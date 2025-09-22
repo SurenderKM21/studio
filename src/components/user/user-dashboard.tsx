@@ -95,7 +95,7 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
           });
           setIsSendingLocation(false);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
     };
     
