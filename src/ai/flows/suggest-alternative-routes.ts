@@ -39,39 +39,50 @@ export async function suggestAlternativeRoutes(
   return suggestAlternativeRoutesFlow(input);
 }
 
-const antColonyOptimizationTool = ai.defineTool({
-  name: 'antColonyOptimization',
-  description: 'Finds alternative routes using Ant Colony Optimization algorithm, considering congestion levels.',
-  inputSchema: z.object({
-    sourceZone: z.string().describe('The starting zone for the route.'),
-    destinationZone: z.string().describe('The destination zone for the route.'),
-    currentRoute: z.array(z.string()).describe('The current route as an array of zone IDs.'),
-    congestionData: z
-      .record(z.string(), z.string())
-      .describe(
-        'A map of zone IDs to congestion levels (over-crowded, crowded, moderate, free).'
-      ),
-  }),
-  outputSchema: z.array(z.array(z.string())).describe('An array of alternative routes.'),
-},
-async (input) => {
-  // Placeholder implementation for Ant Colony Optimization
-  // In a real application, this would call an actual optimization algorithm.
-  // This example provides a simple, hardcoded alternative route for demonstration.
-  console.log('Running ant colony optimizaiton');
-  const {sourceZone, destinationZone, currentRoute, congestionData} = input;
+const antColonyOptimizationTool = ai.defineTool(
+  {
+    name: 'antColonyOptimization',
+    description:
+      'Finds alternative routes using Ant Colony Optimization algorithm, considering congestion levels.',
+    inputSchema: z.object({
+      sourceZone: z.string().describe('The starting zone for the route.'),
+      destinationZone: z.string().describe('The destination zone for the route.'),
+      currentRoute: z
+        .array(z.string())
+        .describe('The current route as an array of zone IDs.'),
+      congestionData: z
+        .record(z.string(), z.string())
+        .describe(
+          'A map of zone IDs to congestion levels (over-crowded, crowded, moderate, free).'
+        ),
+    }),
+    outputSchema: z
+      .array(z.array(z.string()))
+      .describe('An array of alternative routes.'),
+  },
+  async (input) => {
+    // Placeholder implementation for Ant Colony Optimization
+    // In a real application, this would call an actual optimization algorithm.
+    // This example provides a simple, hardcoded alternative route for demonstration.
+    console.log('Running ant colony optimizaiton');
+    const {sourceZone, destinationZone, currentRoute, congestionData} = input;
 
     // Basic check for congestion in the current route
-    const isCurrentRouteCongested = currentRoute.some(zoneId => congestionData[zoneId] === 'over-crowded' || congestionData[zoneId] === 'crowded');
-  
+    const isCurrentRouteCongested = currentRoute.some(
+      (zoneId) =>
+        congestionData[zoneId] === 'over-crowded' ||
+        congestionData[zoneId] === 'crowded'
+    );
+
     if (!isCurrentRouteCongested) {
       // If the current route isn't congested, return an empty array
       return [];
     }
 
-  const alternativeRoute = [sourceZone, 'zoneC', 'zoneD', destinationZone]; // Example route
-  return [alternativeRoute];
-});
+    const alternativeRoute = [sourceZone, 'zoneC', 'zoneD', destinationZone]; // Example route
+    return [alternativeRoute];
+  }
+);
 
 
 const prompt = ai.definePrompt({
