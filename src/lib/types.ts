@@ -17,7 +17,7 @@ export type RouteDetails = {
 };
 
 export type AppSettings = {
-  updateInterval: number;
+  updateInterval?: number; // This is now optional and unused
 };
 
 export type User = {

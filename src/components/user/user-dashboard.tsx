@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect, useCallback } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import type { Zone, AppSettings, RouteDetails, User } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
@@ -20,6 +20,7 @@ interface UserDashboardProps {
 
 // Mock user for demonstration. In a real app, this would come from auth.
 const MOCK_USER: User = { id: 'user-1', name: 'John Doe' };
+const UPDATE_INTERVAL_MS = 30000; // 30 seconds
 
 export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
   const [zones, setZones] = useState<Zone[]>(initialZones);
@@ -38,7 +39,7 @@ export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
       identifyUserZoneAction(latitude, longitude).then(result => {
         if (result.data) {
           setCurrentZone(prevZone => {
-            if (prevZone?.zoneId !== result.data.zoneId) {
+            if (prevZone?.zoneId !== result.data.zoneId && result.data.zoneId !== 'unknown') {
               toast({
                 title: "You've entered a new zone!",
                 description: `You are now in: ${result.data.zoneName}`,
@@ -83,12 +84,12 @@ export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
     getLocation();
 
     // Set an interval to get updates
-    const intervalId = setInterval(getLocation, settings.updateInterval * 1000);
+    const intervalId = setInterval(getLocation, UPDATE_INTERVAL_MS);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [settings.updateInterval, toast]);
+  }, [toast]);
 
 
   const handlePlanRoute = (sourceZone: string, destinationZone: string) => {

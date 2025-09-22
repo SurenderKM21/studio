@@ -3,9 +3,7 @@ import type { Zone, AppSettings, DensityCategory, User } from './types';
 let zones: Zone[] = [];
 let users: User[] = [];
 
-let settings: AppSettings = {
-  updateInterval: 60, // in seconds
-};
+let settings: AppSettings = {};
 
 // Simulate a database
 export const db = {

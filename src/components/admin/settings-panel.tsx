@@ -20,17 +20,13 @@ export function SettingsPanel({
 }: {
   initialSettings: AppSettings;
 }) {
-  const [interval, setInterval] = useState(initialSettings.updateInterval);
   const { toast } = useToast();
 
   const handleSave = () => {
-    startTransition(() => {
-      updateSettingsAction({ updateInterval: interval }).then(() => {
-        toast({
-          title: 'Settings Saved',
-          description: 'The location update interval has been updated.',
-        });
-      });
+    // This is a placeholder for future settings.
+    toast({
+      title: 'Settings Saved',
+      description: 'No settings are currently available to modify.',
     });
   };
 
@@ -43,25 +39,10 @@ export function SettingsPanel({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-4">
-          <Label htmlFor="interval-slider">
-            User Location Update Interval:{' '}
-            <span className="font-bold text-primary">{interval} seconds</span>
-          </Label>
-          <Slider
-            id="interval-slider"
-            min={30}
-            max={300}
-            step={15}
-            value={[interval]}
-            onValueChange={(value) => setInterval(value[0])}
-          />
-          <p className="text-sm text-muted-foreground">
-            Sets how often user location data is collected. Minimum 30 seconds,
-            maximum 5 minutes (300s).
-          </p>
+        <div className="text-muted-foreground">
+          There are no settings to configure at this time.
         </div>
-        <Button onClick={handleSave}>Save Settings</Button>
+        <Button onClick={handleSave} disabled>Save Settings</Button>
       </CardContent>
     </Card>
   );

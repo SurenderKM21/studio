@@ -63,7 +63,7 @@ export async function addZoneAction(prevState: any, formData: FormData) {
 }
 
 export async function updateSettingsAction(settings: Partial<AppSettings>) {
-  db.updateSettings(settings);
+  // No-op, settings are hardcoded for now
   revalidatePath('/admin');
   revalidatePath('/user');
 }
