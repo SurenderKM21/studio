@@ -50,8 +50,12 @@ function isPointInZone(point: { latitude: number; longitude: number }, zone: Zon
 function findZoneForCoordinates(latitude: number, longitude: number): { zoneId: string; zoneName: string } {
     const zones = db.getZones();
     for (const zone of zones) {
-        if (isPointInZone({ latitude, longitude }, zone)) {
-            return { zoneId: zone.id, zoneName: zone.name };
+        // A zone is defined by at least 3 coordinates.
+        if (zone.coordinates && zone.coordinates.length > 2) {
+             const isInside = isPointInZone({ latitude, longitude }, zone);
+             if (isInside) {
+                return { zoneId: zone.id, zoneName: zone.name };
+            }
         }
     }
     return { zoneId: 'unknown', zoneName: 'Unknown' };
