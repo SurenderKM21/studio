@@ -9,13 +9,15 @@ import { classifyZoneDensity } from '@/ai/flows/classify-zone-density';
 import { suggestAlternativeRoutes } from '@/ai/flows/suggest-alternative-routes';
 import { identifyUserZone } from '@/ai/flows/identify-user-zone';
 
+const coordinateRegex = /^-?\d+(\.\d+)?,\s?-?\d+(\.\d+)?$/;
+
 const addZoneSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
-  coordinate1: z.string().min(1, 'Coordinate 1 is required').regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, 'Invalid format, use "lat,lng"'),
-  coordinate2: z.string().min(1, 'Coordinate 2 is required').regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, 'Invalid format, use "lat,lng"'),
-  coordinate3: z.string().min(1, 'Coordinate 3 is required').regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, 'Invalid format, use "lat,lng"'),
-  coordinate4: z.string().min(1, 'Coordinate 4 is required').regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, 'Invalid format, use "lat,lng"'),
+  coordinate1: z.string().min(1, 'Coordinate 1 is required').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
+  coordinate2: z.string().min(1, 'Coordinate 2 is required').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
+  coordinate3: z.string().min(1, 'Coordinate 3 is required').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
+  coordinate4: z.string().min(1, 'Coordinate 4 is required').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
 });
 
 export async function addZoneAction(prevState: any, formData: FormData) {
