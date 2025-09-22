@@ -12,12 +12,13 @@ import { classifyAllZonesAction, getRouteAction, identifyUserZoneAction, updateU
 import { useToast } from '@/hooks/use-toast';
 import { DensityLegend } from './density-legend';
 import { LocationTracker } from './location-tracker';
+import { db } from '@/lib/data';
 
 interface UserDashboardProps {
   initialZones: Zone[];
 }
 
-const MOCK_USER: User = { id: 'user-1', name: 'John Doe' };
+const MOCK_USER: User = { id: 'user-1', name: 'John Doe', groupSize: 1 };
 const UPDATE_INTERVAL_MS = 30000; // 30 seconds
 
 export function UserDashboard({ initialZones }: UserDashboardProps) {
@@ -33,8 +34,16 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
   const { toast } = useToast();
   
   useEffect(() => {
-    setZones(initialZones);
-  }, [initialZones]);
+    // This component receives initialZones, but we also want to keep it up to date
+    // if the admin adds more. A more robust solution might involve websockets,
+    // but for now, we can periodically re-fetch.
+    const zoneRefreshInterval = setInterval(() => {
+       const updatedZones = db.getZones();
+       setZones(updatedZones);
+    }, 10000); // every 10 seconds
+    
+    return () => clearInterval(zoneRefreshInterval);
+  }, []);
 
   const getLocationAndUpdate = useCallback(() => {
     if (!navigator.geolocation) {
@@ -53,23 +62,23 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
         const { latitude, longitude } = position.coords;
         
         Promise.all([
-           updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude),
+           updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude, MOCK_USER.groupSize),
            identifyUserZoneAction(latitude, longitude)
         ]).then(([locationUpdateResult, zoneResult]) => {
             setLastLocationUpdate(new Date());
 
             if (zoneResult.data) {
-              setCurrentZone(prevZone => {
-                if (prevZone?.zoneId !== zoneResult.data.zoneId && zoneResult.data.zoneId !== 'unknown') {
-                  toast({
-                    title: "You've entered a new zone!",
-                    description: `You are now in: ${zoneResult.data.zoneName}`,
-                  });
+              const newZone = zoneResult.data;
+              setCurrentZone(previousZone => {
+                if(previousZone?.zoneId !== newZone.zoneId && newZone.zoneId !== 'unknown') {
+                    toast({
+                        title: "You've entered a new zone!",
+                        description: `You are now in: ${newZone.zoneName}`,
+                    });
                 }
-                return zoneResult.data;
+                return newZone;
               });
-          }
-
+            }
         }).catch((err) => {
            console.error("Error updating location or zone:", err);
            toast({
@@ -99,10 +108,9 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
   }, [toast]);
   
   useEffect(() => {
-    // We wrap this in a timeout to prevent the "cannot update component while rendering" error.
     const initialTimeout = setTimeout(() => {
-        getLocationAndUpdate();
-        intervalRef.current = setInterval(getLocationAndUpdate, UPDATE_INTERVAL_MS);
+      getLocationAndUpdate();
+      intervalRef.current = setInterval(getLocationAndUpdate, UPDATE_INTERVAL_MS);
     }, 0);
 
     return () => {
