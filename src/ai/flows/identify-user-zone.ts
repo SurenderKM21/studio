@@ -11,7 +11,6 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { db } from '@/lib/data';
-import type { Zone } from '@/lib/types';
 
 const IdentifyUserZoneInputSchema = z.object({
     latitude: z.number().describe('The latitude of the user.'),
@@ -31,42 +30,6 @@ export async function identifyUserZone(input: IdentifyUserZoneInput): Promise<Id
     return identifyUserZoneFlow(input);
 }
 
-// Corrected Point-in-polygon algorithm (ray-casting)
-function isPointInZone(point: { latitude: number; longitude: number }, zone: Zone): boolean {
-    const { latitude: lat, longitude: lon } = point;
-    const vertices = zone.coordinates;
-    let isInside = false;
-
-    for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
-        const vertexI = vertices[i];
-        const vertexJ = vertices[j];
-
-        const intersect =
-            ((vertexI.lng > lon) !== (vertexJ.lng > lon)) &&
-            (lat < ((vertexJ.lat - vertexI.lat) * (lon - vertexI.lng)) / (vertexJ.lng - vertexI.lng) + vertexI.lat);
-
-        if (intersect) {
-            isInside = !isInside;
-        }
-    }
-
-    return isInside;
-}
-
-
-function findZoneForCoordinates(latitude: number, longitude: number): { zoneId: string; zoneName: string } {
-    const zones = db.getZones();
-    for (const zone of zones) {
-        // A zone is defined by at least 3 coordinates.
-        if (zone.coordinates && zone.coordinates.length > 2) {
-             const isInside = isPointInZone({ latitude, longitude }, zone);
-             if (isInside) {
-                return { zoneId: zone.id, zoneName: zone.name };
-            }
-        }
-    }
-    return { zoneId: 'unknown', zoneName: 'Unknown' };
-}
 
 const prompt = ai.definePrompt({
   name: 'identifyUserZonePrompt',
@@ -85,7 +48,7 @@ Longitude: {{{longitude}}}
 Available Zones (defined by polygon vertices):
 {{{JSONstringify zones}}}
 
-Based on the user's location, identify the zone they are in. If the user's coordinates fall within the boundaries of a zone, return that zone's ID and name. If the user is not in any of the defined zones, return "unknown" for the zoneId and "Unknown" for the zoneName. Your determination should be based on checking if the point is inside one of the polygons.`,
+Based on the user's location, identify the zone they are in. Your determination must be based on a point-in-polygon test. If the user's coordinates fall within the boundaries of a zone, return that zone's ID and name. If the user is not in any of the defined zones, return "unknown" for the zoneId and "Unknown" for the zoneName.`,
 });
 
 
@@ -96,16 +59,7 @@ const identifyUserZoneFlow = ai.defineFlow(
     outputSchema: IdentifyUserZoneOutputSchema,
   },
   async (input) => {
-    // Deterministic code is better for geographic calculations.
-    const result = findZoneForCoordinates(input.latitude, input.longitude);
-    
-    // We only use the LLM as a fallback if our primary logic fails, 
-    // which it shouldn't in this case, but it's good practice.
-    if (result.zoneId !== 'unknown') {
-        return result;
-    }
-
-    // If our simple logic fails, we can ask the LLM.
+    // Let the LLM handle the point-in-polygon logic.
     const zones = db.getZones();
     const { output } = await prompt({ ...input, zones });
     return output!;
