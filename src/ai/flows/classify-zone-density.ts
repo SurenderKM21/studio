@@ -18,7 +18,7 @@ const ClassifyZoneDensityInputSchema = z.object({
   coordinates: z.array(z.object({
     latitude: z.number(),
     longitude: z.number(),
-  })).describe('GPS coordinates defining the zone boundary.')
+  })).describe('GPS coordinates defining the zone boundary polygon.')
 });
 
 export type ClassifyZoneDensityInput = z.infer<typeof ClassifyZoneDensityInputSchema>;
@@ -43,7 +43,7 @@ const prompt = ai.definePrompt({
 Zone ID: {{{zoneId}}}
 User Count: {{{userCount}}}
 Capacity: {{{capacity}}}
-Coordinates: {{{coordinates}}}
+Coordinates: {{{JSONstringify coordinates}}}
 
 Respond with a JSON object that contains the densityCategory (one of: over-crowded, crowded, moderate, free) and a justification for the classification. The classification should be based on the user count relative to the capacity, and consider that people may feel crowded even at low density.
 

@@ -11,6 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { db } from '@/lib/data';
+import type { Zone } from '@/lib/types';
 
 const IdentifyUserZoneInputSchema = z.object({
     latitude: z.number().describe('The latitude of the user.'),
@@ -30,33 +31,29 @@ export async function identifyUserZone(input: IdentifyUserZoneInput): Promise<Id
     return identifyUserZoneFlow(input);
 }
 
-// For simplicity, we are not using a tool here.
-// A real-world implementation might use a spatial database or a more complex geometric calculation.
+// Point-in-polygon algorithm to check if a point is inside a zone
+function isPointInZone(point: { latitude: number; longitude: number }, zone: Zone): boolean {
+  let isInside = false;
+  const vertices = zone.coordinates;
+  for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+    const xi = vertices[i].lat, yi = vertices[i].lng;
+    const xj = vertices[j].lat, yj = vertices[j].lng;
+
+    const intersect = ((yi > point.longitude) !== (yj > point.longitude))
+        && (point.latitude < (xj - xi) * (point.longitude - yi) / (yj - yi) + xi);
+    if (intersect) isInside = !isInside;
+  }
+  return isInside;
+}
+
+
 function findZoneForCoordinates(latitude: number, longitude: number): { zoneId: string; zoneName: string } {
     const zones = db.getZones();
-    // This is a simplified logic. It finds the closest zone center.
-    // A real implementation would check if the point is within the zone's polygon boundary.
-    let closestZone: { id: string; name: string; distance: number } | null = null;
-
     for (const zone of zones) {
-        // Using the first coordinate as the center for simplicity
-        const zoneLat = zone.coordinates[0].lat;
-        const zoneLng = zone.coordinates[0].lng;
-
-        const distance = Math.sqrt(Math.pow(latitude - zoneLat, 2) + Math.pow(longitude - zoneLng, 2));
-
-        if (!closestZone || distance < closestZone.distance) {
-            closestZone = { id: zone.id, name: zone.name, distance: distance };
+        if (isPointInZone({ latitude, longitude }, zone)) {
+            return { zoneId: zone.id, zoneName: zone.name };
         }
     }
-    
-    // Define a threshold for how close the user needs to be to be "in" a zone.
-    // This is a naive implementation.
-    const distanceThreshold = 0.001;
-    if (closestZone && closestZone.distance < distanceThreshold) {
-        return { zoneId: closestZone.id, zoneName: closestZone.name };
-    }
-
     return { zoneId: 'unknown', zoneName: 'Unknown' };
 }
 
@@ -68,16 +65,16 @@ const prompt = ai.definePrompt({
       zones: z.any(),
   })},
   output: {schema: IdentifyUserZoneOutputSchema},
-  prompt: `You are a GPS zone detector. Given the user's latitude and longitude, and a list of zones with their coordinates, determine which zone the user is currently in.
+  prompt: `You are a GPS zone detector. Given the user's latitude and longitude, and a list of zones with their polygon coordinates, determine which zone the user is currently in.
 
 User Location:
 Latitude: {{{latitude}}}
 Longitude: {{{longitude}}}
 
-Available Zones:
+Available Zones (defined by polygon vertices):
 {{{JSONstringify zones}}}
 
-Based on the user's location, identify the zone they are in. The zones are defined by the coordinates provided. If the user's coordinates fall within the boundaries of a zone, return that zone's ID and name. If the user is not in any of the defined zones, return "unknown" for the zoneId and "Unknown" for the zoneName. Your determination should be based on proximity.`,
+Based on the user's location, identify the zone they are in. If the user's coordinates fall within the boundaries of a zone, return that zone's ID and name. If the user is not in any of the defined zones, return "unknown" for the zoneId and "Unknown" for the zoneName. Your determination should be based on checking if the point is inside one of the polygons.`,
 });
 
 
@@ -88,11 +85,11 @@ const identifyUserZoneFlow = ai.defineFlow(
     outputSchema: IdentifyUserZoneOutputSchema,
   },
   async (input) => {
-    // Note: The LLM is good, but for geographic calculations, deterministic code is better.
-    // We will use the LLM as a fallback or for more complex reasoning if needed,
-    // but the primary logic will be in our TypeScript function.
+    // Deterministic code is better for geographic calculations.
     const result = findZoneForCoordinates(input.latitude, input.longitude);
     
+    // We only use the LLM as a fallback if our primary logic fails, 
+    // which it shouldn't in this case, but it's good practice.
     if (result.zoneId !== 'unknown') {
         return result;
     }

@@ -28,12 +28,31 @@ export async function addZoneAction(prevState: any, formData: FormData) {
       error: validatedFields.error.flatten().fieldErrors,
     };
   }
+  
+  const { name, capacity, coordinates: coordsString } = validatedFields.data;
 
-  // A real app would parse coordinates properly
-  const { name, capacity } = validatedFields.data;
-  db.addZone({ name, capacity, coordinates: [{ lat: 0, lng: 0 }] });
-  revalidatePath('/admin');
-  return { success: true };
+  try {
+    const coordinates = coordsString
+      .split(';')
+      .map(pair => {
+        const [lat, lng] = pair.trim().split(',').map(Number);
+        if (isNaN(lat) || isNaN(lng)) {
+          throw new Error('Invalid coordinate format.');
+        }
+        return { lat, lng };
+      });
+      
+    if (coordinates.length < 3) {
+       return { error: 'A zone must have at least 3 coordinates.' };
+    }
+
+    db.addZone({ name, capacity, coordinates });
+    revalidatePath('/admin');
+    return { success: true };
+
+  } catch (error) {
+    return { error: 'Invalid coordinate string format. Use "lat,lng; lat,lng; ..."' };
+  }
 }
 
 export async function updateSettingsAction(settings: Partial<AppSettings>) {
@@ -85,7 +104,7 @@ export async function classifyAllZonesAction() {
         zoneId: zone.id,
         userCount: userCount,
         capacity: zone.capacity,
-        coordinates: zone.coordinates,
+        coordinates: zone.coordinates.map(c => ({latitude: c.lat, longitude: c.lng})),
       });
       
       db.updateZone(zone.id, { density: result.densityCategory });
