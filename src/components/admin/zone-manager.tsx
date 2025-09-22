@@ -30,7 +30,10 @@ import { useToast } from '@/hooks/use-toast';
 const addZoneSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
-  coordinates: z.string().min(1, 'Coordinates are required'),
+  coordinate1: z.string().min(1, 'Coordinate 1 is required').regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, 'Invalid format, use "lat,lng"'),
+  coordinate2: z.string().min(1, 'Coordinate 2 is required').regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, 'Invalid format, use "lat,lng"'),
+  coordinate3: z.string().min(1, 'Coordinate 3 is required').regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, 'Invalid format, use "lat,lng"'),
+  coordinate4: z.string().min(1, 'Coordinate 4 is required').regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, 'Invalid format, use "lat,lng"'),
 });
 
 type AddZoneForm = z.infer<typeof addZoneSchema>;
@@ -54,13 +57,20 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
   });
   
   useEffect(() => {
-    if (state.success) {
+    if (state?.success) {
       toast({
         title: 'Success!',
         description: 'New zone has been added.',
       });
       formRef.current?.reset();
       reset();
+    } else if (state?.error) {
+       const errorMsg = typeof state.error === 'string' ? state.error : 'An unexpected error occurred.';
+       toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: errorMsg,
+      });
     }
   }, [state, toast, reset]);
 
@@ -70,7 +80,7 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
         <CardHeader>
           <CardTitle>Add New Zone</CardTitle>
           <CardDescription>
-            Define a new area within the event grounds.
+            Define a new area with four corner GPS coordinates.
           </CardDescription>
         </CardHeader>
         <form action={formAction} ref={formRef}>
@@ -94,14 +104,43 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
               />
               {errors.capacity && <p className="text-sm text-destructive">{errors.capacity.message}</p>}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="coordinates">GPS Coordinates</Label>
-              <Input
-                id="coordinates"
-                {...register('coordinates')}
-                placeholder="e.g., 34.05, -118.24; 34.06, -118.25"
-              />
-               {errors.coordinates && <p className="text-sm text-destructive">{errors.coordinates.message}</p>}
+             <div className="grid grid-cols-2 gap-4">
+               <div className="space-y-2">
+                <Label htmlFor="coordinate1">Coordinate 1 (Top-Left)</Label>
+                <Input
+                  id="coordinate1"
+                  {...register('coordinate1')}
+                  placeholder="lat,lng"
+                />
+                {errors.coordinate1 && <p className="text-sm text-destructive">{errors.coordinate1.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="coordinate2">Coordinate 2 (Top-Right)</Label>
+                <Input
+                  id="coordinate2"
+                  {...register('coordinate2')}
+                  placeholder="lat,lng"
+                />
+                 {errors.coordinate2 && <p className="text-sm text-destructive">{errors.coordinate2.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="coordinate3">Coordinate 3 (Bottom-Right)</Label>
+                <Input
+                  id="coordinate3"
+                  {...register('coordinate3')}
+                  placeholder="lat,lng"
+                />
+                 {errors.coordinate3 && <p className="text-sm text-destructive">{errors.coordinate3.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="coordinate4">Coordinate 4 (Bottom-Left)</Label>
+                <Input
+                  id="coordinate4"
+                  {...register('coordinate4')}
+                  placeholder="lat,lng"
+                />
+                 {errors.coordinate4 && <p className="text-sm text-destructive">{errors.coordinate4.message}</p>}
+              </div>
             </div>
           </CardContent>
           <CardFooter>

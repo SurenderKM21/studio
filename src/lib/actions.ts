@@ -9,18 +9,23 @@ import { classifyZoneDensity } from '@/ai/flows/classify-zone-density';
 import { suggestAlternativeRoutes } from '@/ai/flows/suggest-alternative-routes';
 import { identifyUserZone } from '@/ai/flows/identify-user-zone';
 
-
 const addZoneSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
-  coordinates: z.string().min(1, 'Coordinates are required'),
+  coordinate1: z.string().min(1, 'Coordinate 1 is required'),
+  coordinate2: z.string().min(1, 'Coordinate 2 is required'),
+  coordinate3: z.string().min(1, 'Coordinate 3 is required'),
+  coordinate4: z.string().min(1, 'Coordinate 4 is required'),
 });
 
 export async function addZoneAction(prevState: any, formData: FormData) {
   const validatedFields = addZoneSchema.safeParse({
     name: formData.get('name'),
     capacity: formData.get('capacity'),
-    coordinates: formData.get('coordinates'),
+    coordinate1: formData.get('coordinate1'),
+    coordinate2: formData.get('coordinate2'),
+    coordinate3: formData.get('coordinate3'),
+    coordinate4: formData.get('coordinate4'),
   });
 
   if (!validatedFields.success) {
@@ -29,11 +34,11 @@ export async function addZoneAction(prevState: any, formData: FormData) {
     };
   }
   
-  const { name, capacity, coordinates: coordsString } = validatedFields.data;
+  const { name, capacity, coordinate1, coordinate2, coordinate3, coordinate4 } = validatedFields.data;
 
   try {
-    const coordinates = coordsString
-      .split(';')
+    const coordsStrings = [coordinate1, coordinate2, coordinate3, coordinate4];
+    const coordinates = coordsStrings
       .map(pair => {
         const [lat, lng] = pair.trim().split(',').map(Number);
         if (isNaN(lat) || isNaN(lng)) {
@@ -51,7 +56,7 @@ export async function addZoneAction(prevState: any, formData: FormData) {
     return { success: true };
 
   } catch (error) {
-    return { error: 'Invalid coordinate string format. Use "lat,lng; lat,lng; ..."' };
+    return { error: 'Invalid coordinate string format. Use "lat,lng"' };
   }
 }
 
