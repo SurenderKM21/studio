@@ -42,11 +42,8 @@ function isPointInZone(point: { latitude: number; longitude: number }, zone: Zon
         const vertexJ = vertices[j];
 
         const intersect =
-            vertexI.lng > longitude !== vertexJ.lng > longitude &&
-            latitude <
-                ((vertexJ.lat - vertexI.lat) * (longitude - vertexI.lng)) /
-                    (vertexJ.lng - vertexI.lng) +
-                    vertexI.lat;
+            ((vertexI.lat > latitude) !== (vertexJ.lat > latitude)) &&
+            (longitude < ((vertexJ.lng - vertexI.lng) * (latitude - vertexI.lat)) / (vertexJ.lat - vertexI.lat) + vertexI.lng);
 
         if (intersect) {
             isInside = !isInside;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect, useRef } from 'react';
+import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
 import type { Zone, RouteDetails, User } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
@@ -36,84 +36,82 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
     setZones(initialZones);
   }, [initialZones]);
 
-  useEffect(() => {
-    const getLocationAndUpdate = () => {
-      if (!navigator.geolocation) {
-        toast({
-          variant: "destructive",
-          title: "Unsupported Browser",
-          description: "Your browser does not support geolocation.",
-        });
-        return;
-      }
-      
-      setIsSendingLocation(true);
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          
-          Promise.all([
-             updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude),
-             identifyUserZoneAction(latitude, longitude)
-          ]).then(([locationUpdateResult, zoneResult]) => {
-              setLastLocationUpdate(new Date());
-
-              if (zoneResult.data) {
-                setCurrentZone(prevZone => {
-                  if (prevZone?.zoneId !== zoneResult.data.zoneId && zoneResult.data.zoneId !== 'unknown') {
-                    toast({
-                      title: "You've entered a new zone!",
-                      description: `You are now in: ${zoneResult.data.zoneName}`,
-                    });
-                  }
-                  return zoneResult.data;
-                });
-            }
-
-          }).catch((err) => {
-             console.error("Error updating location or zone:", err);
-             toast({
-                variant: "destructive",
-                title: "Update Error",
-                description: "Failed to update location or identify zone.",
-            });
-          }).finally(() => {
-             setIsSendingLocation(false);
-          });
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-          let description = "Could not get your location. Please ensure location services are enabled.";
-          if (error.code === error.PERMISSION_DENIED) {
-            description = "Location permission denied. Please enable it in your browser settings to use this feature.";
-          }
-          toast({
-            variant: "destructive",
-            title: "Location Error",
-            description,
-          });
-          setIsSendingLocation(false);
-        },
-        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-      );
-    };
-    
-    if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+  const getLocationAndUpdate = useCallback(() => {
+    if (!navigator.geolocation) {
+      toast({
+        variant: "destructive",
+        title: "Unsupported Browser",
+        description: "Your browser does not support geolocation.",
+      });
+      return;
     }
     
-    setTimeout(() => {
+    setIsSendingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        Promise.all([
+           updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude),
+           identifyUserZoneAction(latitude, longitude)
+        ]).then(([locationUpdateResult, zoneResult]) => {
+            setLastLocationUpdate(new Date());
+
+            if (zoneResult.data) {
+              setCurrentZone(prevZone => {
+                if (prevZone?.zoneId !== zoneResult.data.zoneId && zoneResult.data.zoneId !== 'unknown') {
+                  toast({
+                    title: "You've entered a new zone!",
+                    description: `You are now in: ${zoneResult.data.zoneName}`,
+                  });
+                }
+                return zoneResult.data;
+              });
+          }
+
+        }).catch((err) => {
+           console.error("Error updating location or zone:", err);
+           toast({
+              variant: "destructive",
+              title: "Update Error",
+              description: "Failed to update location or identify zone.",
+          });
+        }).finally(() => {
+           setIsSendingLocation(false);
+        });
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        let description = "Could not get your location. Please ensure location services are enabled.";
+        if (error?.code === error.PERMISSION_DENIED) {
+          description = "Location permission denied. Please enable it in your browser settings to use this feature.";
+        }
+        toast({
+          variant: "destructive",
+          title: "Location Error",
+          description,
+        });
+        setIsSendingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+  }, [toast]);
+  
+  useEffect(() => {
+    // We wrap this in a timeout to prevent the "cannot update component while rendering" error.
+    const initialTimeout = setTimeout(() => {
         getLocationAndUpdate();
         intervalRef.current = setInterval(getLocationAndUpdate, UPDATE_INTERVAL_MS);
     }, 0);
 
     return () => {
+      clearTimeout(initialTimeout);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [toast]);
+  }, [getLocationAndUpdate]);
 
   const handlePlanRoute = (sourceZone: string, destinationZone: string) => {
     startRoutePlanning(async () => {
