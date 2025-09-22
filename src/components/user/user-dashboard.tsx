@@ -33,7 +33,6 @@ export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
     const handleNewPosition = (position: GeolocationPosition) => {
       const { latitude, longitude } = position.coords;
       
-      // Update user's location in the backend
       updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude);
 
       identifyUserZoneAction(latitude, longitude).then(result => {
@@ -64,35 +63,31 @@ export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
       });
     };
 
-    if ('geolocation' in navigator) {
-      // Get initial position right away
-      navigator.geolocation.getCurrentPosition(handleNewPosition, handleLocationError, {
-        enableHighAccuracy: true,
-      });
+    const getLocation = () => {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(handleNewPosition, handleLocationError, {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Unsupported Browser",
+          description: "Your browser does not support geolocation.",
+        });
+      }
+    };
+    
+    // Get initial position right away
+    getLocation();
 
-      // Set up a watcher to get updates
-      const watchId = navigator.geolocation.watchPosition(handleNewPosition, handleLocationError, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      });
+    // Set an interval to get updates
+    const intervalId = setInterval(getLocation, settings.updateInterval * 1000);
 
-      // Also set an interval as a fallback
-      const intervalId = setInterval(() => {
-        navigator.geolocation.getCurrentPosition(handleNewPosition, handleLocationError);
-      }, settings.updateInterval * 1000);
-
-      return () => {
-        clearInterval(intervalId);
-        navigator.geolocation.clearWatch(watchId);
-      };
-    } else {
-       toast({
-        variant: "destructive",
-        title: "Unsupported Browser",
-        description: "Your browser does not support geolocation.",
-      });
-    }
+    return () => {
+      clearInterval(intervalId);
+    };
   }, [settings.updateInterval, toast]);
 
 
