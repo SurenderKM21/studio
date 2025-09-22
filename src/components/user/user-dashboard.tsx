@@ -99,18 +99,15 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
       );
     };
     
-    // Clear any existing interval
     if (intervalRef.current) {
         clearInterval(intervalRef.current);
     }
     
-    // Run once immediately
-    getLocationAndUpdate();
+    setTimeout(() => {
+        getLocationAndUpdate();
+        intervalRef.current = setInterval(getLocationAndUpdate, UPDATE_INTERVAL_MS);
+    }, 0);
 
-    // Then set up the interval
-    intervalRef.current = setInterval(getLocationAndUpdate, UPDATE_INTERVAL_MS);
-
-    // Cleanup function to clear the interval when the component unmounts
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
