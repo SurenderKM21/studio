@@ -14,6 +14,9 @@ export default function Home() {
         <p className="text-xl text-muted-foreground mb-12">
           Navigate smarter, not harder.
         </p>
+        <p className="text-l text-muted-foreground mb-12">
+          Please login or register to continue.
+        </p>
       </div>
       <RoleSelector />
     </main>
