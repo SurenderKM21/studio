@@ -31,64 +31,66 @@ export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
   const { toast } = useToast();
 
   useEffect(() => {
-    const handleNewPosition = (position: GeolocationPosition) => {
-      const { latitude, longitude } = position.coords;
-      
-      updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude);
-
-      identifyUserZoneAction(latitude, longitude).then(result => {
-        if (result.data) {
-          setCurrentZone(prevZone => {
-            if (prevZone?.zoneId !== result.data.zoneId && result.data.zoneId !== 'unknown') {
-              toast({
-                title: "You've entered a new zone!",
-                description: `You are now in: ${result.data.zoneName}`,
-              });
-            }
-            return result.data;
-          });
-        }
-      });
-    };
-    
-    const handleLocationError = (error: GeolocationPositionError) => {
-      console.error("Geolocation error:", error);
-      let description = "Could not get your location. Please ensure location services are enabled.";
-      if (error.code === error.PERMISSION_DENIED) {
-        description = "Location permission denied. Please enable it in your browser settings to use this feature.";
-      }
-      toast({
-        variant: "destructive",
-        title: "Location Error",
-        description: description,
-      });
-    };
-
     const getLocation = () => {
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(handleNewPosition, handleLocationError, {
-          enableHighAccuracy: true,
-          timeout: 20000,
-          maximumAge: 0,
-        });
-      } else {
+      if (!navigator.geolocation) {
         toast({
           variant: "destructive",
           title: "Unsupported Browser",
           description: "Your browser does not support geolocation.",
         });
+        return;
       }
+
+      const handleSuccess = (position: GeolocationPosition) => {
+        const { latitude, longitude } = position.coords;
+
+        // Send data to admin view
+        updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude);
+
+        // Identify and update the user's current zone
+        identifyUserZoneAction(latitude, longitude).then(result => {
+          if (result.data) {
+            setCurrentZone(prevZone => {
+              if (prevZone?.zoneId !== result.data.zoneId && result.data.zoneId !== 'unknown') {
+                toast({
+                  title: "You've entered a new zone!",
+                  description: `You are now in: ${result.data.zoneName}`,
+                });
+              }
+              return result.data;
+            });
+          }
+        });
+      };
+
+      const handleError = (error: GeolocationPositionError) => {
+        console.error("Geolocation error:", error);
+        let description = "Could not get your location. Please ensure location services are enabled.";
+        if (error.code === error.PERMISSION_DENIED) {
+          description = "Location permission denied. Please enable it in your browser settings to use this feature.";
+        }
+        toast({
+          variant: "destructive",
+          title: "Location Error",
+          description: description,
+        });
+      };
+      
+      navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      });
     };
     
-    // Get initial position right away
+    // Get initial position immediately after login.
     getLocation();
 
-    // Set an interval to get updates
+    // Set an interval to send updates every 30 seconds.
     const intervalId = setInterval(getLocation, UPDATE_INTERVAL_MS);
 
-    return () => {
-      clearInterval(intervalId);
-    };
+    // Clean up the interval when the component unmounts.
+    return () => clearInterval(intervalId);
   }, [toast]);
 
 
