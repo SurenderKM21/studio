@@ -57,11 +57,21 @@ export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
       // Get initial position
       navigator.geolocation.getCurrentPosition(handleNewPosition, handleLocationError);
 
+      const watchId = navigator.geolocation.watchPosition(handleNewPosition, handleLocationError, {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      });
+
       const intervalId = setInterval(() => {
         navigator.geolocation.getCurrentPosition(handleNewPosition, handleLocationError);
       }, settings.updateInterval * 1000);
 
-      return () => clearInterval(intervalId);
+
+      return () => {
+        clearInterval(intervalId);
+        navigator.geolocation.clearWatch(watchId);
+      };
     } else {
        toast({
         variant: "destructive",
