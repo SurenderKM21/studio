@@ -26,99 +26,98 @@ interface MapViewProps {
   alternativeRoute: string[];
 }
 
-const zonePositions = [
-  { top: '10%', left: '40%' },
-  { top: '35%', left: '15%' },
-  { top: '40%', left: '70%' },
-  { top: '75%', left: '55%' },
-  { top: '5%', left: '5%' },
-  { top: '60%', left: '30%' },
-];
-
 export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
-  const positionedZones = useMemo(() => {
-    return zones.map((zone, index) => ({
-      ...zone,
-      position: zonePositions[index % zonePositions.length],
-    }));
-  }, [zones]);
-
-  const routePoints = useMemo(() => {
-    return route
+  const getRoutePoints = (path: string[], positionedZones: Zone[]) => {
+    return path
       .map((zoneId) => {
         const zone = positionedZones.find((z) => z.id === zoneId);
-        if (!zone) return null;
-        // Calculate center of the div
-        const top = parseFloat(zone.position.top);
-        const left = parseFloat(zone.position.left);
-        return { x: left + 7.5, y: top + 4 }; // 7.5 = 15/2, 4 = 8/2 rem
-      })
-      .filter(Boolean);
-  }, [route, positionedZones]);
+        const zoneEl = document.getElementById(zoneId);
+        if (!zone || !zoneEl) return null;
 
-  const altRoutePoints = useMemo(() => {
-    return alternativeRoute
-      .map((zoneId) => {
-        const zone = positionedZones.find((z) => z.id === zoneId);
-        if (!zone) return null;
-        const top = parseFloat(zone.position.top);
-        const left = parseFloat(zone.position.left);
-        return { x: left + 7.5, y: top + 4 };
+        const container = zoneEl.offsetParent as HTMLElement;
+        if (!container) return null;
+
+        const x =
+          ((zoneEl.offsetLeft + zoneEl.offsetWidth / 2) /
+            container.offsetWidth) *
+          100;
+        const y =
+          ((zoneEl.offsetTop + zoneEl.offsetHeight / 2) /
+            container.offsetHeight) *
+          100;
+
+        return { x, y };
       })
-      .filter(Boolean);
-  }, [alternativeRoute, positionedZones]);
+      .filter((p): p is { x: number; y: number } => p !== null);
+  };
+  
+  const [routePoints, altRoutePoints] = useMemo(() => {
+    if (typeof window === 'undefined') return [[], []];
+    const rPoints = getRoutePoints(route, zones);
+    const arPoints = getRoutePoints(alternativeRoute, zones);
+    return [rPoints, arPoints];
+  }, [route, alternativeRoute, zones]);
 
 
   return (
     <TooltipProvider>
-      <div className="relative w-full h-[550px] bg-muted/30 rounded-lg border-dashed border-2 overflow-hidden">
+      <div className="relative w-full min-h-[550px] bg-muted/30 rounded-lg border-dashed border-2 p-4">
+        <div className="relative grid grid-cols-3 grid-rows-3 gap-4 h-[520px]">
+          {/* Render zones */}
+          {zones.map((zone) => (
+            <Tooltip key={zone.id}>
+              <TooltipTrigger asChild>
+                <div
+                  id={zone.id}
+                  className={cn(
+                    'w-full h-full rounded-lg border-2 flex items-center justify-center p-2 text-center transition-all duration-300',
+                    densityStyles[zone.density].background,
+                    densityStyles[zone.density].border,
+                    route.includes(zone.id) || alternativeRoute.includes(zone.id)
+                      ? 'shadow-2xl scale-105'
+                      : 'shadow-md'
+                  )}
+                >
+                  <span className="font-bold text-sm">{zone.name}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Density: {zone.density}</p>
+                <p>
+                  Users: {zone.userCount} / {zone.capacity}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+        
         {/* Draw route lines */}
-        <svg className="absolute top-0 left-0 w-full h-full" style={{ pointerEvents: 'none' }}>
-            {altRoutePoints.length > 1 && (
-                <polyline
-                    points={altRoutePoints.map(p => `${p.x}%,${p.y}%`).join(' ')}
-                    fill="none"
-                    stroke="hsl(var(--primary))"
-                    strokeOpacity="0.5"
-                    strokeWidth="5"
-                    strokeDasharray="8 8"
-                    strokeLinecap='round'
-                />
-            )}
-            {routePoints.length > 1 && (
-                <polyline
-                    points={routePoints.map(p => `${p.x}%,${p.y}%`).join(' ')}
-                    fill="none"
-                    stroke="hsl(var(--accent))"
-                    strokeWidth="7"
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                />
-            )}
+        <svg
+          className="absolute top-0 left-0 w-full h-full"
+          style={{ pointerEvents: 'none' }}
+        >
+          {altRoutePoints.length > 1 && (
+            <polyline
+              points={altRoutePoints.map((p) => `${p.x}%,${p.y}%`).join(' ')}
+              fill="none"
+              stroke="hsl(var(--primary))"
+              strokeOpacity="0.5"
+              strokeWidth="5"
+              strokeDasharray="8 8"
+              strokeLinecap="round"
+            />
+          )}
+          {routePoints.length > 1 && (
+            <polyline
+              points={routePoints.map((p) => `${p.x}%,${p.y}%`).join(' ')}
+              fill="none"
+              stroke="hsl(var(--accent))"
+              strokeWidth="7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
         </svg>
-
-        {/* Render zones */}
-        {positionedZones.map((zone) => (
-          <Tooltip key={zone.id}>
-            <TooltipTrigger asChild>
-              <div
-                className={cn(
-                  'absolute w-3/12 h-1/6 rounded-lg border-2 flex items-center justify-center p-2 text-center transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300',
-                  densityStyles[zone.density].background,
-                  densityStyles[zone.density].border,
-                   (route.includes(zone.id) || alternativeRoute.includes(zone.id)) ? 'shadow-2xl scale-110' : 'shadow-md'
-                )}
-                style={zone.position}
-              >
-                <span className="font-bold text-sm">{zone.name}</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Density: {zone.density}</p>
-              <p>Users: {zone.userCount} / {zone.capacity}</p>
-            </TooltipContent>
-          </Tooltip>
-        ))}
       </div>
     </TooltipProvider>
   );

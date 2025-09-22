@@ -8,7 +8,8 @@ import type { Zone, AppSettings } from '@/lib/types';
 import { ZoneManager } from './zone-manager';
 import { DensityControl } from './density-control';
 import { SettingsPanel } from './settings-panel';
-import { Users, Map, Settings } from 'lucide-react';
+import { Users, Map, Settings, View } from 'lucide-react';
+import { MapView } from '../user/map-view';
 
 interface AdminDashboardProps {
   initialZones: Zone[];
@@ -21,7 +22,7 @@ export function AdminDashboard({
 }: AdminDashboardProps) {
   return (
     <Tabs defaultValue="zones" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="zones">
           <Map className="mr-2 h-4 w-4" />
           Zone Manager
@@ -29,6 +30,10 @@ export function AdminDashboard({
         <TabsTrigger value="density">
           <Users className="mr-2 h-4 w-4" />
           Density Control
+        </TabsTrigger>
+        <TabsTrigger value="map-view">
+          <View className="mr-2 h-4 w-4" />
+          Map View
         </TabsTrigger>
         <TabsTrigger value="settings">
           <Settings className="mr-2 h-4 w-4" />
@@ -40,6 +45,9 @@ export function AdminDashboard({
       </TabsContent>
       <TabsContent value="density">
         <DensityControl initialZones={initialZones} />
+      </TabsContent>
+      <TabsContent value="map-view">
+        <MapView zones={initialZones} route={[]} alternativeRoute={[]} />
       </TabsContent>
       <TabsContent value="settings">
         <SettingsPanel initialSettings={initialSettings} />
