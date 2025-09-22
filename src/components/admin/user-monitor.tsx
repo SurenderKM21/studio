@@ -16,9 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
 
 export function UserMonitor({ initialUsers }: { initialUsers: User[] }) {
   
@@ -34,44 +31,38 @@ export function UserMonitor({ initialUsers }: { initialUsers: User[] }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Last Location (Lat, Lng)</TableHead>
+              <TableHead className="w-[100px]">User ID</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Latitude</TableHead>
+              <TableHead>Longitude</TableHead>
               <TableHead className="text-right">Last Seen</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {initialUsers.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <span>{user.name}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {user.lastLatitude && user.lastLongitude ? (
-                    <Badge variant="outline">
-                      {user.lastLatitude.toFixed(4)}, {user.lastLongitude.toFixed(4)}
-                    </Badge>
-                  ) : (
-                    <span className="text-muted-foreground">N/A</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right text-muted-foreground">
-                  {user.lastSeen
-                    ? formatDistanceToNow(new Date(user.lastSeen), { addSuffix: true })
-                    : 'Never'}
+            {initialUsers.length > 0 ? (
+              initialUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.id}</TableCell>
+                  <TableCell>{user.name}</TableCell>
+                   <TableCell>
+                    {user.lastLatitude !== undefined ? user.lastLatitude.toFixed(6) : 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    {user.lastLongitude !== undefined ? user.lastLongitude.toFixed(6) : 'N/A'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {user.lastSeen
+                      ? new Date(user.lastSeen).toLocaleString()
+                      : 'Never'}
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
+                  No active users yet.
                 </TableCell>
               </TableRow>
-            ))}
-             {initialUsers.length === 0 && (
-                <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground h-24">
-                        No active users yet.
-                    </TableCell>
-                </TableRow>
             )}
           </TableBody>
         </Table>
