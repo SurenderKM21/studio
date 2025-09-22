@@ -18,14 +18,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { useFormState } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { addZoneAction } from '@/lib/actions';
 import type { Zone } from '@/lib/types';
 import { MapPin } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useActionState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 const addZoneSchema = z.object({
@@ -42,7 +41,7 @@ const initialState = {
 };
 
 export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
-  const [state, formAction] = useFormState(addZoneAction, initialState);
+  const [state, formAction] = useActionState(addZoneAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
 
