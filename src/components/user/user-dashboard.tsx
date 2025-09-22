@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
-import type { Zone, AppSettings, RouteDetails, DensityCategory } from '@/lib/types';
+import { useState, useTransition, useEffect, useCallback } from 'react';
+import type { Zone, AppSettings, RouteDetails } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -26,38 +26,50 @@ export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
   const [isClassifying, startClassification] = useTransition();
   const { toast } = useToast();
 
-  useEffect(() => {
-    const handleNewPosition = (position: GeolocationPosition) => {
-      const { latitude, longitude } = position.coords;
-      identifyUserZoneAction(latitude, longitude).then(result => {
-        if (result.data) {
-          setCurrentZone(result.data);
-          // Optional: toast to inform user of zone change
-          if (result.data.zoneId !== currentZone?.zoneId) {
-             toast({
+  const handleNewPosition = useCallback((position: GeolocationPosition) => {
+    const { latitude, longitude } = position.coords;
+    identifyUserZoneAction(latitude, longitude).then(result => {
+      if (result.data) {
+        setCurrentZone(prevZone => {
+          if (prevZone?.zoneId !== result.data.zoneId) {
+            toast({
               title: "You've entered a new zone!",
               description: `You are now in: ${result.data.zoneName}`,
             });
           }
-        }
-      });
-    };
-
-    if ('geolocation' in navigator) {
-      const intervalId = setInterval(() => {
-        navigator.geolocation.getCurrentPosition(handleNewPosition, (error) => {
-          console.error("Geolocation error:", error);
-          toast({
-            variant: "destructive",
-            title: "Location Error",
-            description: "Could not get your location. Please ensure location services are enabled."
-          })
+          return result.data;
         });
-      }, settings.updateInterval * 1000); // Using interval from settings
+      }
+    });
+  }, [toast]);
+  
+  const handleLocationError = useCallback((error: GeolocationPositionError) => {
+    console.error("Geolocation error:", error);
+    toast({
+      variant: "destructive",
+      title: "Location Error",
+      description: "Could not get your location. Please ensure location services are enabled."
+    });
+  }, [toast]);
+
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      // Get initial position
+      navigator.geolocation.getCurrentPosition(handleNewPosition, handleLocationError);
+
+      const intervalId = setInterval(() => {
+        navigator.geolocation.getCurrentPosition(handleNewPosition, handleLocationError);
+      }, settings.updateInterval * 1000);
 
       return () => clearInterval(intervalId);
+    } else {
+       toast({
+        variant: "destructive",
+        title: "Unsupported Browser",
+        description: "Your browser does not support geolocation.",
+      });
     }
-  }, [settings.updateInterval, toast, currentZone?.zoneId]);
+  }, [settings.updateInterval, toast, handleNewPosition, handleLocationError]);
 
 
   const handlePlanRoute = (sourceZone: string, destinationZone: string) => {
