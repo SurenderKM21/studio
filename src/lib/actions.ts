@@ -14,7 +14,7 @@ const addZoneSchema = z.object({
   coordinates: z.string().min(1, 'Coordinates are required'),
 });
 
-export async function addZoneAction(formData: FormData) {
+export async function addZoneAction(prevState: any, formData: FormData) {
   const validatedFields = addZoneSchema.safeParse({
     name: formData.get('name'),
     capacity: formData.get('capacity'),
