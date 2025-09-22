@@ -1,3 +1,4 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -55,6 +56,7 @@ export async function addZoneAction(prevState: any, formData: FormData) {
 
     db.addZone({ name, capacity, coordinates });
     revalidatePath('/admin');
+    revalidatePath('/user');
     return { success: true };
 
   } catch (error) {
@@ -63,7 +65,7 @@ export async function addZoneAction(prevState: any, formData: FormData) {
 }
 
 export async function updateSettingsAction(settings: Partial<AppSettings>) {
-  // No-op, settings are hardcoded for now
+  db.updateSettings(settings);
   revalidatePath('/admin');
   revalidatePath('/user');
 }
@@ -86,8 +88,6 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
     const result = await generateOptimalRoute({
       sourceZone,
       destinationZone,
-      // The AI flow expects a base64 data URI for location.
-      // This is a placeholder for a user's actual location.
       currentLocation: 'data:text/plain;base64,MzQuMDUyMiwtMTE4LjI0Mzc=',
     });
     return { data: result };
@@ -99,12 +99,26 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
 
 export async function classifyAllZonesAction() {
   const zones = db.getZones();
+  const users = db.getUsers();
   const classifications: { zoneId: string; density: DensityCategory }[] = [];
   
   try {
+    const zoneUserCounts = zones.reduce((acc, zone) => {
+        acc[zone.id] = 0;
+        return acc;
+    }, {} as Record<string, number>);
+
+    for (const user of users) {
+        if (user.lastLatitude && user.lastLongitude) {
+            const userZone = await identifyUserZone({latitude: user.lastLatitude, longitude: user.lastLongitude });
+            if (userZone && userZone.zoneId !== 'unknown') {
+                zoneUserCounts[userZone.zoneId] += user.groupSize || 1;
+            }
+        }
+    }
+
     for (const zone of zones) {
-       // Simulate user count changes
-       const userCount = Math.floor(Math.random() * (zone.capacity * 1.2));
+       const userCount = zoneUserCounts[zone.id];
        db.updateZone(zone.id, { userCount });
 
       const result = await classifyZoneDensity({
@@ -157,9 +171,9 @@ export async function identifyUserZoneAction(latitude: number, longitude: number
     }
 }
 
-export async function updateUserLocationAction(id: string, name: string, latitude: number, longitude: number) {
+export async function updateUserLocationAction(id: string, name: string, latitude: number, longitude: number, groupSize: number) {
   try {
-    db.updateUserLocation(id, name, latitude, longitude);
+    db.updateUserLocation(id, name, latitude, longitude, groupSize);
     revalidatePath('/admin');
     return { success: true };
   } catch (e) {

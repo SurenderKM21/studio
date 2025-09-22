@@ -1,53 +1,99 @@
+
 import type { Zone, AppSettings, DensityCategory, User } from './types';
+import fs from 'fs';
+import path from 'path';
 
-let zones: Zone[] = [];
-let users: User[] = [];
+type DbData = {
+  zones: Zone[];
+  users: User[];
+  settings: AppSettings;
+};
 
-let settings: AppSettings = {};
+const dbPath = path.resolve(process.cwd(), 'src/lib/db.json');
 
-// Simulate a database
+function readDb(): DbData {
+  try {
+    if (fs.existsSync(dbPath)) {
+      const jsonString = fs.readFileSync(dbPath, 'utf8');
+      return JSON.parse(jsonString) as DbData;
+    }
+  } catch (error) {
+    console.error('Error reading from DB, returning empty state:', error);
+  }
+  // If file doesn't exist or is corrupt, return a default structure
+  return { zones: [], users: [], settings: {} };
+}
+
+function writeDb(data: DbData): void {
+  try {
+    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Error writing to DB:', error);
+  }
+}
+
 export const db = {
-  getZones: (): Zone[] => zones,
-  getZoneById: (id: string): Zone | undefined => zones.find(z => z.id === id),
+  getZones: (): Zone[] => {
+    return readDb().zones;
+  },
+  getZoneById: (id: string): Zone | undefined => {
+    const { zones } = readDb();
+    return zones.find(z => z.id === id);
+  },
   addZone: (zone: Omit<Zone, 'id' | 'userCount' | 'density'>): Zone => {
+    const data = readDb();
     const newZone: Zone = {
       ...zone,
       id: `zone-${Math.random().toString(36).substring(2, 9)}`,
       userCount: 0,
       density: 'free',
     };
-    zones.push(newZone);
+    data.zones.push(newZone);
+    writeDb(data);
     return newZone;
   },
   updateZone: (id: string, updatedData: Partial<Zone>): Zone | undefined => {
-    const zoneIndex = zones.findIndex(z => z.id === id);
+    const data = readDb();
+    const zoneIndex = data.zones.findIndex(z => z.id === id);
     if (zoneIndex > -1) {
-      zones[zoneIndex] = { ...zones[zoneIndex], ...updatedData };
-      return zones[zoneIndex];
+      data.zones[zoneIndex] = { ...data.zones[zoneIndex], ...updatedData };
+      writeDb(data);
+      return data.zones[zoneIndex];
     }
     return undefined;
   },
   updateZoneDensity: (id: string, density: DensityCategory) => {
-    const zone = db.getZoneById(id);
-    if (zone) {
-      zone.density = density;
+    const data = readDb();
+    const zoneIndex = data.zones.findIndex(z => z.id === id);
+    if (zoneIndex > -1) {
+      data.zones[zoneIndex].density = density;
+      writeDb(data);
     }
   },
-  getSettings: (): AppSettings => settings,
-  updateSettings: (newSettings: Partial<AppSettings>): AppSettings => {
-    settings = { ...settings, ...newSettings };
-    return settings;
+  getSettings: (): AppSettings => {
+    return readDb().settings;
   },
-  getUsers: (): User[] => users,
-  updateUserLocation: (id: string, name: string, latitude: number, longitude: number): User => {
-    const userIndex = users.findIndex(u => u.id === id);
+  updateSettings: (newSettings: Partial<AppSettings>): AppSettings => {
+    const data = readDb();
+    data.settings = { ...data.settings, ...newSettings };
+    writeDb(data);
+    return data.settings;
+  },
+  getUsers: (): User[] => {
+    return readDb().users;
+  },
+  updateUserLocation: (id: string, name: string, latitude: number, longitude: number, groupSize: number): User => {
+    const data = readDb();
+    const userIndex = data.users.findIndex(u => u.id === id);
     const now = new Date().toISOString();
     if (userIndex > -1) {
-      users[userIndex] = { ...users[userIndex], lastLatitude: latitude, lastLongitude: longitude, lastSeen: now };
-      return users[userIndex];
+      data.users[userIndex] = { ...data.users[userIndex], lastLatitude: latitude, lastLongitude: longitude, lastSeen: now, groupSize };
+      writeDb(data);
+      return data.users[userIndex];
     } else {
-      const newUser: User = { id, name, lastLatitude: latitude, lastLongitude: longitude, lastSeen: now };
-      users.push(newUser);
+      const newUser: User = { id, name, lastLatitude: latitude, lastLongitude: longitude, lastSeen: now, groupSize };
+      data.users.push(newUser);
+      writeDb(data);
       return newUser;
     }
   },
