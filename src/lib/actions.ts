@@ -12,10 +12,10 @@ import { identifyUserZone } from '@/ai/flows/identify-user-zone';
 const addZoneSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
-  coordinate1: z.string().min(1, 'Coordinate 1 is required'),
-  coordinate2: z.string().min(1, 'Coordinate 2 is required'),
-  coordinate3: z.string().min(1, 'Coordinate 3 is required'),
-  coordinate4: z.string().min(1, 'Coordinate 4 is required'),
+  coordinate1: z.string().min(1, 'Coordinate 1 is required').regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, 'Invalid format, use "lat,lng"'),
+  coordinate2: z.string().min(1, 'Coordinate 2 is required').regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, 'Invalid format, use "lat,lng"'),
+  coordinate3: z.string().min(1, 'Coordinate 3 is required').regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, 'Invalid format, use "lat,lng"'),
+  coordinate4: z.string().min(1, 'Coordinate 4 is required').regex(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/, 'Invalid format, use "lat,lng"'),
 });
 
 export async function addZoneAction(prevState: any, formData: FormData) {
@@ -116,6 +116,7 @@ export async function classifyAllZonesAction() {
       classifications.push({ zoneId: zone.id, density: result.densityCategory });
     }
     revalidatePath('/user');
+    revalidatePath('/admin');
     return { success: true, classifications };
   } catch (e) {
     console.error(e);
@@ -152,4 +153,15 @@ export async function identifyUserZoneAction(latitude: number, longitude: number
         console.error(e);
         return { error: 'Failed to identify user zone.' };
     }
+}
+
+export async function updateUserLocationAction(id: string, name: string, latitude: number, longitude: number) {
+  try {
+    db.updateUserLocation(id, name, latitude, longitude);
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { error: 'Failed to update user location.' };
+  }
 }

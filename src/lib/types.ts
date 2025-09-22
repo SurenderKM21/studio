@@ -19,3 +19,11 @@ export type RouteDetails = {
 export type AppSettings = {
   updateInterval: number;
 };
+
+export type User = {
+  id: string;
+  name: string;
+  lastLatitude?: number;
+  lastLongitude?: number;
+  lastSeen?: string;
+};

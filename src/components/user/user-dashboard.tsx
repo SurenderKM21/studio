@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
-import type { Zone, AppSettings, RouteDetails } from '@/lib/types';
+import type { Zone, AppSettings, RouteDetails, User } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { RouteInfo } from './route-info';
 import { Button } from '../ui/button';
 import { Loader, RefreshCw } from 'lucide-react';
-import { classifyAllZonesAction, getRouteAction, identifyUserZoneAction } from '@/lib/actions';
+import { classifyAllZonesAction, getRouteAction, identifyUserZoneAction, updateUserLocationAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { DensityLegend } from './density-legend';
 import { LocationTracker } from './location-tracker';
@@ -18,6 +18,9 @@ interface UserDashboardProps {
   settings: AppSettings;
 }
 
+// Mock user for demonstration. In a real app, this would come from auth.
+const MOCK_USER: User = { id: 'user-1', name: 'John Doe' };
+
 export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
   const [zones, setZones] = useState<Zone[]>(initialZones);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
@@ -26,47 +29,58 @@ export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
   const [isClassifying, startClassification] = useTransition();
   const { toast } = useToast();
 
-  const handleNewPosition = useCallback((position: GeolocationPosition) => {
-    const { latitude, longitude } = position.coords;
-    identifyUserZoneAction(latitude, longitude).then(result => {
-      if (result.data) {
-        setCurrentZone(prevZone => {
-          if (prevZone?.zoneId !== result.data.zoneId) {
-            toast({
-              title: "You've entered a new zone!",
-              description: `You are now in: ${result.data.zoneName}`,
-            });
-          }
-          return result.data;
-        });
-      }
-    });
-  }, [toast]);
-  
-  const handleLocationError = useCallback((error: GeolocationPositionError) => {
-    console.error("Geolocation error:", error);
-    toast({
-      variant: "destructive",
-      title: "Location Error",
-      description: "Could not get your location. Please ensure location services are enabled."
-    });
-  }, [toast]);
-
   useEffect(() => {
-    if ('geolocation' in navigator) {
-      // Get initial position
-      navigator.geolocation.getCurrentPosition(handleNewPosition, handleLocationError);
+    const handleNewPosition = (position: GeolocationPosition) => {
+      const { latitude, longitude } = position.coords;
+      
+      // Update user's location in the backend
+      updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude);
 
+      identifyUserZoneAction(latitude, longitude).then(result => {
+        if (result.data) {
+          setCurrentZone(prevZone => {
+            if (prevZone?.zoneId !== result.data.zoneId) {
+              toast({
+                title: "You've entered a new zone!",
+                description: `You are now in: ${result.data.zoneName}`,
+              });
+            }
+            return result.data;
+          });
+        }
+      });
+    };
+    
+    const handleLocationError = (error: GeolocationPositionError) => {
+      console.error("Geolocation error:", error);
+      let description = "Could not get your location. Please ensure location services are enabled.";
+      if (error.code === error.PERMISSION_DENIED) {
+        description = "Location permission denied. Please enable it in your browser settings to use this feature.";
+      }
+      toast({
+        variant: "destructive",
+        title: "Location Error",
+        description: description,
+      });
+    };
+
+    if ('geolocation' in navigator) {
+      // Get initial position right away
+      navigator.geolocation.getCurrentPosition(handleNewPosition, handleLocationError, {
+        enableHighAccuracy: true,
+      });
+
+      // Set up a watcher to get updates
       const watchId = navigator.geolocation.watchPosition(handleNewPosition, handleLocationError, {
         enableHighAccuracy: true,
-        timeout: 5000,
+        timeout: 10000,
         maximumAge: 0
       });
 
+      // Also set an interval as a fallback
       const intervalId = setInterval(() => {
         navigator.geolocation.getCurrentPosition(handleNewPosition, handleLocationError);
       }, settings.updateInterval * 1000);
-
 
       return () => {
         clearInterval(intervalId);
@@ -79,7 +93,7 @@ export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
         description: "Your browser does not support geolocation.",
       });
     }
-  }, [settings.updateInterval, toast, handleNewPosition, handleLocationError]);
+  }, [settings.updateInterval, toast]);
 
 
   const handlePlanRoute = (sourceZone: string, destinationZone: string) => {

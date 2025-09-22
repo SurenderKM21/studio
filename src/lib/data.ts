@@ -1,6 +1,7 @@
-import type { Zone, AppSettings, DensityCategory } from './types';
+import type { Zone, AppSettings, DensityCategory, User } from './types';
 
 let zones: Zone[] = [];
+let users: User[] = [];
 
 let settings: AppSettings = {
   updateInterval: 60, // in seconds
@@ -38,5 +39,18 @@ export const db = {
   updateSettings: (newSettings: Partial<AppSettings>): AppSettings => {
     settings = { ...settings, ...newSettings };
     return settings;
+  },
+  getUsers: (): User[] => users,
+  updateUserLocation: (id: string, name: string, latitude: number, longitude: number): User => {
+    const userIndex = users.findIndex(u => u.id === id);
+    const now = new Date().toISOString();
+    if (userIndex > -1) {
+      users[userIndex] = { ...users[userIndex], lastLatitude: latitude, lastLongitude: longitude, lastSeen: now };
+      return users[userIndex];
+    } else {
+      const newUser: User = { id, name, lastLatitude: latitude, lastLongitude: longitude, lastSeen: now };
+      users.push(newUser);
+      return newUser;
+    }
   },
 };
