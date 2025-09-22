@@ -12,13 +12,11 @@ import { classifyAllZonesAction, getRouteAction, identifyUserZoneAction, updateU
 import { useToast } from '@/hooks/use-toast';
 import { DensityLegend } from './density-legend';
 import { LocationTracker } from './location-tracker';
-import { db } from '@/lib/data';
 
 interface UserDashboardProps {
   initialZones: Zone[];
 }
 
-// Mock user for demonstration. In a real app, this would come from auth.
 const MOCK_USER: User = { id: 'user-1', name: 'John Doe' };
 const UPDATE_INTERVAL_MS = 30000; // 30 seconds
 
@@ -55,25 +53,33 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
         (position) => {
           const { latitude, longitude } = position.coords;
           
-          updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude)
-            .then(() => {
-                setLastLocationUpdate(new Date());
-            }).finally(() => {
-                setIsSendingLocation(false);
-            });
+          Promise.all([
+             updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude),
+             identifyUserZoneAction(latitude, longitude)
+          ]).then(([locationUpdateResult, zoneResult]) => {
+              setLastLocationUpdate(new Date());
 
-          identifyUserZoneAction(latitude, longitude).then(result => {
-            if (result.data) {
+              if (zoneResult.data) {
                 setCurrentZone(prevZone => {
-                  if (prevZone?.zoneId !== result.data.zoneId && result.data.zoneId !== 'unknown') {
+                  if (prevZone?.zoneId !== zoneResult.data.zoneId && zoneResult.data.zoneId !== 'unknown') {
                     toast({
                       title: "You've entered a new zone!",
-                      description: `You are now in: ${result.data.zoneName}`,
+                      description: `You are now in: ${zoneResult.data.zoneName}`,
                     });
                   }
-                  return result.data;
+                  return zoneResult.data;
                 });
             }
+
+          }).catch((err) => {
+             console.error("Error updating location or zone:", err);
+             toast({
+                variant: "destructive",
+                title: "Update Error",
+                description: "Failed to update location or identify zone.",
+            });
+          }).finally(() => {
+             setIsSendingLocation(false);
           });
         },
         (error) => {
