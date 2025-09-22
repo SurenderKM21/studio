@@ -65,7 +65,15 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
       formRef.current?.reset();
       reset();
     } else if (state?.error) {
-       const errorMsg = typeof state.error === 'string' ? state.error : 'An unexpected error occurred.';
+       let errorMsg = 'An unexpected error occurred.';
+       if (typeof state.error === 'string') {
+          errorMsg = state.error;
+       } else if (typeof state.error === 'object') {
+          const fieldErrors = Object.values(state.error).flat();
+          if (fieldErrors.length > 0) {
+            errorMsg = fieldErrors.join(' ');
+          }
+       }
        toast({
         variant: 'destructive',
         title: 'Error',
