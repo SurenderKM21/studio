@@ -33,17 +33,27 @@ export async function identifyUserZone(input: IdentifyUserZoneInput): Promise<Id
 
 // Point-in-polygon algorithm to check if a point is inside a zone
 function isPointInZone(point: { latitude: number; longitude: number }, zone: Zone): boolean {
-  let isInside = false;
-  const vertices = zone.coordinates;
-  for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
-    const xi = vertices[i].lat, yi = vertices[i].lng;
-    const xj = vertices[j].lat, yj = vertices[j].lng;
+    const { latitude, longitude } = point;
+    const vertices = zone.coordinates;
+    let isInside = false;
 
-    const intersect = ((yi > point.longitude) !== (yj > point.longitude))
-        && (point.latitude < (xj - xi) * (point.longitude - yi) / (yj - yi) + xi);
-    if (intersect) isInside = !isInside;
-  }
-  return isInside;
+    for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+        const vertexI = vertices[i];
+        const vertexJ = vertices[j];
+
+        const intersect =
+            vertexI.lng > longitude !== vertexJ.lng > longitude &&
+            latitude <
+                ((vertexJ.lat - vertexI.lat) * (longitude - vertexI.lng)) /
+                    (vertexJ.lng - vertexI.lng) +
+                    vertexI.lat;
+
+        if (intersect) {
+            isInside = !isInside;
+        }
+    }
+
+    return isInside;
 }
 
 
