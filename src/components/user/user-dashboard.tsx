@@ -32,16 +32,15 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const { toast } = useToast();
+  
+  useEffect(() => {
+    // When the initialZones prop changes (e.g., from a server refresh), update the state
+    setZones(initialZones);
+  }, [initialZones]);
 
   useEffect(() => {
-    // Clear any existing intervals when the component mounts or dependencies change
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
     const getLocationAndUpdate = () => {
       if (!navigator.geolocation) {
-        console.error("Geolocation is not supported by this browser.");
         toast({
           variant: "destructive",
           title: "Unsupported Browser",
@@ -59,6 +58,7 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
           updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude)
             .then(() => {
                 setLastLocationUpdate(new Date());
+                setIsSendingLocation(false);
             });
 
           identifyUserZoneAction(latitude, longitude).then(result => {
@@ -74,7 +74,6 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
                 });
             }
           });
-          setIsSendingLocation(false);
         },
         (error) => {
           console.error("Geolocation error:", error);
@@ -93,6 +92,10 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
       );
     };
 
+    if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+    }
+    
     // Run once immediately
     getLocationAndUpdate();
 
@@ -174,11 +177,11 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
             lastUpdated={lastLocationUpdate}
         />
         <RoutePlanner
-          zones={initialZones}
+          zones={zones}
           onPlanRoute={handlePlanRoute}
           isPlanning={isPlanning}
         />
-        <RouteInfo routeDetails={routeDetails} isPlanning={isPlanning} zones={initialZones} />
+        <RouteInfo routeDetails={routeDetails} isPlanning={isPlanning} zones={zones} />
       </div>
       <div className="lg:col-span-2">
         <Card className="h-full min-h-[600px] shadow-lg">
@@ -189,7 +192,7 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <MapView zones={initialZones} route={routeDetails?.route ?? []} alternativeRoute={routeDetails?.alternativeRoute ?? []} />
+            <MapView zones={zones} route={routeDetails?.route ?? []} alternativeRoute={routeDetails?.alternativeRoute ?? []} />
           </CardContent>
         </Card>
       </div>

@@ -1,6 +1,8 @@
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
 import { db } from '@/lib/data';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
   const zones = db.getZones();
   const settings = db.getSettings();
