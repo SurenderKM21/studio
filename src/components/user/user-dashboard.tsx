@@ -18,7 +18,7 @@ interface UserDashboardProps {
   initialZones: Zone[];
 }
 
-const MOCK_USER: User = { id: 'user-1', name: 'John Doe', groupSize: 1 };
+const MOCK_USER: User = { id: 'user-1', name: 'John Doe' };
 const UPDATE_INTERVAL_MS = 30000; // 30 seconds
 
 export function UserDashboard({ initialZones }: UserDashboardProps) {
@@ -34,13 +34,10 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
   const { toast } = useToast();
   
   useEffect(() => {
-    // This component receives initialZones, but we also want to keep it up to date
-    // if the admin adds more. A more robust solution might involve websockets,
-    // but for now, we can periodically re-fetch.
     const zoneRefreshInterval = setInterval(() => {
        const updatedZones = db.getZones();
        setZones(updatedZones);
-    }, 10000); // every 10 seconds
+    }, 10000);
     
     return () => clearInterval(zoneRefreshInterval);
   }, []);
@@ -62,7 +59,7 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
         const { latitude, longitude } = position.coords;
         
         Promise.all([
-           updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude, MOCK_USER.groupSize),
+           updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude),
            identifyUserZoneAction(latitude, longitude)
         ]).then(([locationUpdateResult, zoneResult]) => {
             setLastLocationUpdate(new Date());
