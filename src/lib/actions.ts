@@ -7,6 +7,8 @@ import type { Zone, AppSettings, DensityCategory } from './types';
 import { generateOptimalRoute } from '@/ai/flows/generate-optimal-route';
 import { classifyZoneDensity } from '@/ai/flows/classify-zone-density';
 import { suggestAlternativeRoutes } from '@/ai/flows/suggest-alternative-routes';
+import { identifyUserZone } from '@/ai/flows/identify-user-zone';
+
 
 const addZoneSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
@@ -115,5 +117,15 @@ export async function getAlternativeRoutesAction(sourceZone: string, destination
     } catch (e) {
         console.error(e);
         return { error: 'Failed to suggest alternative routes.' };
+    }
+}
+
+export async function identifyUserZoneAction(latitude: number, longitude: number) {
+    try {
+        const result = await identifyUserZone({ latitude, longitude });
+        return { data: result };
+    } catch (e) {
+        console.error(e);
+        return { error: 'Failed to identify user zone.' };
     }
 }

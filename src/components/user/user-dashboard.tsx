@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import type { Zone, AppSettings, RouteDetails, DensityCategory } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
@@ -8,9 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { RouteInfo } from './route-info';
 import { Button } from '../ui/button';
 import { Loader, RefreshCw } from 'lucide-react';
-import { classifyAllZonesAction, getRouteAction } from '@/lib/actions';
+import { classifyAllZonesAction, getRouteAction, identifyUserZoneAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { DensityLegend } from './density-legend';
+import { LocationTracker } from './location-tracker';
 
 interface UserDashboardProps {
   initialZones: Zone[];
@@ -20,9 +21,44 @@ interface UserDashboardProps {
 export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
   const [zones, setZones] = useState<Zone[]>(initialZones);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
+  const [currentZone, setCurrentZone] = useState<{ zoneId: string; zoneName: string} | null>(null);
   const [isPlanning, startRoutePlanning] = useTransition();
   const [isClassifying, startClassification] = useTransition();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const handleNewPosition = (position: GeolocationPosition) => {
+      const { latitude, longitude } = position.coords;
+      identifyUserZoneAction(latitude, longitude).then(result => {
+        if (result.data) {
+          setCurrentZone(result.data);
+          // Optional: toast to inform user of zone change
+          if (result.data.zoneId !== currentZone?.zoneId) {
+             toast({
+              title: "You've entered a new zone!",
+              description: `You are now in: ${result.data.zoneName}`,
+            });
+          }
+        }
+      });
+    };
+
+    if ('geolocation' in navigator) {
+      const intervalId = setInterval(() => {
+        navigator.geolocation.getCurrentPosition(handleNewPosition, (error) => {
+          console.error("Geolocation error:", error);
+          toast({
+            variant: "destructive",
+            title: "Location Error",
+            description: "Could not get your location. Please ensure location services are enabled."
+          })
+        });
+      }, settings.updateInterval * 1000); // Using interval from settings
+
+      return () => clearInterval(intervalId);
+    }
+  }, [settings.updateInterval, toast, currentZone?.zoneId]);
+
 
   const handlePlanRoute = (sourceZone: string, destinationZone: string) => {
     startRoutePlanning(async () => {
@@ -85,6 +121,7 @@ export function UserDashboard({ initialZones, settings }: UserDashboardProps) {
 
     <div className="grid lg:grid-cols-3 gap-8">
       <div className="lg:col-span-1 flex flex-col gap-8">
+        <LocationTracker currentZoneName={currentZone?.zoneName ?? 'Locating...'} />
         <RoutePlanner
           zones={zones}
           onPlanRoute={handlePlanRoute}
