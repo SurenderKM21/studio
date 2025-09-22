@@ -12,6 +12,7 @@ import { classifyAllZonesAction, getRouteAction, identifyUserZoneAction, updateU
 import { useToast } from '@/hooks/use-toast';
 import { DensityLegend } from './density-legend';
 import { LocationTracker } from './location-tracker';
+import { db } from '@/lib/data';
 
 interface UserDashboardProps {
   initialZones: Zone[];
@@ -34,7 +35,6 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
   const { toast } = useToast();
   
   useEffect(() => {
-    // When the initialZones prop changes (e.g., from a server refresh), update the state
     setZones(initialZones);
   }, [initialZones]);
 
@@ -58,6 +58,7 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
           updateUserLocationAction(MOCK_USER.id, MOCK_USER.name, latitude, longitude)
             .then(() => {
                 setLastLocationUpdate(new Date());
+            }).finally(() => {
                 setIsSendingLocation(false);
             });
 
@@ -91,7 +92,8 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     };
-
+    
+    // Clear any existing interval
     if (intervalRef.current) {
         clearInterval(intervalRef.current);
     }
@@ -140,7 +142,6 @@ export function UserDashboard({ initialZones }: UserDashboardProps) {
           description: result.error,
         });
       } else {
-        // A full implementation would re-fetch, but here we'll just update state
         const updatedZones = zones.map(z => {
             const classification = result.classifications?.find(c => c.zoneId === z.id);
             return classification ? { ...z, density: classification.density } : z;
