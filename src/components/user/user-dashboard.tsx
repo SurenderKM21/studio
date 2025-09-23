@@ -58,19 +58,27 @@ export function UserDashboard({ initialZones, initialUser }: UserDashboardProps)
            identifyUserZoneAction(latitude, longitude)
         ]).then(([locationUpdateResult, zoneResult]) => {
             setLastLocationUpdate(new Date());
-
+            
             if (zoneResult.data) {
               const newZone = zoneResult.data;
-              if (currentZone?.zoneId !== newZone.zoneId && newZone.zoneId !== 'unknown') {
-                toast({
-                  title: "You've entered a new zone!",
-                  description: `You are now in: ${newZone.zoneName}`,
-                });
+              if (currentZone?.zoneId !== newZone.zoneId) {
+                setCurrentZone(newZone);
+                if (newZone.zoneId !== 'unknown') {
+                   toast({
+                    title: "You've entered a new zone!",
+                    description: `You are now in: ${newZone.zoneName}`,
+                  });
+                }
               }
-              setCurrentZone(newZone);
+            } else if (zoneResult.error) {
+                toast({
+                  variant: "destructive",
+                  title: "Zone Identification Error",
+                  description: zoneResult.error,
+              });
             }
+
         }).catch((err) => {
-           console.error("Error updating location or zone:", err);
            toast({
               variant: "destructive",
               title: "Update Error",
@@ -81,7 +89,6 @@ export function UserDashboard({ initialZones, initialUser }: UserDashboardProps)
         });
       },
       (error) => {
-        console.error("Geolocation error:", error);
         let description = "Could not get your location. Please ensure location services are enabled.";
         if (error?.code === error.PERMISSION_DENIED) {
           description = "Location permission denied. Please enable it in your browser settings to use this feature.";
@@ -98,7 +105,6 @@ export function UserDashboard({ initialZones, initialUser }: UserDashboardProps)
   }, [toast, initialUser.id, initialUser.name, initialUser.groupSize, currentZone?.zoneId]);
   
   useEffect(() => {
-    // We wrap this in a timeout to ensure it runs after the initial render.
     const initialTimeout = setTimeout(() => {
       getLocationAndUpdate();
       intervalRef.current = setInterval(getLocationAndUpdate, UPDATE_INTERVAL_MS);
