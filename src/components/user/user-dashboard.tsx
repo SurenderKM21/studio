@@ -100,6 +100,7 @@ export function UserDashboard({ initialZones, initialUser }: UserDashboardProps)
   }, [toast, initialUser.id, initialUser.name, initialUser.groupSize]);
   
   useEffect(() => {
+    // We wrap this in a timeout to ensure it runs after the initial render.
     const initialTimeout = setTimeout(() => {
       getLocationAndUpdate();
       intervalRef.current = setInterval(getLocationAndUpdate, UPDATE_INTERVAL_MS);
@@ -112,6 +113,7 @@ export function UserDashboard({ initialZones, initialUser }: UserDashboardProps)
       }
     };
   }, [getLocationAndUpdate]);
+
 
   const handlePlanRoute = (sourceZone: string, destinationZone: string) => {
     startRoutePlanning(async () => {

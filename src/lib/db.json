@@ -1,12 +1,114 @@
 {
-  "zones": [],
+  "zones": [
+    {
+      "name": "Home",
+      "capacity": 5,
+      "coordinates": [
+        {
+          "lat": 12.859129,
+          "lng": 80.084309
+        },
+        {
+          "lat": 12.859055,
+          "lng": 80.0848
+        },
+        {
+          "lat": 12.858698,
+          "lng": 80.084305
+        },
+        {
+          "lat": 12.858697,
+          "lng": 80.084834
+        }
+      ],
+      "id": "zone-fzrs6wb",
+      "userCount": 0,
+      "density": "free"
+    },
+    {
+      "name": "Area1",
+      "capacity": 7,
+      "coordinates": [
+        {
+          "lat": 12.854117,
+          "lng": 80.079509
+        },
+        {
+          "lat": 12.853813,
+          "lng": 80.079218
+        },
+        {
+          "lat": 12.853133,
+          "lng": 80.079527
+        },
+        {
+          "lat": 12.853648,
+          "lng": 80.080145
+        }
+      ],
+      "id": "zone-e7cq1vc",
+      "userCount": 0,
+      "density": "crowded"
+    },
+    {
+      "name": "Car parking",
+      "capacity": 90,
+      "coordinates": [
+        {
+          "lat": 12.854117,
+          "lng": 80.079509
+        },
+        {
+          "lat": 12.853813,
+          "lng": 80.079218
+        },
+        {
+          "lat": 12.853133,
+          "lng": 80.079527
+        },
+        {
+          "lat": 12.853648,
+          "lng": 80.080145
+        }
+      ],
+      "id": "zone-2y5edj3",
+      "userCount": 0,
+      "density": "moderate"
+    },
+    {
+      "name": "IT Park",
+      "capacity": 12,
+      "coordinates": [
+        {
+          "lat": 12.830431,
+          "lng": 80.046986
+        },
+        {
+          "lat": 12.832508,
+          "lng": 80.049906
+        },
+        {
+          "lat": 12.8262,
+          "lng": 80.051207
+        },
+        {
+          "lat": 12.830592,
+          "lng": 80.054512
+        }
+      ],
+      "id": "zone-6iabs98",
+      "userCount": 0,
+      "density": "free"
+    }
+  ],
   "users": [
     {
       "id": "user-1",
       "name": "John Doe",
-      "lastLatitude": 12.858777500000002,
-      "lastLongitude": 80.08448200000001,
-      "lastSeen": "2025-09-22T19:19:18.339Z"
+      "lastLatitude": 12.8345106,
+      "lastLongitude": 80.0430028,
+      "lastSeen": "2025-09-23T13:28:49.433Z",
+      "groupSize": 1
     }
   ],
   "settings": {}
