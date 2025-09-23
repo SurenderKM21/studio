@@ -57,6 +57,7 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
     formState: { errors },
   } = useForm<AddZoneForm>({
     resolver: zodResolver(addZoneSchema),
+    // We remove default values to not interfere with reset()
   });
   
   useEffect(() => {
@@ -71,7 +72,7 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
        let errorMsg = 'An unexpected error occurred.';
        if (typeof state.error === 'string') {
           errorMsg = state.error;
-       } else if (typeof state.error === 'object') {
+       } else if (typeof state.error === 'object' && state.error !== null) {
           const fieldErrors = Object.values(state.error).flat();
           if (fieldErrors.length > 0) {
             errorMsg = fieldErrors.join(' ');
@@ -79,7 +80,7 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
        }
        toast({
         variant: 'destructive',
-        title: 'Error',
+        title: 'Error Adding Zone',
         description: errorMsg,
       });
     }
@@ -103,7 +104,6 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
                 {...register('name')}
                 placeholder="e.g., Main Stage"
               />
-              {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="capacity">Max Capacity</Label>
@@ -113,7 +113,6 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
                 {...register('capacity')}
                 placeholder="e.g., 500"
               />
-              {errors.capacity && <p className="text-sm text-destructive">{errors.capacity.message}</p>}
             </div>
              <div className="grid grid-cols-2 gap-4">
                <div className="space-y-2">
@@ -123,7 +122,6 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
                   {...register('coordinate1')}
                   placeholder="lat,lng"
                 />
-                {errors.coordinate1 && <p className="text-sm text-destructive">{errors.coordinate1.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="coordinate2">Coordinate 2 (Top-Right)</Label>
@@ -132,7 +130,6 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
                   {...register('coordinate2')}
                   placeholder="lat,lng"
                 />
-                 {errors.coordinate2 && <p className="text-sm text-destructive">{errors.coordinate2.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="coordinate3">Coordinate 3 (Bottom-Right)</Label>
@@ -141,7 +138,6 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
                   {...register('coordinate3')}
                   placeholder="lat,lng"
                 />
-                 {errors.coordinate3 && <p className="text-sm text-destructive">{errors.coordinate3.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="coordinate4">Coordinate 4 (Bottom-Left)</Label>
@@ -150,7 +146,6 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
                   {...register('coordinate4')}
                   placeholder="lat,lng"
                 />
-                 {errors.coordinate4 && <p className="text-sm text-destructive">{errors.coordinate4.message}</p>}
               </div>
             </div>
           </CardContent>
