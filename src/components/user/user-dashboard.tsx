@@ -61,15 +61,13 @@ export function UserDashboard({ initialZones, initialUser }: UserDashboardProps)
 
             if (zoneResult.data) {
               const newZone = zoneResult.data;
-              setCurrentZone(previousZone => {
-                if(previousZone?.zoneId !== newZone.zoneId && newZone.zoneId !== 'unknown') {
-                    toast({
-                        title: "You've entered a new zone!",
-                        description: `You are now in: ${newZone.zoneName}`,
-                    });
-                }
-                return newZone;
-              });
+              if (currentZone?.zoneId !== newZone.zoneId && newZone.zoneId !== 'unknown') {
+                toast({
+                  title: "You've entered a new zone!",
+                  description: `You are now in: ${newZone.zoneName}`,
+                });
+              }
+              setCurrentZone(newZone);
             }
         }).catch((err) => {
            console.error("Error updating location or zone:", err);
@@ -97,14 +95,14 @@ export function UserDashboard({ initialZones, initialUser }: UserDashboardProps)
       },
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
-  }, [toast, initialUser.id, initialUser.name, initialUser.groupSize]);
+  }, [toast, initialUser.id, initialUser.name, initialUser.groupSize, currentZone?.zoneId]);
   
   useEffect(() => {
     // We wrap this in a timeout to ensure it runs after the initial render.
     const initialTimeout = setTimeout(() => {
       getLocationAndUpdate();
       intervalRef.current = setInterval(getLocationAndUpdate, UPDATE_INTERVAL_MS);
-    }, 0);
+    }, 100);
 
     return () => {
       clearTimeout(initialTimeout);

@@ -46,7 +46,7 @@ Latitude: {{{latitude}}}
 Longitude: {{{longitude}}}
 
 Available Zones (defined by polygon vertices):
-{{{json zones}}}
+{{json zones}}
 
 Based on the user's location, identify the zone they are in. Your determination must be based on a point-in-polygon test. If the user's coordinates fall within the boundaries of a zone, return that zone's ID and name. If the user is not in any of the defined zones, return "unknown" for the zoneId and "Unknown" for the zoneName.`,
 });
@@ -59,8 +59,11 @@ const identifyUserZoneFlow = ai.defineFlow(
     outputSchema: IdentifyUserZoneOutputSchema,
   },
   async (input) => {
-    // Let the LLM handle the point-in-polygon logic.
-    const zones = db.getZones();
+    const zones = db.getZones().map(zone => ({
+      id: zone.id,
+      name: zone.name,
+      coordinates: zone.coordinates
+    }));
     const { output } = await prompt({ ...input, zones });
     return output!;
   }
