@@ -61,7 +61,6 @@ export function UserDashboard({ initialZones, initialUser }: UserDashboardProps)
             
             if (zoneResult.data) {
               const newZone = zoneResult.data;
-               // Check if the zone has changed before updating and showing a toast
               if (currentZone?.zoneId !== newZone.zoneId) {
                 setCurrentZone(newZone);
                 if (newZone.zoneId !== 'unknown') {
@@ -106,7 +105,6 @@ export function UserDashboard({ initialZones, initialUser }: UserDashboardProps)
   }, [toast, initialUser.id, initialUser.name, initialUser.groupSize, currentZone?.zoneId]);
   
   useEffect(() => {
-    // We wrap this in a timeout to ensure it runs after the initial render.
     const initialTimeout = setTimeout(() => {
       getLocationAndUpdate();
       intervalRef.current = setInterval(getLocationAndUpdate, UPDATE_INTERVAL_MS);

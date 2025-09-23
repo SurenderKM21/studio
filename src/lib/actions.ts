@@ -165,7 +165,7 @@ export async function identifyUserZoneAction(latitude: number, longitude: number
         return { data: result };
     } catch (e) {
         console.error(e);
-        return { error: 'Failed to identify user zone.' };
+        return { error: 'Failed to identify user zone. The AI model may be temporarily unavailable.' };
     }
 }
 
