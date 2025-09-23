@@ -105,9 +105,9 @@
     {
       "id": "user-1",
       "name": "John Doe",
-      "lastLatitude": 12.8345106,
-      "lastLongitude": 80.0430028,
-      "lastSeen": "2025-09-23T13:28:49.433Z",
+      "lastLatitude": 12.858777500000002,
+      "lastLongitude": 80.08448200000001,
+      "lastSeen": "2025-09-23T16:16:22.213Z",
       "groupSize": 1
     }
   ],
