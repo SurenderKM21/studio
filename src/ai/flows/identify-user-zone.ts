@@ -46,7 +46,7 @@ Latitude: {{{latitude}}}
 Longitude: {{{longitude}}}
 
 Available Zones (defined by polygon vertices):
-{{{JSONstringify zones}}}
+{{{json zones}}}
 
 Based on the user's location, identify the zone they are in. Your determination must be based on a point-in-polygon test. If the user's coordinates fall within the boundaries of a zone, return that zone's ID and name. If the user is not in any of the defined zones, return "unknown" for the zoneId and "Unknown" for the zoneName.`,
 });
