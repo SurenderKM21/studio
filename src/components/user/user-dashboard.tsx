@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
-import type { Zone, RouteDetails, User } from '@/lib/types';
+import type { Zone, RouteDetails, User, AppSettings } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -17,11 +17,10 @@ import { LocationTracker } from './location-tracker';
 interface UserDashboardProps {
   initialZones: Zone[];
   initialUser: User;
+  settings: AppSettings;
 }
 
-const UPDATE_INTERVAL_MS = 30000; // 30 seconds
-
-export function UserDashboard({ initialZones, initialUser }: UserDashboardProps) {
+export function UserDashboard({ initialZones, initialUser, settings }: UserDashboardProps) {
   const [zones, setZones] = useState<Zone[]>(initialZones);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [currentZone, setCurrentZone] = useState<{ zoneId: string; zoneName: string} | null>(null);
@@ -51,18 +50,19 @@ export function UserDashboard({ initialZones, initialUser }: UserDashboardProps)
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
+        const { latitude, longitude, accuracy } = position.coords;
         
         Promise.all([
            updateUserLocationAction(initialUser.id, initialUser.name, latitude, longitude, initialUser.groupSize),
-           identifyUserZoneAction(latitude, longitude)
+           identifyUserZoneAction(latitude, longitude, accuracy)
         ]).then(([locationUpdateResult, zoneResult]) => {
             setLastLocationUpdate(new Date());
             
             if (zoneResult.data) {
               const newZone = zoneResult.data;
+
+              // Only show toast if zone changes
               if (currentZone?.zoneId !== newZone.zoneId) {
-                setCurrentZone(newZone);
                 if (newZone.zoneId !== 'unknown') {
                    toast({
                     title: "You've entered a new zone!",
@@ -70,6 +70,8 @@ export function UserDashboard({ initialZones, initialUser }: UserDashboardProps)
                   });
                 }
               }
+              setCurrentZone(newZone);
+
             } else if (zoneResult.error) {
                 toast({
                   variant: "destructive",
@@ -105,18 +107,23 @@ export function UserDashboard({ initialZones, initialUser }: UserDashboardProps)
   }, [toast, initialUser.id, initialUser.name, initialUser.groupSize, currentZone?.zoneId]);
   
   useEffect(() => {
+    const updateIntervalMs = (settings.locationUpdateInterval || 30) * 1000;
+    
+    // Initial call after a short delay
     const initialTimeout = setTimeout(() => {
       getLocationAndUpdate();
-      intervalRef.current = setInterval(getLocationAndUpdate, UPDATE_INTERVAL_MS);
+      // Then set up the interval
+      intervalRef.current = setInterval(getLocationAndUpdate, updateIntervalMs);
     }, 100);
 
+    // Cleanup function
     return () => {
       clearTimeout(initialTimeout);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [getLocationAndUpdate]);
+  }, [getLocationAndUpdate, settings.locationUpdateInterval]);
 
 
   const handlePlanRoute = (sourceZone: string, destinationZone: string) => {

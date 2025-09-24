@@ -60,7 +60,8 @@ export async function addZoneAction(prevState: any, formData: FormData) {
     return { success: true };
 
   } catch (error) {
-    return { error: 'Invalid coordinate string format. Use "lat,lng"' };
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+    return { error: message };
   }
 }
 
@@ -100,6 +101,7 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
 export async function classifyAllZonesAction() {
   const zones = db.getZones();
   const users = db.getUsers();
+  const settings = db.getSettings();
   
   try {
     const zoneUserCounts = zones.reduce((acc, zone) => {
@@ -109,7 +111,12 @@ export async function classifyAllZonesAction() {
 
     for (const user of users) {
         if (user.lastLatitude && user.lastLongitude) {
-            const userZone = await identifyUserZone({latitude: user.lastLatitude, longitude: user.lastLongitude });
+            const userZone = await identifyUserZone({
+              latitude: user.lastLatitude, 
+              longitude: user.lastLongitude,
+              accuracy: 10, // Default accuracy
+              snappingThreshold: settings.zoneSnappingThreshold || 15,
+            });
             if (userZone && userZone.zoneId !== 'unknown') {
                 zoneUserCounts[userZone.zoneId] += user.groupSize || 1;
             }
@@ -159,13 +166,14 @@ export async function getAlternativeRoutesAction(sourceZone: string, destination
     }
 }
 
-export async function identifyUserZoneAction(latitude: number, longitude: number) {
+export async function identifyUserZoneAction(latitude: number, longitude: number, accuracy: number) {
     try {
-        const result = await identifyUserZone({ latitude, longitude });
+        const settings = db.getSettings();
+        const result = await identifyUserZone({ latitude, longitude, accuracy, snappingThreshold: settings.zoneSnappingThreshold || 15 });
         return { data: result };
     } catch (e) {
-        console.error(e);
-        return { error: 'Failed to identify user zone. The AI model may be temporarily unavailable.' };
+        const message = e instanceof Error ? e.message : 'An unexpected error occurred.';
+        return { error: `Failed to identify user zone: ${message}` };
     }
 }
 

@@ -17,7 +17,8 @@ export type RouteDetails = {
 };
 
 export type AppSettings = {
-  updateInterval?: number; // This is now optional and unused
+  locationUpdateInterval?: number; // in seconds
+  zoneSnappingThreshold?: number; // in meters
 };
 
 export type User = {
