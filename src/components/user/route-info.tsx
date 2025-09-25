@@ -116,7 +116,7 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
 
         {routeDetails.alternativeRouteAvailable && routeDetails.alternativeRoute && (
           <div className="flex items-start gap-4 border-t pt-4 border-dashed">
-            <AlertTriangle className="h-5 w-5 text-accent-foreground mt-1 text-amber-600" />
+            <AlertTriangle className="h-5 w-5 text-amber-500 mt-1" />
             <div>
               <p className="text-sm font-medium mb-2">Congested Route (Avoided)</p>
               <p className="text-xs text-muted-foreground mb-2">The following path was avoided due to high congestion.</p>

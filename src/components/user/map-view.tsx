@@ -3,7 +3,7 @@
 
 import { cn } from '@/lib/utils';
 import type { Zone, DensityCategory } from '@/lib/types';
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import {
   Tooltip,
   TooltipContent,
@@ -28,9 +28,13 @@ interface MapViewProps {
 }
 
 export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
-  const getRoutePoints = (path: string[], positionedZones: Zone[]) => {
-    // This function needs to run client-side where elements are in the DOM
-    if (typeof window === 'undefined') return [];
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const getRoutePoints = (path: string[]) => {
+    if (!isClient) return [];
     
     return path
       .map((zoneId) => {
@@ -40,7 +44,6 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
         const container = zoneEl.offsetParent as HTMLElement;
         if (!container) return null;
 
-        // Calculate center of the zone element relative to its container
         const x =
           ((zoneEl.offsetLeft + zoneEl.offsetWidth / 2) /
             container.offsetWidth) *
@@ -55,10 +58,8 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
       .filter((p): p is { x: number; y: number } => p !== null);
   };
   
-  const [routePoints, altRoutePoints] = useMemo(() => {
-    return [getRoutePoints(route, zones), getRoutePoints(alternativeRoute, zones)];
-  // Re-run when routes or zones change, important for initial render and updates.
-  }, [route, alternativeRoute, zones]);
+  const routePoints = useMemo(() => getRoutePoints(route), [route, zones, isClient]);
+  const altRoutePoints = useMemo(() => getRoutePoints(alternativeRoute), [alternativeRoute, zones, isClient]);
 
 
   return (
