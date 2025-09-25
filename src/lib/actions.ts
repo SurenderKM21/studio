@@ -131,7 +131,7 @@ function areZonesAdjacent(zone1: Zone, zone2: Zone): boolean {
 }
 
 // Dijkstra's algorithm to find the shortest path considering congestion
-function findPath(startId: string, endId: string, zones: Zone[], excludedZones: Set<string> = new Set()): string[] {
+function findPath(startId: string, endId: string, zones: Zone[], useCongestion: boolean = true): string[] {
     const costs: { [key: string]: number } = {};
     const previous: { [key: string]: string | null } = {};
     const queue: string[] = [];
@@ -173,12 +173,12 @@ function findPath(startId: string, endId: string, zones: Zone[], excludedZones: 
         if (!adjacencyList[currentId]) continue;
 
         adjacencyList[currentId].forEach(neighborId => {
-             if (excludedZones.has(neighborId)) return;
-
             const neighborZone = zones.find(z => z.id === neighborId);
             if (!neighborZone) return;
 
-            const newCost = costs[currentId] + (DENSITY_COST[neighborZone.density] || 1);
+            const cost = useCongestion ? (DENSITY_COST[neighborZone.density] || 1) : 1;
+            const newCost = costs[currentId] + cost;
+
             if (newCost < costs[neighborId]) {
                 costs[neighborId] = newCost;
                 previous[neighborId] = currentId;
@@ -214,41 +214,37 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
 
   try {
     const zones = db.getZones();
-    const initialPath = findPath(sourceZone, destinationZone, zones);
+    
+    // 1. Find the path using congestion costs (this is the optimal path).
+    const optimalPath = findPath(sourceZone, destinationZone, zones, true);
 
-    if (initialPath.length === 0) {
+    if (optimalPath.length === 0) {
       return { error: 'No route could be found between the selected zones.' };
     }
-    
-    const congestionLevel = getOverallCongestion(initialPath, zones);
-    
-    // If the main route is congested, try to find an alternative
-    if (congestionLevel === 'high') {
-        const highlyCongestedZones = new Set(
-            initialPath.filter(zoneId => {
-                const zone = zones.find(z => z.id === zoneId);
-                return zone && (zone.density === 'over-crowded' || zone.density === 'crowded');
-            })
-        );
 
-        const alternativePath = findPath(sourceZone, destinationZone, zones, highlyCongestedZones);
-        
-        // If a better, different path is found, present it as the primary route
-        if (alternativePath.length > 0 && JSON.stringify(alternativePath) !== JSON.stringify(initialPath)) {
-            const result: RouteDetails = {
-                route: alternativePath, // The new optimal path
-                congestionLevel: getOverallCongestion(alternativePath, zones),
-                alternativeRouteAvailable: true,
-                alternativeRoute: initialPath, // The original, crowded path
-            };
-            return { data: result };
-        }
+    // 2. Find the shortest physical path, ignoring congestion. This is our baseline "crowded" path.
+    const directPath = findPath(sourceZone, destinationZone, zones, false);
+
+    const optimalCongestion = getOverallCongestion(optimalPath, zones);
+
+    // 3. If the optimal path is different from the direct path, it means we found a better route.
+    const isAlternativeAvailable = JSON.stringify(optimalPath) !== JSON.stringify(directPath);
+
+    if (isAlternativeAvailable) {
+        const result: RouteDetails = {
+            route: optimalPath,
+            congestionLevel: optimalCongestion,
+            alternativeRouteAvailable: true,
+            alternativeRoute: directPath, // The direct (but crowded) path is the alternative
+        };
+        return { data: result };
     }
+
 
     // If no alternative was needed or found, return the initial path.
     const result: RouteDetails = {
-        route: initialPath,
-        congestionLevel: congestionLevel,
+        route: optimalPath,
+        congestionLevel: optimalCongestion,
         alternativeRouteAvailable: false,
     };
 
@@ -352,3 +348,6 @@ export async function updateUserLocationAction(id: string, name: string, latitud
     return { error: 'Failed to update user location.' };
   }
 }
+
+
+    

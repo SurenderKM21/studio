@@ -1,4 +1,5 @@
 
+
 'use client';
 import {
   Card,
@@ -114,12 +115,12 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
           </div>
         </div>
 
-        {routeDetails.alternativeRouteAvailable && routeDetails.alternativeRoute && (
+        {routeDetails.alternativeRouteAvailable && routeDetails.alternativeRoute && routeDetails.alternativeRoute.length > 0 && (
           <div className="flex items-start gap-4 border-t pt-4 border-dashed">
             <AlertTriangle className="h-5 w-5 text-amber-500 mt-1" />
             <div>
               <p className="text-sm font-medium mb-2">Congested Route (Avoided)</p>
-              <p className="text-xs text-muted-foreground mb-2">The following path was avoided due to high congestion.</p>
+              <p className="text-xs text-muted-foreground mb-2">The most direct path was avoided due to high congestion.</p>
               <RoutePath path={routeDetails.alternativeRoute} />
             </div>
           </div>
@@ -128,3 +129,6 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
     </Card>
   );
 }
+
+
+    
