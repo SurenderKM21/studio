@@ -99,15 +99,90 @@
       "id": "zone-6iabs98",
       "userCount": 0,
       "density": "free"
+    },
+    {
+      "name": "Bus stand",
+      "capacity": 201,
+      "coordinates": [
+        {
+          "lat": 12.876942,
+          "lng": 80.066829
+        },
+        {
+          "lat": 12.875675,
+          "lng": 80.074101
+        },
+        {
+          "lat": 12.872474,
+          "lng": 80.065278
+        },
+        {
+          "lat": 12.872157,
+          "lng": 80.07134
+        }
+      ],
+      "id": "zone-tbrke64",
+      "userCount": 0,
+      "density": "crowded"
+    },
+    {
+      "name": "Zone3",
+      "capacity": 29,
+      "coordinates": [
+        {
+          "lat": 12.877258,
+          "lng": 80.061082
+        },
+        {
+          "lat": 12.876807,
+          "lng": 80.065245
+        },
+        {
+          "lat": 12.87505,
+          "lng": 80.060753
+        },
+        {
+          "lat": 12.874576,
+          "lng": 80.064855
+        }
+      ],
+      "id": "zone-ehtjl9x",
+      "userCount": 0,
+      "density": "free"
+    },
+    {
+      "name": "Zone4",
+      "capacity": 121,
+      "coordinates": [
+        {
+          "lat": 12.877685,
+          "lng": 80.055848
+        },
+        {
+          "lat": 12.87708,
+          "lng": 80.059426
+        },
+        {
+          "lat": 12.874303,
+          "lng": 80.055264
+        },
+        {
+          "lat": 12.874493,
+          "lng": 80.059244
+        }
+      ],
+      "id": "zone-htu7z4b",
+      "userCount": 0,
+      "density": "free"
     }
   ],
   "users": [
     {
       "id": "user-1",
       "name": "John Doe",
-      "lastLatitude": 12.858904998592667,
-      "lastLongitude": 80.08444304912483,
-      "lastSeen": "2025-09-25T19:31:42.799Z",
+      "lastLatitude": 12.858807194019377,
+      "lastLongitude": 80.08448888696243,
+      "lastSeen": "2025-09-25T19:42:58.631Z",
       "groupSize": 1
     }
   ],
