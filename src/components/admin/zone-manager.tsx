@@ -167,6 +167,7 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Capacity</TableHead>
+                <TableHead>Coordinates</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -177,6 +178,9 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
                     {zone.name}
                   </TableCell>
                   <TableCell>{zone.capacity}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {zone.coordinates.map(c => `(${c.lat.toFixed(4)}, ${c.lng.toFixed(4)})`).join(', ')}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
