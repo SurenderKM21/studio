@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -61,7 +62,7 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
           </div>
           <CardTitle>No Route Planned</CardTitle>
           <CardDescription>
-            Your optimal route will be displayed here.
+            Select a start and end point to find the best path.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -117,8 +118,8 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
           <div className="flex items-start gap-4 border-t pt-4 border-dashed">
             <AlertTriangle className="h-5 w-5 text-accent-foreground mt-1 text-amber-600" />
             <div>
-              <p className="text-sm font-medium mb-2">Alternative Route</p>
-              <p className="text-xs text-muted-foreground mb-2">A less crowded alternative path is available.</p>
+              <p className="text-sm font-medium mb-2">Congested Route (Avoided)</p>
+              <p className="text-xs text-muted-foreground mb-2">The following path was avoided due to high congestion.</p>
               <RoutePath path={routeDetails.alternativeRoute} />
             </div>
           </div>

@@ -202,7 +202,11 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
             </div>
           </CardHeader>
           <CardContent>
-            <MapView zones={zones} route={routeDetails?.route ?? []} alternativeRoute={routeDetails?.alternativeRoute ?? []} />
+            <MapView 
+              zones={zones} 
+              route={routeDetails?.route ?? []} 
+              alternativeRoute={routeDetails?.alternativeRoute ?? []} 
+            />
           </CardContent>
         </Card>
       </div>

@@ -214,34 +214,43 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
 
   try {
     const zones = db.getZones();
-    const optimalPath = findPath(sourceZone, destinationZone, zones);
+    const initialPath = findPath(sourceZone, destinationZone, zones);
 
-    if (optimalPath.length === 0) {
+    if (initialPath.length === 0) {
       return { error: 'No route could be found between the selected zones.' };
     }
     
-    const congestionLevel = getOverallCongestion(optimalPath, zones);
-    const result: RouteDetails = {
-        route: optimalPath,
-        congestionLevel: congestionLevel,
-        alternativeRouteAvailable: false,
-    };
+    const congestionLevel = getOverallCongestion(initialPath, zones);
     
     // If the main route is congested, try to find an alternative
     if (congestionLevel === 'high') {
         const highlyCongestedZones = new Set(
-            optimalPath.filter(zoneId => {
+            initialPath.filter(zoneId => {
                 const zone = zones.find(z => z.id === zoneId);
                 return zone && (zone.density === 'over-crowded' || zone.density === 'crowded');
             })
         );
 
         const alternativePath = findPath(sourceZone, destinationZone, zones, highlyCongestedZones);
-        if (alternativePath.length > 0 && JSON.stringify(alternativePath) !== JSON.stringify(optimalPath)) {
-            result.alternativeRouteAvailable = true;
-            result.alternativeRoute = alternativePath;
+        
+        // If a better, different path is found, present it as the primary route
+        if (alternativePath.length > 0 && JSON.stringify(alternativePath) !== JSON.stringify(initialPath)) {
+            const result: RouteDetails = {
+                route: alternativePath, // The new optimal path
+                congestionLevel: getOverallCongestion(alternativePath, zones),
+                alternativeRouteAvailable: true,
+                alternativeRoute: initialPath, // The original, crowded path
+            };
+            return { data: result };
         }
     }
+
+    // If no alternative was needed or found, return the initial path.
+    const result: RouteDetails = {
+        route: initialPath,
+        congestionLevel: congestionLevel,
+        alternativeRouteAvailable: false,
+    };
 
     return { data: result };
 

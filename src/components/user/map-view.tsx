@@ -1,3 +1,4 @@
+
 'use client';
 
 import { cn } from '@/lib/utils';
@@ -28,15 +29,18 @@ interface MapViewProps {
 
 export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
   const getRoutePoints = (path: string[], positionedZones: Zone[]) => {
+    // This function needs to run client-side where elements are in the DOM
+    if (typeof window === 'undefined') return [];
+    
     return path
       .map((zoneId) => {
-        const zone = positionedZones.find((z) => z.id === zoneId);
         const zoneEl = document.getElementById(zoneId);
-        if (!zone || !zoneEl) return null;
+        if (!zoneEl) return null;
 
         const container = zoneEl.offsetParent as HTMLElement;
         if (!container) return null;
 
+        // Calculate center of the zone element relative to its container
         const x =
           ((zoneEl.offsetLeft + zoneEl.offsetWidth / 2) /
             container.offsetWidth) *
@@ -52,10 +56,8 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
   };
   
   const [routePoints, altRoutePoints] = useMemo(() => {
-    if (typeof window === 'undefined') return [[], []];
-    const rPoints = getRoutePoints(route, zones);
-    const arPoints = getRoutePoints(alternativeRoute, zones);
-    return [rPoints, arPoints];
+    return [getRoutePoints(route, zones), getRoutePoints(alternativeRoute, zones)];
+  // Re-run when routes or zones change, important for initial render and updates.
   }, [route, alternativeRoute, zones]);
 
 
