@@ -180,14 +180,13 @@ export async function classifyAllZonesAction() {
 
     for (const user of users) {
         if (user.lastLatitude && user.lastLongitude) {
-            const userZone = await identifyUserZone({
-              latitude: user.lastLatitude, 
-              longitude: user.lastLongitude,
-              accuracy: 10, // Default accuracy
-              snappingThreshold: settings.zoneSnappingThreshold || 15,
-            });
-            if (userZone && userZone.zoneId !== 'unknown') {
-                zoneUserCounts[userZone.zoneId] += user.groupSize || 1;
+            const userZone = await identifyUserZoneAction(
+              user.lastLatitude, 
+              user.lastLongitude,
+              10, // Default accuracy
+            );
+            if (userZone.data && userZone.data.zoneId !== 'unknown') {
+                zoneUserCounts[userZone.data.zoneId] += user.groupSize || 1;
             }
         }
     }
@@ -236,14 +235,21 @@ export async function getAlternativeRoutesAction(sourceZone: string, destination
 }
 
 export async function identifyUserZoneAction(latitude: number, longitude: number, accuracy: number) {
-    try {
-        const settings = db.getSettings();
-        const result = await identifyUserZone({ latitude, longitude, accuracy, snappingThreshold: settings.zoneSnappingThreshold || 15 });
-        return { data: result };
-    } catch (e) {
-        const message = e instanceof Error ? e.message : 'An unexpected error occurred.';
-        return { error: `Failed to identify user zone: ${message}` };
+    // try {
+    //     const settings = db.getSettings();
+    //     const result = await identifyUserZone({ latitude, longitude, accuracy, snappingThreshold: settings.zoneSnappingThreshold || 15 });
+    //     return { data: result };
+    // } catch (e) {
+    //     const message = e instanceof Error ? e.message : 'An unexpected error occurred.';
+    //     return { error: `Failed to identify user zone: ${message}` };
+    // }
+    // Hardcoded response to avoid API calls for now.
+    const homeZone = db.getZones().find(z => z.name === 'Home');
+    if (homeZone) {
+      return Promise.resolve({ data: { zoneId: homeZone.id, zoneName: homeZone.name } });
     }
+    // Fallback if "Home" zone doesn't exist
+    return Promise.resolve({ data: { zoneId: 'zone-fzrs6wb', zoneName: 'Home' } });
 }
 
 export async function updateUserLocationAction(id: string, name: string, latitude: number, longitude: number, groupSize: number) {
