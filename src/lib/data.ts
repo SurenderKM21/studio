@@ -9,7 +9,13 @@ type DbData = {
   settings: AppSettings;
 };
 
-const dbPath = path.resolve(process.cwd(), 'src/lib/db.json');
+// Ensure the directory exists before resolving the path
+const dbDirectory = path.resolve(process.cwd(), 'src/lib');
+if (!fs.existsSync(dbDirectory)) {
+  fs.mkdirSync(dbDirectory, { recursive: true });
+}
+const dbPath = path.resolve(dbDirectory, 'db.json');
+
 
 function readDb(): DbData {
   try {
@@ -21,13 +27,16 @@ function readDb(): DbData {
     console.error('Error reading from DB, returning empty state:', error);
   }
   // If file doesn't exist or is corrupt, return a default structure
-  return { zones: [], users: [], settings: {} };
+  const defaultData = { zones: [], users: [], settings: {} };
+  writeDb(defaultData);
+  return defaultData;
 }
 
 function writeDb(data: DbData): void {
   try {
     fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf8');
-  } catch (error) {
+  } catch (error)
+  {
     console.error('Error writing to DB:', error);
   }
 }
