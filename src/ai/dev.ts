@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-config();
+config({ path: '.env' });
 
 import '@/ai/flows/generate-optimal-route.ts';
 import '@/ai/flows/classify-zone-density.ts';
