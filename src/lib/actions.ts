@@ -122,16 +122,12 @@ function getBoundingBox(zone: Zone): BoundingBox {
 function areZonesAdjacent(zone1: Zone, zone2: Zone): boolean {
     const box1 = getBoundingBox(zone1);
     const box2 = getBoundingBox(zone2);
-    const epsilon = 1e-4; // Looser tolerance for adjacency check
+    const epsilon = 2e-4; // Looser tolerance for adjacency check (approx 22 meters)
 
-    // Check if boxes are separate
-    const separate = 
-        box1.maxLat < box2.minLat - epsilon ||
-        box1.minLat > box2.maxLat + epsilon ||
-        box1.maxLng < box2.minLng - epsilon ||
-        box1.minLng > box2.maxLng + epsilon;
-
-    return !separate;
+    const latOverlap = box1.maxLat >= box2.minLat - epsilon && box1.minLat <= box2.maxLat + epsilon;
+    const lngOverlap = box1.maxLng >= box2.minLng - epsilon && box1.minLng <= box2.maxLng + epsilon;
+    
+    return latOverlap && lngOverlap;
 }
 
 // Dijkstra's algorithm to find the shortest path considering congestion
