@@ -8,9 +8,9 @@ import type { Zone, AppSettings, User } from '@/lib/types';
 import { ZoneManager } from './zone-manager';
 import { DensityControl } from './density-control';
 import { SettingsPanel } from './settings-panel';
-import { Users, Map, Settings, View } from 'lucide-react';
-import { MapView } from '../user/map-view';
+import { Users, Map, Settings, List } from 'lucide-react';
 import { UserMonitor } from './user-monitor';
+import { ZoneDetails } from './zone-details';
 
 interface AdminDashboardProps {
   initialZones: Zone[];
@@ -30,13 +30,13 @@ export function AdminDashboard({
           <Map className="mr-2 h-4 w-4" />
           Zone Manager
         </TabsTrigger>
+        <TabsTrigger value="zone-details">
+          <List className="mr-2 h-4 w-4" />
+          Zone Details
+        </TabsTrigger>
         <TabsTrigger value="density">
           <Users className="mr-2 h-4 w-4" />
           Density Control
-        </TabsTrigger>
-        <TabsTrigger value="map-view">
-          <View className="mr-2 h-4 w-4" />
-          Map View
         </TabsTrigger>
         <TabsTrigger value="users">
           <Users className="mr-2 h-4 w-4" />
@@ -50,11 +50,11 @@ export function AdminDashboard({
       <TabsContent value="zones">
         <ZoneManager initialZones={initialZones} />
       </TabsContent>
+      <TabsContent value="zone-details">
+        <ZoneDetails initialZones={initialZones} />
+      </TabsContent>
       <TabsContent value="density">
         <DensityControl initialZones={initialZones} />
-      </TabsContent>
-      <TabsContent value="map-view">
-        <MapView zones={initialZones} route={[]} alternativeRoute={[]} />
       </TabsContent>
       <TabsContent value="users">
         <UserMonitor initialUsers={initialUsers} />
