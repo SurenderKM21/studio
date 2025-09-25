@@ -61,6 +61,11 @@ export const db = {
     writeDb(data);
     return newZone;
   },
+  deleteZone: (id: string): void => {
+    const data = readDb();
+    data.zones = data.zones.filter(z => z.id !== id);
+    writeDb(data);
+  },
   updateZone: (id: string, updatedData: Partial<Zone>): Zone | undefined => {
     const data = readDb();
     const zoneIndex = data.zones.findIndex(z => z.id === id);

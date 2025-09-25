@@ -62,6 +62,18 @@ export async function addZoneAction(prevState: any, formData: FormData) {
   }
 }
 
+export async function deleteZoneAction(zoneId: string) {
+  try {
+    db.deleteZone(zoneId);
+    revalidatePath('/admin');
+    revalidatePath('/user');
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+    return { error: message };
+  }
+}
+
 export async function updateSettingsAction(settings: Partial<AppSettings>) {
   db.updateSettings(settings);
   revalidatePath('/admin');
