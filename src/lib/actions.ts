@@ -4,7 +4,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from './data';
-import type { Zone, AppSettings, DensityCategory } from './types';
+import type { Zone, AppSettings, DensityCategory, RouteDetails } from './types';
 import { generateOptimalRoute } from '@/ai/flows/generate-optimal-route';
 import { classifyZoneDensity } from '@/ai/flows/classify-zone-density';
 import { suggestAlternativeRoutes } from '@/ai/flows/suggest-alternative-routes';
@@ -80,18 +80,87 @@ export async function manualUpdateDensityAction(
   revalidatePath('/user');
 }
 
+// A simple pathfinding algorithm (e.g., Breadth-First Search)
+function findPath(startId: string, endId: string, zones: Zone[]): { path: string[], congestion: DensityCategory[] } {
+  const queue: { id: string; path: string[]; congestion: DensityCategory[] }[] = [{ id: startId, path: [startId], congestion: [zones.find(z=>z.id === startId)!.density] }];
+  const visited = new Set<string>([startId]);
+
+  // For a simple grid, we can assume adjacency. 
+  // In a real-world scenario, you'd have a graph of connected zones.
+  const getNeighbors = (zoneId: string) => zones.map(z => z.id).filter(id => id !== zoneId);
+
+  while (queue.length > 0) {
+    const { id, path, congestion } = queue.shift()!;
+
+    if (id === endId) {
+      return { path, congestion };
+    }
+
+    const neighbors = getNeighbors(id);
+    for (const neighborId of neighbors) {
+      if (!visited.has(neighborId)) {
+        visited.add(neighborId);
+        const neighborZone = zones.find(z => z.id === neighborId);
+        if (neighborZone) {
+            const newPath = [...path, neighborId];
+            const newCongestion = [...congestion, neighborZone.density];
+            queue.push({ id: neighborId, path: newPath, congestion: newCongestion });
+        }
+      }
+    }
+  }
+
+  return { path: [], congestion: [] }; // No path found
+}
+
+
+function getOverallCongestion(congestionLevels: DensityCategory[]): string {
+    if (congestionLevels.some(c => c === 'over-crowded')) return 'high';
+    if (congestionLevels.some(c => c === 'crowded')) return 'high';
+    if (congestionLevels.some(c => c === 'moderate')) return 'moderate';
+    return 'low';
+}
+
+
 export async function getRouteAction(sourceZone: string, destinationZone: string) {
   if (!sourceZone || !destinationZone) {
     return { error: 'Source and destination zones are required.' };
   }
 
   try {
-    const result = await generateOptimalRoute({
-      sourceZone,
-      destinationZone,
-      currentLocation: 'data:text/plain;base64,MzQuMDUyMiwtMTE4LjI0Mzc=',
-    });
+    const zones = db.getZones();
+    const { path, congestion } = findPath(sourceZone, destinationZone, zones);
+
+    if (path.length === 0) {
+      return { error: 'No route could be found between the selected zones.' };
+    }
+    
+    // In this simplified version, we just create a direct path.
+    // A real implementation would use a proper pathfinding algorithm (like BFS or Dijkstra) on a graph of zones.
+    const directRoute: RouteDetails = {
+      route: [sourceZone, destinationZone],
+      congestionLevel: 'low', // Placeholder
+      alternativeRouteAvailable: false
+    };
+
+    const sourceZoneData = zones.find(z => z.id === sourceZone);
+    const destZoneData = zones.find(z => z.id === destinationZone);
+    
+    if (!sourceZoneData || !destZoneData) {
+      return { error: 'Could not find zone data.' };
+    }
+
+    const simplePath = [sourceZone, destinationZone];
+    const congestionLevels = simplePath.map(id => zones.find(z=>z.id === id)!.density);
+
+    const result: RouteDetails = {
+        route: simplePath,
+        congestionLevel: getOverallCongestion(congestionLevels),
+        alternativeRouteAvailable: false, // For simplicity, we don't calculate alternatives here
+    };
+
     return { data: result };
+
   } catch (e) {
     console.error(e);
     return { error: 'Failed to generate route. Please try again.' };
