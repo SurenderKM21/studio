@@ -14,11 +14,6 @@ import {z} from 'zod';
 const GenerateOptimalRouteInputSchema = z.object({
   sourceZone: z.string().describe('The starting zone for the route.'),
   destinationZone: z.string().describe('The destination zone for the route.'),
-  currentLocation: z
-    .string()
-    .describe(
-      "The current GPS coordinates of the user as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
 });
 export type GenerateOptimalRouteInput = z.infer<typeof GenerateOptimalRouteInputSchema>;
 
@@ -32,10 +27,6 @@ const GenerateOptimalRouteOutputSchema = z.object({
   alternativeRouteAvailable: z
     .boolean()
     .describe('Whether an alternative route is available due to congestion.'),
-  alternativeRoute: z
-    .array(z.string())
-    .optional()
-    .describe('An optional array of zone IDs representing an alternative route, if available.'),
 });
 export type GenerateOptimalRouteOutput = z.infer<typeof GenerateOptimalRouteOutputSchema>;
 

@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import { db } from '@/lib/data';
 
 const IdentifyUserZoneInputSchema = z.object({
@@ -42,29 +42,22 @@ const prompt = ai.definePrompt({
       zones: z.any(),
   })},
   output: {schema: IdentifyUserZoneOutputSchema},
-  prompt: `You are a sophisticated GPS zone detector for a large event. Your task is to determine which zone a user is in based on their location coordinates.
+  prompt: `You are a GPS zone detector. Determine which zone a user is in.
 
-You must follow this logic precisely:
-1.  **Point-in-Polygon Test**: First, determine if the user's coordinates (latitude, longitude) fall directly within the boundaries of any of the provided zone polygons. If they do, return that zone's ID and name immediately.
-2.  **Zone Snapping (If Outside)**: If the point is NOT inside any polygon (due to GPS drift, etc.), you must then find the closest zone to the user.
-    a. Calculate the distance from the user's coordinates to the center of EACH zone.
-    b. Identify the zone with the shortest distance.
-    c. Compare this shortest distance to the 'snappingThreshold'.
-    d. If the distance is LESS THAN OR EQUAL to the 'snappingThreshold', "snap" the user to that zone by returning its ID and name.
-3.  **Unknown Zone**: If the user is not inside any zone polygon AND the distance to the nearest zone is GREATER than the 'snappingThreshold', you must return "unknown" for the zoneId and "Unknown" for the zoneName.
+Logic:
+1.  **Inside Zone?**: If user's lat/lng is inside a zone's polygon, return that zone's ID and name.
+2.  **Snap to Zone?**: If not inside any zone, find the closest zone. If the distance to its center is <= 'snappingThreshold', return that zone's ID and name.
+3.  **Unknown?**: Otherwise, return "unknown" for zoneId and "Unknown" for zoneName.
 
-User's Location:
+User Location:
 - Latitude: {{{latitude}}}
 - Longitude: {{{longitude}}}
-- Accuracy: {{{accuracy}}} meters
-
-Configuration:
 - Snapping Threshold: {{{snappingThreshold}}} meters
 
-Available Zones (defined by polygon vertices):
+Zones:
 {{{json zones}}}
 
-Execute the logic and return the determined zone.`,
+Return the result.`,
 });
 
 
