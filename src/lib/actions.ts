@@ -5,9 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from './data';
 import type { Zone, AppSettings, DensityCategory, RouteDetails } from './types';
-import { generateOptimalRoute } from '@/ai/flows/generate-optimal-route';
 import { classifyZoneDensity } from '@/ai/flows/classify-zone-density';
-import { suggestAlternativeRoutes } from '@/ai/flows/suggest-alternative-routes';
 import { identifyUserZone } from '@/ai/flows/identify-user-zone';
 
 const coordinateRegex = /^-?\d+(\.\d+)?,\s?-?\d+(\.\d+)?$/;
@@ -80,44 +78,126 @@ export async function manualUpdateDensityAction(
   revalidatePath('/user');
 }
 
-// A simple pathfinding algorithm (e.g., Breadth-First Search)
-function findPath(startId: string, endId: string, zones: Zone[]): { path: string[], congestion: DensityCategory[] } {
-  const queue: { id: string; path: string[]; congestion: DensityCategory[] }[] = [{ id: startId, path: [startId], congestion: [zones.find(z=>z.id === startId)!.density] }];
-  const visited = new Set<string>([startId]);
 
-  // For a simple grid, we can assume adjacency. 
-  // In a real-world scenario, you'd have a graph of connected zones.
-  const getNeighbors = (zoneId: string) => zones.map(z => z.id).filter(id => id !== zoneId);
+// --- Logic-based Pathfinding ---
 
-  while (queue.length > 0) {
-    const { id, path, congestion } = queue.shift()!;
+const DENSITY_COST: Record<DensityCategory, number> = {
+    'free': 1,
+    'moderate': 3,
+    'crowded': 10,
+    'over-crowded': 100
+};
+const HIGH_CONGESTION_THRESHOLD = 10;
 
-    if (id === endId) {
-      return { path, congestion };
-    }
+type BoundingBox = {
+    minLat: number;
+    maxLat: number;
+    minLng: number;
+    maxLng: number;
+};
 
-    const neighbors = getNeighbors(id);
-    for (const neighborId of neighbors) {
-      if (!visited.has(neighborId)) {
-        visited.add(neighborId);
-        const neighborZone = zones.find(z => z.id === neighborId);
-        if (neighborZone) {
-            const newPath = [...path, neighborId];
-            const newCongestion = [...congestion, neighborZone.density];
-            queue.push({ id: neighborId, path: newPath, congestion: newCongestion });
+function getBoundingBox(zone: Zone): BoundingBox {
+    const lats = zone.coordinates.map(c => c.lat);
+    const lngs = zone.coordinates.map(c => c.lng);
+    return {
+        minLat: Math.min(...lats),
+        maxLat: Math.max(...lats),
+        minLng: Math.min(...lngs),
+        maxLng: Math.max(...lngs),
+    };
+}
+
+// Check if two zones are adjacent (share a border)
+function areZonesAdjacent(zone1: Zone, zone2: Zone): boolean {
+    const box1 = getBoundingBox(zone1);
+    const box2 = getBoundingBox(zone2);
+    const epsilon = 1e-5; // Small tolerance for floating point comparisons
+
+    const latOverlap = box1.minLat < box2.maxLat && box1.maxLat > box2.minLat;
+    const lngOverlap = box1.minLng < box2.maxLng && box1.maxLng > box2.minLng;
+
+    const latAdjacent = Math.abs(box1.maxLat - box2.minLat) < epsilon || Math.abs(box2.maxLat - box1.minLat) < epsilon;
+    const lngAdjacent = Math.abs(box1.maxLng - box2.minLng) < epsilon || Math.abs(box2.maxLng - box1.minLng) < epsilon;
+
+    if (latAdjacent && lngOverlap) return true;
+    if (lngAdjacent && latOverlap) return true;
+
+    return false;
+}
+
+// Dijkstra's algorithm to find the shortest path considering congestion
+function findPath(startId: string, endId: string, zones: Zone[], excludedZones: Set<string> = new Set()): string[] {
+    const costs: { [key: string]: number } = {};
+    const previous: { [key: string]: string | null } = {};
+    const queue: string[] = [];
+    const adjacencyList: { [key: string]: string[] } = {};
+
+    zones.forEach(zone => {
+        costs[zone.id] = Infinity;
+        previous[zone.id] = null;
+        adjacencyList[zone.id] = [];
+    });
+
+    // Build adjacency list
+    for (let i = 0; i < zones.length; i++) {
+        for (let j = i + 1; j < zones.length; j++) {
+            if (areZonesAdjacent(zones[i], zones[j])) {
+                adjacencyList[zones[i].id].push(zones[j].id);
+                adjacencyList[zones[j].id].push(zones[i].id);
+            }
         }
-      }
     }
-  }
 
-  return { path: [], congestion: [] }; // No path found
+    costs[startId] = 0;
+    queue.push(startId);
+
+    while (queue.length > 0) {
+        queue.sort((a, b) => costs[a] - costs[b]);
+        const currentId = queue.shift()!;
+
+        if (currentId === endId) {
+            const path: string[] = [];
+            let current = endId;
+            while (current) {
+                path.unshift(current);
+                current = previous[current]!;
+            }
+            return path;
+        }
+
+        if (!adjacencyList[currentId]) continue;
+
+        adjacencyList[currentId].forEach(neighborId => {
+             if (excludedZones.has(neighborId)) return;
+
+            const neighborZone = zones.find(z => z.id === neighborId);
+            if (!neighborZone) return;
+
+            const newCost = costs[currentId] + (DENSITY_COST[neighborZone.density] || 1);
+            if (newCost < costs[neighborId]) {
+                costs[neighborId] = newCost;
+                previous[neighborId] = currentId;
+                if (!queue.includes(neighborId)) {
+                    queue.push(neighborId);
+                }
+            }
+        });
+    }
+
+    return []; // No path found
 }
 
 
-function getOverallCongestion(congestionLevels: DensityCategory[]): string {
-    if (congestionLevels.some(c => c === 'over-crowded')) return 'high';
-    if (congestionLevels.some(c => c === 'crowded')) return 'high';
-    if (congestionLevels.some(c => c === 'moderate')) return 'moderate';
+function getOverallCongestion(path: string[], zones: Zone[]): string {
+    let totalCost = 0;
+    for (const zoneId of path) {
+        const zone = zones.find(z => z.id === zoneId);
+        if (zone) {
+            totalCost += (DENSITY_COST[zone.density] || 1);
+        }
+    }
+    if (totalCost >= HIGH_CONGESTION_THRESHOLD * path.length / 2) return 'high';
+    if (totalCost > path.length) return 'moderate';
     return 'low';
 }
 
@@ -129,35 +209,34 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
 
   try {
     const zones = db.getZones();
-    const { path, congestion } = findPath(sourceZone, destinationZone, zones);
+    const optimalPath = findPath(sourceZone, destinationZone, zones);
 
-    if (path.length === 0) {
+    if (optimalPath.length === 0) {
       return { error: 'No route could be found between the selected zones.' };
     }
     
-    // In this simplified version, we just create a direct path.
-    // A real implementation would use a proper pathfinding algorithm (like BFS or Dijkstra) on a graph of zones.
-    const directRoute: RouteDetails = {
-      route: [sourceZone, destinationZone],
-      congestionLevel: 'low', // Placeholder
-      alternativeRouteAvailable: false
-    };
-
-    const sourceZoneData = zones.find(z => z.id === sourceZone);
-    const destZoneData = zones.find(z => z.id === destinationZone);
-    
-    if (!sourceZoneData || !destZoneData) {
-      return { error: 'Could not find zone data.' };
-    }
-
-    const simplePath = [sourceZone, destinationZone];
-    const congestionLevels = simplePath.map(id => zones.find(z=>z.id === id)!.density);
-
+    const congestionLevel = getOverallCongestion(optimalPath, zones);
     const result: RouteDetails = {
-        route: simplePath,
-        congestionLevel: getOverallCongestion(congestionLevels),
-        alternativeRouteAvailable: false, // For simplicity, we don't calculate alternatives here
+        route: optimalPath,
+        congestionLevel: congestionLevel,
+        alternativeRouteAvailable: false,
     };
+    
+    // If the main route is congested, try to find an alternative
+    if (congestionLevel === 'high') {
+        const highlyCongestedZones = new Set(
+            optimalPath.filter(zoneId => {
+                const zone = zones.find(z => z.id === zoneId);
+                return zone && (zone.density === 'over-crowded' || zone.density === 'crowded');
+            })
+        );
+
+        const alternativePath = findPath(sourceZone, destinationZone, zones, highlyCongestedZones);
+        if (alternativePath.length > 0 && JSON.stringify(alternativePath) !== JSON.stringify(optimalPath)) {
+            result.alternativeRouteAvailable = true;
+            result.alternativeRoute = alternativePath;
+        }
+    }
 
     return { data: result };
 
@@ -170,7 +249,6 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
 export async function classifyAllZonesAction() {
   const zones = db.getZones();
   const users = db.getUsers();
-  const settings = db.getSettings();
   
   try {
     const zoneUserCounts = zones.reduce((acc, zone) => {
@@ -180,13 +258,13 @@ export async function classifyAllZonesAction() {
 
     for (const user of users) {
         if (user.lastLatitude && user.lastLongitude) {
-            const userZone = await identifyUserZoneAction(
+            const userZoneResult = await identifyUserZoneAction(
               user.lastLatitude, 
               user.lastLongitude,
               10, // Default accuracy
             );
-            if (userZone.data && userZone.data.zoneId !== 'unknown') {
-                zoneUserCounts[userZone.data.zoneId] += user.groupSize || 1;
+            if (userZoneResult.data && userZoneResult.data.zoneId !== 'unknown') {
+                zoneUserCounts[userZoneResult.data.zoneId] += user.groupSize || 1;
             }
         }
     }
@@ -195,6 +273,7 @@ export async function classifyAllZonesAction() {
        const userCount = zoneUserCounts[zone.id];
        db.updateZone(zone.id, { userCount });
 
+      // This still uses AI, but the routing part does not.
       const result = await classifyZoneDensity({
         zoneId: zone.id,
         userCount: userCount,
@@ -213,43 +292,20 @@ export async function classifyAllZonesAction() {
   }
 }
 
-export async function getAlternativeRoutesAction(sourceZone: string, destinationZone: string, currentRoute: string[]) {
-    const zones = db.getZones();
-    const congestionData = zones.reduce((acc, zone) => {
-        acc[zone.id] = zone.density;
-        return acc;
-    }, {} as Record<string, string>);
-
-    try {
-        const result = await suggestAlternativeRoutes({
-            sourceZone,
-            destinationZone,
-            currentRoute,
-            congestionData,
-        });
-        return { data: result };
-    } catch (e) {
-        console.error(e);
-        return { error: 'Failed to suggest alternative routes.' };
-    }
-}
 
 export async function identifyUserZoneAction(latitude: number, longitude: number, accuracy: number) {
-    // try {
-    //     const settings = db.getSettings();
-    //     const result = await identifyUserZone({ latitude, longitude, accuracy, snappingThreshold: settings.zoneSnappingThreshold || 15 });
-    //     return { data: result };
-    // } catch (e) {
-    //     const message = e instanceof Error ? e.message : 'An unexpected error occurred.';
-    //     return { error: `Failed to identify user zone: ${message}` };
-    // }
     // Hardcoded response to avoid API calls for now.
     const homeZone = db.getZones().find(z => z.name === 'Home');
     if (homeZone) {
       return Promise.resolve({ data: { zoneId: homeZone.id, zoneName: homeZone.name } });
     }
     // Fallback if "Home" zone doesn't exist
-    return Promise.resolve({ data: { zoneId: 'zone-fzrs6wb', zoneName: 'Home' } });
+    const firstZone = db.getZones()[0];
+     if (firstZone) {
+      return Promise.resolve({ data: { zoneId: firstZone.id, zoneName: firstZone.name } });
+    }
+
+    return Promise.resolve({ data: { zoneId: 'unknown', zoneName: 'Unknown' } });
 }
 
 export async function updateUserLocationAction(id: string, name: string, latitude: number, longitude: number, groupSize: number) {
