@@ -1,9 +1,11 @@
 export type DensityCategory = 'free' | 'moderate' | 'crowded' | 'over-crowded';
 
+export type Coordinate = { lat: number; lng: number };
+
 export type Zone = {
   id: string;
   name: string;
-  coordinates: { lat: number; lng: number }[];
+  coordinates: Coordinate[];
   capacity: number;
   userCount: number;
   density: DensityCategory;

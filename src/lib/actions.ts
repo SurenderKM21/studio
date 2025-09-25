@@ -4,9 +4,8 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from './data';
-import type { Zone, AppSettings, DensityCategory, RouteDetails } from './types';
+import type { Zone, AppSettings, DensityCategory, RouteDetails, Coordinate } from './types';
 import { classifyZoneDensity } from '@/ai/flows/classify-zone-density';
-import { identifyUserZone } from '@/ai/flows/identify-user-zone';
 
 const coordinateRegex = /^-?\d+(\.\d+)?,\s?-?\d+(\.\d+)?$/;
 
@@ -292,20 +291,40 @@ export async function classifyAllZonesAction() {
   }
 }
 
+// Check if a point is inside a polygon using the ray-casting algorithm
+function isPointInPolygon(point: Coordinate, polygon: Coordinate[]): boolean {
+    let isInside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i].lat, yi = polygon[i].lng;
+        const xj = polygon[j].lat, yj = polygon[j].lng;
+
+        const intersect = ((yi > point.lng) !== (yj > point.lng))
+            && (point.lat < (xj - xi) * (point.lng - yi) / (yj - yi) + xi);
+        if (intersect) isInside = !isInside;
+    }
+    return isInside;
+}
+
 
 export async function identifyUserZoneAction(latitude: number, longitude: number, accuracy: number) {
-    // Hardcoded response to avoid API calls for now.
-    const homeZone = db.getZones().find(z => z.name === 'Home');
-    if (homeZone) {
-      return Promise.resolve({ data: { zoneId: homeZone.id, zoneName: homeZone.name } });
-    }
-    // Fallback if "Home" zone doesn't exist
-    const firstZone = db.getZones()[0];
-     if (firstZone) {
-      return Promise.resolve({ data: { zoneId: firstZone.id, zoneName: firstZone.name } });
-    }
+    try {
+        const zones = db.getZones();
+        const userPoint = { lat: latitude, lng: longitude };
 
-    return Promise.resolve({ data: { zoneId: 'unknown', zoneName: 'Unknown' } });
+        for (const zone of zones) {
+            if (isPointInPolygon(userPoint, zone.coordinates)) {
+                return { data: { zoneId: zone.id, zoneName: zone.name } };
+            }
+        }
+        
+        // If not in any zone, find the closest one within a snapping threshold (optional, simplified for now)
+        // For now, we just return unknown if not directly inside any zone.
+
+        return { data: { zoneId: 'unknown', zoneName: 'Unknown' } };
+    } catch (e) {
+        console.error("Failed to identify user zone:", e);
+        return { error: "Failed to identify user zone." };
+    }
 }
 
 export async function updateUserLocationAction(id: string, name: string, latitude: number, longitude: number, groupSize: number) {
