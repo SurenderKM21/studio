@@ -106,22 +106,20 @@ function getBoundingBox(zone: Zone): BoundingBox {
     };
 }
 
-// Check if two zones are adjacent (share a border)
+// Check if two zones are adjacent by checking if their bounding boxes are close or overlapping.
 function areZonesAdjacent(zone1: Zone, zone2: Zone): boolean {
     const box1 = getBoundingBox(zone1);
     const box2 = getBoundingBox(zone2);
-    const epsilon = 1e-5; // Small tolerance for floating point comparisons
+    const epsilon = 1e-4; // Looser tolerance for adjacency check
 
-    const latOverlap = box1.minLat < box2.maxLat && box1.maxLat > box2.minLat;
-    const lngOverlap = box1.minLng < box2.maxLng && box1.maxLng > box2.minLng;
+    // Check if boxes are separate
+    const separate = 
+        box1.maxLat < box2.minLat - epsilon ||
+        box1.minLat > box2.maxLat + epsilon ||
+        box1.maxLng < box2.minLng - epsilon ||
+        box1.minLng > box2.maxLng + epsilon;
 
-    const latAdjacent = Math.abs(box1.maxLat - box2.minLat) < epsilon || Math.abs(box2.maxLat - box1.minLat) < epsilon;
-    const lngAdjacent = Math.abs(box1.maxLng - box2.minLng) < epsilon || Math.abs(box2.maxLng - box1.minLng) < epsilon;
-
-    if (latAdjacent && lngOverlap) return true;
-    if (lngAdjacent && latOverlap) return true;
-
-    return false;
+    return !separate;
 }
 
 // Dijkstra's algorithm to find the shortest path considering congestion
