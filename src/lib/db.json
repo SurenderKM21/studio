@@ -176,31 +176,6 @@
       "density": "free"
     },
     {
-      "name": "Zone6",
-      "capacity": 23,
-      "coordinates": [
-        {
-          "lat": 12.8744,
-          "lng": 80.0624
-        },
-        {
-          "lat": 12.8743,
-          "lng": 80.0633
-        },
-        {
-          "lat": 12.874,
-          "lng": 80.0622
-        },
-        {
-          "lat": 12.8737,
-          "lng": 80.063
-        }
-      ],
-      "id": "zone-3bhx5yq",
-      "userCount": 0,
-      "density": "free"
-    },
-    {
       "name": "Side Path",
       "capacity": 15,
       "coordinates": [
@@ -232,7 +207,7 @@
       "name": "John Doe",
       "lastLatitude": 12.858807194019377,
       "lastLongitude": 80.08448888696243,
-      "lastSeen": "2025-09-25T20:01:52.209Z",
+      "lastSeen": "2025-09-25T20:12:22.643Z",
       "groupSize": 1
     }
   ],
