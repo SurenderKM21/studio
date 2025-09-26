@@ -112,7 +112,7 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="capacity">Max Capacity</Label>
-              <Input id="capacity" type="number" {...register('capacity')} />
+              <Input id="capacity" type="number" {...register('capacity')} min="1" />
               {errors.capacity && <p className="text-xs text-destructive">{errors.capacity.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">

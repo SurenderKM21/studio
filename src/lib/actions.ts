@@ -19,8 +19,8 @@ const addZoneSchema = z.object({
 });
 
 const updateZoneSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters').optional(),
-  capacity: z.coerce.number().min(1, 'Capacity must be at least 1').optional(),
+  name: z.string().min(3, 'Name must be at least 3 characters'),
+  capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
   coordinate1: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
   coordinate2: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
   coordinate3: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
