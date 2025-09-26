@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { RouteInfo } from './route-info';
 import { Button } from '../ui/button';
 import { Loader, RefreshCw } from 'lucide-react';
-import { classifyAllZonesAction, getRouteAction, identifyUserZoneAction, updateUserLocationAction } from '@/lib/actions';
+import { classifyAllZonesAction, getRouteAction, updateUserLocationAndClassifyZonesAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { DensityLegend } from './density-legend';
 import { LocationTracker } from './location-tracker';
@@ -32,7 +32,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
   const { toast } = useToast();
   
   useEffect(() => {
-    // Zones are passed as props and will be updated by server-side revalidation
+    // This allows the component to update when the server sends new props after revalidation
     setZones(initialZones);
   }, [initialZones]);
 
@@ -50,17 +50,24 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude, accuracy } = position.coords;
+        const { latitude, longitude } = position.coords;
         
-        Promise.all([
-           updateUserLocationAction(initialUser.id, initialUser.name, latitude, longitude, initialUser.groupSize),
-           identifyUserZoneAction(latitude, longitude, accuracy)
-        ]).then(([locationUpdateResult, zoneResult]) => {
-            setLastLocationUpdate(new Date());
+        updateUserLocationAndClassifyZonesAction(
+            initialUser.id, 
+            initialUser.name, 
+            latitude, 
+            longitude, 
+            initialUser.groupSize
+        ).then((result) => {
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            const { zones: updatedZones, currentZone: newZone } = result.data!;
             
-            if (zoneResult.data) {
-              const newZone = zoneResult.data;
+            setLastLocationUpdate(new Date());
+            setZones(updatedZones); // Update the map with fresh data
 
+            if (newZone) {
               // Only show toast if zone changes
               if (currentZone?.zoneId !== newZone.zoneId) {
                 if (newZone.zoneId !== 'unknown') {
@@ -71,20 +78,12 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
                 }
               }
               setCurrentZone(newZone);
-
-            } else if (zoneResult.error) {
-                toast({
-                  variant: "destructive",
-                  title: "Zone Identification Error",
-                  description: zoneResult.error,
-              });
             }
-
         }).catch((err) => {
            toast({
               variant: "destructive",
               title: "Update Error",
-              description: "Failed to update location or identify zone.",
+              description: err.message || "Failed to update location and classify zones.",
           });
         }).finally(() => {
            setIsSendingLocation(false);

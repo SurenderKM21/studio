@@ -5,7 +5,6 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from './data';
 import type { Zone, AppSettings, DensityCategory, RouteDetails, Coordinate } from './types';
-import { classifyZoneDensity } from '@/ai/flows/classify-zone-density';
 
 const coordinateRegex = /^-?\d+(\.\d+)?,\s?-?\d+(\.\d+)?$/;
 
@@ -310,6 +309,20 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
   }
 }
 
+// Hardcoded density classification
+function classifyDensityHardcoded(userCount: number, capacity: number): DensityCategory {
+  if (userCount > capacity) {
+    return 'over-crowded';
+  }
+  if (userCount === capacity || userCount > capacity * 0.8) {
+    return 'crowded';
+  }
+  if (userCount > capacity * 0.5) {
+    return 'moderate';
+  }
+  return 'free';
+}
+
 export async function classifyAllZonesAction() {
   const zones = db.getZones();
   const users = db.getUsers();
@@ -322,31 +335,19 @@ export async function classifyAllZonesAction() {
 
     for (const user of users) {
         if (user.lastLatitude && user.lastLongitude) {
-            const userZoneResult = await identifyUserZoneAction(
-              user.lastLatitude, 
-              user.lastLongitude,
-              10, // Default accuracy
-            );
-            if (userZoneResult.data && userZoneResult.data.zoneId !== 'unknown') {
-                zoneUserCounts[userZoneResult.data.zoneId] += user.groupSize || 1;
+            const userZoneResult = await identifyUserZone(user.lastLatitude, user.lastLongitude, zones);
+            if (userZoneResult && userZoneResult.zoneId !== 'unknown') {
+                zoneUserCounts[userZoneResult.zoneId] += user.groupSize || 1;
             }
         }
     }
 
     for (const zone of zones) {
        const userCount = zoneUserCounts[zone.id];
-       db.updateZone(zone.id, { userCount });
-
-      // This still uses AI, but the routing part does not.
-      const result = await classifyZoneDensity({
-        zoneId: zone.id,
-        userCount: userCount,
-        capacity: zone.capacity,
-        coordinates: zone.coordinates.map(c => ({latitude: c.lat, longitude: c.lng})),
-      });
-      
-      db.updateZone(zone.id, { density: result.densityCategory });
+       const newDensity = classifyDensityHardcoded(userCount, zone.capacity);
+       db.updateZone(zone.id, { userCount, density: newDensity });
     }
+
     revalidatePath('/user');
     revalidatePath('/admin');
     return { success: true };
@@ -371,37 +372,64 @@ function isPointInPolygon(point: Coordinate, polygon: Coordinate[]): boolean {
 }
 
 
-export async function identifyUserZoneAction(latitude: number, longitude: number, accuracy: number) {
-    try {
-        const zones = db.getZones();
-        const userPoint = { lat: latitude, lng: longitude };
+// Internal function, not a server action
+function identifyUserZone(latitude: number, longitude: number, zones: Zone[]) {
+    const userPoint = { lat: latitude, lng: longitude };
+    for (const zone of zones) {
+        if (isPointInPolygon(userPoint, zone.coordinates)) {
+            return { zoneId: zone.id, zoneName: zone.name };
+        }
+    }
+    return { zoneId: 'unknown', zoneName: 'Unknown' };
+}
 
-        for (const zone of zones) {
-            if (isPointInPolygon(userPoint, zone.coordinates)) {
-                return { data: { zoneId: zone.id, zoneName: zone.name } };
+
+export async function updateUserLocationAndClassifyZonesAction(userId: string, userName: string, latitude: number, longitude: number, groupSize: number) {
+  try {
+    // 1. Update the current user's location
+    db.updateUserLocation(userId, userName, latitude, longitude, groupSize);
+
+    // 2. Recalculate counts and densities for all zones
+    const zones = db.getZones();
+    const users = db.getUsers();
+    
+    const zoneUserCounts = zones.reduce((acc, zone) => {
+        acc[zone.id] = 0;
+        return acc;
+    }, {} as Record<string, number>);
+
+    for (const user of users) {
+        if (user.lastLatitude && user.lastLongitude) {
+            const userZoneResult = identifyUserZone(user.lastLatitude, user.lastLongitude, zones);
+            if (userZoneResult && userZoneResult.zoneId !== 'unknown') {
+                zoneUserCounts[userZoneResult.zoneId] += user.groupSize || 1;
             }
         }
-        
-        // If not in any zone, find the closest one within a snapping threshold (optional, simplified for now)
-        // For now, we just return unknown if not directly inside any zone.
-
-        return { data: { zoneId: 'unknown', zoneName: 'Unknown' } };
-    } catch (e) {
-        console.error("Failed to identify user zone:", e);
-        return { error: "Failed to identify user zone." };
     }
-}
 
-export async function updateUserLocationAction(id: string, name: string, latitude: number, longitude: number, groupSize: number) {
-  try {
-    db.updateUserLocation(id, name, latitude, longitude, groupSize);
+    for (const zone of zones) {
+       const userCount = zoneUserCounts[zone.id];
+       const newDensity = classifyDensityHardcoded(userCount, zone.capacity);
+       db.updateZone(zone.id, { userCount, density: newDensity });
+    }
+
+    // 3. Re-fetch the updated zones and find the current user's new zone
+    const updatedZones = db.getZones();
+    const currentUserZone = identifyUserZone(latitude, longitude, updatedZones);
+
+    revalidatePath('/user');
     revalidatePath('/admin');
-    return { success: true };
+    
+    // 4. Return all necessary data to the client
+    return { 
+      success: true, 
+      data: {
+        zones: updatedZones,
+        currentZone: currentUserZone
+      }
+    };
   } catch (e) {
     console.error(e);
-    return { error: 'Failed to update user location.' };
+    return { error: 'Failed to update user location and re-classify zones.' };
   }
 }
-
-
-    
