@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { deleteZoneAction } from '@/lib/actions';
 import type { Zone } from '@/lib/types';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import { useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { EditZoneForm } from './edit-zone-form';
 
 export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
   const { toast } = useToast();
@@ -82,7 +83,8 @@ export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
                         .map((c) => `(${c.lat.toFixed(4)}, ${c.lng.toFixed(4)})`)
                         .join(', ')}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right space-x-2">
+                   <EditZoneForm zone={zone} />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button

@@ -66,7 +66,7 @@ export const db = {
     data.zones = data.zones.filter(z => z.id !== id);
     writeDb(data);
   },
-  updateZone: (id: string, updatedData: Partial<Zone>): Zone | undefined => {
+  updateZone: (id: string, updatedData: Partial<Omit<Zone, 'id'>>): Zone | undefined => {
     const data = readDb();
     const zoneIndex = data.zones.findIndex(z => z.id === id);
     if (zoneIndex > -1) {
