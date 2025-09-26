@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CrowdNavIcon } from '@/components/icons';
+import { EvacAIIcon } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 
 type HeaderProps = {
@@ -12,8 +12,8 @@ export function Header({ section }: HeaderProps) {
       <div className="container flex h-14 items-center">
         <div className="mr-4 flex items-center">
           <Link href="/" className="flex items-center gap-2">
-            <CrowdNavIcon className="h-6 w-6 text-primary" />
-            <span className="font-bold font-headline text-lg">CrowdNav</span>
+            <EvacAIIcon className="h-6 w-6 text-primary" />
+            <span className="font-bold font-headline text-lg">EvacAI</span>
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">

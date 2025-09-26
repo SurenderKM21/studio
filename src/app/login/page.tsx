@@ -1,5 +1,5 @@
 import { LoginForm } from '@/components/auth/login-form';
-import { CrowdNavIcon } from '@/components/icons';
+import { EvacAIIcon } from '@/components/icons';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -8,9 +8,9 @@ export default function LoginPage() {
       <div className="text-center mb-8">
         <div className="flex justify-center items-center gap-4 mb-4">
           <Link href="/" className="flex items-center gap-2">
-            <CrowdNavIcon className="w-12 h-12 text-primary" />
+            <EvacAIIcon className="w-12 h-12 text-primary" />
             <h1 className="text-5xl font-headline font-bold text-primary">
-              CrowdNav
+              EvacAI
             </h1>
           </Link>
         </div>

@@ -1,6 +1,6 @@
 # Project Algorithms
 
-This document provides a high-level overview of the key algorithms used in the CrowdNav application.
+This document provides a high-level overview of the key algorithms used in the EvacAI application.
 
 ## 1. Dijkstra's Algorithm for Route Optimization
 

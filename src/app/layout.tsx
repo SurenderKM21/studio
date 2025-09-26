@@ -15,8 +15,8 @@ const fontHeadline = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'CrowdNav',
-  description: 'Intelligent Crowd Navigation',
+  title: 'EvacAI',
+  description: 'Intelligent Evacuation Guidance',
 };
 
 export default function RootLayout({
