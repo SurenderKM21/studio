@@ -101,7 +101,7 @@ export const db = {
     const userIndex = data.users.findIndex(u => u.id === id);
     const now = new Date().toISOString();
     if (userIndex > -1) {
-      data.users[userIndex] = { ...data.users[userIndex], lastLatitude: latitude, lastLongitude: longitude, lastSeen: now, groupSize };
+      data.users[userIndex] = { ...data.users[userIndex], name, lastLatitude: latitude, lastLongitude: longitude, lastSeen: now, groupSize };
       writeDb(data);
       return data.users[userIndex];
     } else {
@@ -111,4 +111,11 @@ export const db = {
       return newUser;
     }
   },
+  removeUser: (id: string): void => {
+    const data = readDb();
+    data.users = data.users.filter(u => u.id !== id);
+    writeDb(data);
+  }
 };
+
+    

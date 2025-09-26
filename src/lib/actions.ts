@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from './data';
 import type { Zone, AppSettings, DensityCategory, RouteDetails, Coordinate } from './types';
+import { redirect } from 'next/navigation';
 
 const coordinateRegex = /^-?\d+(\.\d+)?,\s?-?\d+(\.\d+)?$/;
 
@@ -311,13 +312,15 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
 
 // Hardcoded density classification
 function classifyDensityHardcoded(userCount: number, capacity: number): DensityCategory {
-  if (userCount > capacity) {
+  const ratio = capacity > 0 ? userCount / capacity : 1;
+
+  if (ratio > 1) {
     return 'over-crowded';
   }
-  if (userCount === capacity || userCount > capacity * 0.8) {
+  if (ratio >= 0.8 || (capacity === 1 && userCount === 1)) {
     return 'crowded';
   }
-  if (userCount > capacity * 0.5) {
+  if (ratio > 0.5) {
     return 'moderate';
   }
   return 'free';
@@ -335,7 +338,7 @@ export async function classifyAllZonesAction() {
 
     for (const user of users) {
         if (user.lastLatitude && user.lastLongitude) {
-            const userZoneResult = await identifyUserZone(user.lastLatitude, user.lastLongitude, zones);
+            const userZoneResult = identifyUserZone(user.lastLatitude, user.lastLongitude, zones);
             if (userZoneResult && userZoneResult.zoneId !== 'unknown') {
                 zoneUserCounts[userZoneResult.zoneId] += user.groupSize || 1;
             }
@@ -380,7 +383,55 @@ function identifyUserZone(latitude: number, longitude: number, zones: Zone[]) {
             return { zoneId: zone.id, zoneName: zone.name };
         }
     }
+    // Implement snapping logic if user is outside all zones
+    const settings = db.getSettings();
+    const snappingThreshold = settings.zoneSnappingThreshold; // meters
+
+    if (snappingThreshold !== undefined && snappingThreshold > 0) {
+        let closestZone: Zone | null = null;
+        let minDistance = Infinity;
+
+        for (const zone of zones) {
+            const center = getZoneCenter(zone);
+            const distance = getHaversineDistance(userPoint, center);
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestZone = zone;
+            }
+        }
+
+        if (closestZone && minDistance <= snappingThreshold) {
+            return { zoneId: closestZone.id, zoneName: `Near ${closestZone.name}` };
+        }
+    }
+
     return { zoneId: 'unknown', zoneName: 'Unknown' };
+}
+
+function getZoneCenter(zone: Zone): Coordinate {
+    const lats = zone.coordinates.map(c => c.lat);
+    const lngs = zone.coordinates.map(c => c.lng);
+    return {
+        lat: lats.reduce((a, b) => a + b) / lats.length,
+        lng: lngs.reduce((a, b) => a + b) / lngs.length,
+    };
+}
+
+
+function getHaversineDistance(point1: Coordinate, point2: Coordinate): number {
+    const R = 6371e3; // Earth's radius in meters
+    const phi1 = point1.lat * Math.PI / 180;
+    const phi2 = point2.lat * Math.PI / 180;
+    const deltaPhi = (point2.lat - point1.lat) * Math.PI / 180;
+    const deltaLambda = (point2.lng - point1.lng) * Math.PI / 180;
+
+    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
 }
 
 
@@ -433,3 +484,17 @@ export async function updateUserLocationAndClassifyZonesAction(userId: string, u
     return { error: 'Failed to update user location and re-classify zones.' };
   }
 }
+
+export async function logoutUserAction(userId: string) {
+    try {
+        db.removeUser(userId);
+        await classifyAllZonesAction();
+        revalidatePath('/user');
+        revalidatePath('/admin');
+    } catch(e) {
+        console.error("Error during logout:", e);
+    }
+    redirect('/');
+}
+
+    
