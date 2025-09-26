@@ -54,15 +54,7 @@ export function LoginForm() {
           <CardDescription>Enter your credentials to access your account.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="m@example.com" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required />
-          </div>
-          <div className="space-y-2">
+           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
             <Select onValueChange={setRole} defaultValue={role} disabled={isPending}>
               <SelectTrigger id="role">
@@ -74,6 +66,23 @@ export function LoginForm() {
               </SelectContent>
             </Select>
           </div>
+          {role === 'admin' ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="m@example.com" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" type="password" required />
+              </div>
+            </>
+          ) : (
+             <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" type="text" placeholder="e.g. John Doe" required />
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button type="submit" className="w-full" disabled={isPending}>
