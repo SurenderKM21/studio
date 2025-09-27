@@ -9,6 +9,7 @@ export type Zone = {
   capacity: number;
   userCount: number;
   density: DensityCategory;
+  manualDensityUntil?: string; // ISO 8601 string
 };
 
 export type RouteDetails = {

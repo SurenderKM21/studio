@@ -24,10 +24,11 @@ import {
 } from '@/components/ui/select';
 import type { Zone, DensityCategory } from '@/lib/types';
 import { manualUpdateDensityAction } from '@/lib/actions';
-import { startTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Clock } from 'lucide-react';
 
 const densityColors: Record<DensityCategory, string> = {
   free: 'bg-green-500',
@@ -37,15 +38,23 @@ const densityColors: Record<DensityCategory, string> = {
 };
 
 export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
+  const [zones, setZones] = useState<Zone[]>(initialZones);
+  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const handleDensityChange = (zoneId: string, value: DensityCategory) => {
-    startTransition(() => {
-      manualUpdateDensityAction(zoneId, value).then(() => {
-        toast({
-          title: 'Density Updated',
-          description: `Zone density has been manually set to ${value}.`,
-        });
+    startTransition(async () => {
+      await manualUpdateDensityAction(zoneId, value);
+      
+      const expiryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+      const updatedZones = zones.map(z => 
+        z.id === zoneId ? { ...z, density: value, manualDensityUntil: expiryTime } : z
+      );
+      setZones(updatedZones);
+
+      toast({
+        title: 'Density Updated',
+        description: `Zone density has been manually set to ${value}. This will last for 5 minutes.`,
       });
     });
   };
@@ -56,7 +65,7 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
         <CardTitle>Manual Density Override</CardTitle>
         <CardDescription>
           Manually set the crowd density for each zone. This will override
-          automatic classification until the next update cycle.
+          automatic classification for 5 minutes.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -69,18 +78,23 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {initialZones.map((zone) => (
+            {zones.map((zone) => (
               <TableRow key={zone.id}>
                 <TableCell className="font-medium">{zone.name}</TableCell>
                 <TableCell>
-                  <Badge
-                    className={cn(
-                      'text-white',
-                      densityColors[zone.density]
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      className={cn(
+                        'text-white',
+                        densityColors[zone.density]
+                      )}
+                    >
+                      {zone.density}
+                    </Badge>
+                     {zone.manualDensityUntil && new Date(zone.manualDensityUntil) > new Date() && (
+                      <Clock className="h-4 w-4 text-primary" title="Manual override active" />
                     )}
-                  >
-                    {zone.density}
-                  </Badge>
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <Select
@@ -88,6 +102,7 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
                       handleDensityChange(zone.id, value)
                     }
                     defaultValue={zone.density}
+                    disabled={isPending}
                   >
                     <SelectTrigger className="w-[180px] ml-auto">
                       <SelectValue placeholder="Set density" />

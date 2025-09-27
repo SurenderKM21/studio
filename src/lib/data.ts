@@ -76,14 +76,6 @@ export const db = {
     }
     return undefined;
   },
-  updateZoneDensity: (id: string, density: DensityCategory) => {
-    const data = readDb();
-    const zoneIndex = data.zones.findIndex(z => z.id === id);
-    if (zoneIndex > -1) {
-      data.zones[zoneIndex].density = density;
-      writeDb(data);
-    }
-  },
   getSettings: (): AppSettings => {
     return readDb().settings;
   },

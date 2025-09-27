@@ -138,7 +138,8 @@ export async function manualUpdateDensityAction(
   zoneId: string,
   density: DensityCategory
 ) {
-  db.updateZoneDensity(zoneId, density);
+  const expiryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes from now
+  db.updateZone(zoneId, { density: density, manualDensityUntil: expiryTime });
   revalidatePath('/admin');
   revalidatePath('/user');
 }
@@ -312,7 +313,8 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
 
 // Hardcoded density classification
 function classifyDensityHardcoded(userCount: number, capacity: number): DensityCategory {
-  const ratio = capacity > 0 ? userCount / capacity : 1;
+  if (capacity <= 0) return 'free'; // Avoid division by zero
+  const ratio = userCount / capacity;
 
   if (ratio > 1) {
     return 'over-crowded';
@@ -443,6 +445,7 @@ export async function updateUserLocationAndClassifyZonesAction(userId: string, u
     // 2. Recalculate counts and densities for all zones
     const zones = db.getZones();
     const users = db.getUsers();
+    const now = new Date();
     
     const zoneUserCounts = zones.reduce((acc, zone) => {
         acc[zone.id] = 0;
@@ -460,8 +463,16 @@ export async function updateUserLocationAndClassifyZonesAction(userId: string, u
 
     for (const zone of zones) {
        const userCount = zoneUserCounts[zone.id];
+       db.updateZone(zone.id, { userCount });
+       
+       // Check if a manual override is active. If so, skip automatic classification.
+       if (zone.manualDensityUntil && new Date(zone.manualDensityUntil) > now) {
+         continue; // Manual override is active, so we don't change the density.
+       }
+
+       // If override is expired or not set, classify automatically
        const newDensity = classifyDensityHardcoded(userCount, zone.capacity);
-       db.updateZone(zone.id, { userCount, density: newDensity });
+       db.updateZone(zone.id, { density: newDensity, manualDensityUntil: undefined });
     }
 
     // 3. Re-fetch the updated zones and find the current user's new zone
