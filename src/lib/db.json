@@ -123,7 +123,8 @@
       ],
       "id": "zone-4meyolm",
       "userCount": 0,
-      "density": "free"
+      "density": "over-crowded",
+      "manualDensityUntil": "2025-09-27T05:21:44.614Z"
     },
     {
       "name": "Zone6",
@@ -207,7 +208,7 @@
       "name": "John Doe",
       "lastLatitude": 12.858807194019377,
       "lastLongitude": 80.08448888696243,
-      "lastSeen": "2025-09-27T05:14:30.170Z",
+      "lastSeen": "2025-09-27T05:17:31.631Z",
       "groupSize": 1
     }
   ],

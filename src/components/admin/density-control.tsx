@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -54,7 +55,7 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
 
       toast({
         title: 'Density Updated',
-        description: `Zone density has been manually set to ${value}. This will last for 5 minutes.`,
+        description: `Zone density has been manually set to ${value}.`,
       });
     });
   };
