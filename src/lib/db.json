@@ -23,7 +23,8 @@
       ],
       "id": "zone-e7cq1vc",
       "userCount": 0,
-      "density": "free"
+      "density": "free",
+      "manualDensity": false
     },
     {
       "name": "Car parking",
@@ -48,7 +49,8 @@
       ],
       "id": "zone-2y5edj3",
       "userCount": 0,
-      "density": "free"
+      "density": "free",
+      "manualDensity": false
     },
     {
       "name": "IT Park",
@@ -73,7 +75,8 @@
       ],
       "id": "zone-6iabs98",
       "userCount": 0,
-      "density": "free"
+      "density": "free",
+      "manualDensity": false
     },
     {
       "name": "Zone41",
@@ -98,7 +101,8 @@
       ],
       "id": "zone-y94kfbc",
       "userCount": 0,
-      "density": "free"
+      "density": "free",
+      "manualDensity": false
     },
     {
       "name": "Zone5",
@@ -124,7 +128,8 @@
       "id": "zone-4meyolm",
       "userCount": 0,
       "density": "free",
-      "manualDensityUntil": "2025-09-27T05:31:00.130Z"
+      "manualDensityUntil": "2025-09-27T05:31:00.130Z",
+      "manualDensity": false
     },
     {
       "name": "Zone6",
@@ -149,7 +154,8 @@
       ],
       "id": "zone-q0bnq8n",
       "userCount": 0,
-      "density": "free"
+      "density": "free",
+      "manualDensity": false
     },
     {
       "name": "Side Path",
@@ -174,7 +180,8 @@
       ],
       "id": "zone-sidepath",
       "userCount": 0,
-      "density": "free"
+      "density": "free",
+      "manualDensity": false
     },
     {
       "name": "Mathura flats : Home",
@@ -198,19 +205,11 @@
         }
       ],
       "id": "zone-dxfb1gx",
-      "userCount": 1,
-      "density": "crowded"
+      "userCount": 0,
+      "density": "free",
+      "manualDensity": false
     }
   ],
-  "users": [
-    {
-      "id": "user-1",
-      "name": "John Doe",
-      "lastLatitude": 12.858807194019377,
-      "lastLongitude": 80.08448888696243,
-      "lastSeen": "2025-09-27T05:25:06.709Z",
-      "groupSize": 1
-    }
-  ],
+  "users": [],
   "settings": {}
 }

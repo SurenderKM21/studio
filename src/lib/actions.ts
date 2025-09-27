@@ -318,7 +318,7 @@ function classifyDensityHardcoded(userCount: number, capacity: number): DensityC
   if (ratio > 1) {
     return 'over-crowded';
   }
-  if (ratio >= 0.8 || (userCount > 0 && ratio / userCount > 0.8) ) {
+  if (ratio >= 0.8) {
     return 'crowded';
   }
   if (ratio > 0.5) {
@@ -348,8 +348,11 @@ export async function classifyAllZonesAction() {
 
     for (const zone of zones) {
        const userCount = zoneUserCounts[zone.id];
-       const newDensity = classifyDensityHardcoded(userCount, zone.capacity);
-       db.updateZone(zone.id, { userCount, density: newDensity, manualDensity: false });
+       // Reclassify only if user count has changed.
+       if (zone.userCount !== userCount) {
+         const newDensity = classifyDensityHardcoded(userCount, zone.capacity);
+         db.updateZone(zone.id, { userCount, density: newDensity, manualDensity: false });
+       }
     }
 
     revalidatePath('/user');
@@ -460,13 +463,14 @@ export async function updateUserLocationAndClassifyZonesAction(userId: string, u
     }
 
     for (const zone of zones) {
-       const userCount = zoneUserCounts[zone.id];
+       const newUserCount = zoneUserCounts[zone.id];
        
-       // Only re-classify if user count has changed.
-       if (zone.userCount !== userCount) {
-         const newDensity = classifyDensityHardcoded(userCount, zone.capacity);
-         // Setting manualDensity to false because this is an automatic update
-         db.updateZone(zone.id, { userCount, density: newDensity, manualDensity: false });
+       // Only re-classify if the user count has actually changed.
+       if (zone.userCount !== newUserCount) {
+         // If count has changed, automatic classification takes over.
+         const newDensity = classifyDensityHardcoded(newUserCount, zone.capacity);
+         // Setting manualDensity to false because this is an automatic update.
+         db.updateZone(zone.id, { userCount: newUserCount, density: newDensity, manualDensity: false });
        }
     }
 
