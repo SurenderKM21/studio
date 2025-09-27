@@ -28,7 +28,7 @@ import { useState, useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Clock } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 const densityColors: Record<DensityCategory, string> = {
   free: 'bg-green-500',
@@ -46,9 +46,8 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
     startTransition(async () => {
       await manualUpdateDensityAction(zoneId, value);
       
-      const expiryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       const updatedZones = zones.map(z => 
-        z.id === zoneId ? { ...z, density: value, manualDensityUntil: expiryTime } : z
+        z.id === zoneId ? { ...z, density: value, manualDensity: true } : z
       );
       setZones(updatedZones);
 
@@ -65,7 +64,7 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
         <CardTitle>Manual Density Override</CardTitle>
         <CardDescription>
           Manually set the crowd density for each zone. This will override
-          automatic classification for 5 minutes.
+          automatic classification until the user count in the zone changes.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -91,8 +90,8 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
                     >
                       {zone.density}
                     </Badge>
-                     {zone.manualDensityUntil && new Date(zone.manualDensityUntil) > new Date() && (
-                      <Clock className="h-4 w-4 text-primary" title="Manual override active" />
+                     {zone.manualDensity && (
+                      <ShieldCheck className="h-4 w-4 text-primary" title="Manual override active" />
                     )}
                   </div>
                 </TableCell>
