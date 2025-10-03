@@ -464,8 +464,8 @@ export async function updateUserLocationAndClassifyZonesAction(userId: string, u
     for (const zone of zones) {
        const newUserCount = zoneUserCounts[zone.id];
        
-       // Only re-classify if the user count has actually changed or if a manual override was active
-       if (zone.userCount !== newUserCount || zone.manualDensity) {
+       // Only re-classify if the user count has actually changed.
+       if (zone.userCount !== newUserCount) {
          // If count has changed, automatic classification takes over.
          const newDensity = classifyDensityHardcoded(newUserCount, zone.capacity);
          // Setting manualDensity to false because this is an automatic update triggered by user movement.
