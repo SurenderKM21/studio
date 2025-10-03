@@ -366,13 +366,17 @@ export async function classifyAllZonesAction() {
 // Check if a point is inside a polygon using the ray-casting algorithm
 function isPointInPolygon(point: Coordinate, polygon: Coordinate[]): boolean {
     let isInside = false;
-    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const n = polygon.length;
+    for (let i = 0, j = n - 1; i < n; j = i++) {
         const xi = polygon[i].lat, yi = polygon[i].lng;
         const xj = polygon[j].lat, yj = polygon[j].lng;
 
         const intersect = ((yi > point.lng) !== (yj > point.lng))
             && (point.lat < (xj - xi) * (point.lng - yi) / (yj - yi) + xi);
-        if (intersect) isInside = !isInside;
+
+        if (intersect) {
+            isInside = !isInside;
+        }
     }
     return isInside;
 }
@@ -441,37 +445,44 @@ function getHaversineDistance(point1: Coordinate, point2: Coordinate): number {
 export async function updateUserLocationAndClassifyZonesAction(userId: string, userName: string, latitude: number, longitude: number, groupSize: number) {
   try {
     // 1. Update the current user's location
+    const oldUser = db.getUsers().find(u => u.id === userId);
+    const oldZoneId = oldUser && oldUser.lastLatitude && oldUser.lastLongitude ? identifyUserZone(oldUser.lastLatitude, oldUser.lastLongitude, db.getZones()).zoneId : 'unknown';
+    
     db.updateUserLocation(userId, userName, latitude, longitude, groupSize);
-
-    // 2. Recalculate counts and densities for all zones
+    const newZoneId = identifyUserZone(latitude, longitude, db.getZones()).zoneId;
+    
     const zones = db.getZones();
     const users = db.getUsers();
     
-    const zoneUserCounts = zones.reduce((acc, zone) => {
-        acc[zone.id] = 0;
-        return acc;
-    }, {} as Record<string, number>);
+    // Only proceed if the user has moved zones.
+    if(oldZoneId !== newZoneId) {
+        const zoneUserCounts = zones.reduce((acc, zone) => {
+            acc[zone.id] = 0;
+            return acc;
+        }, {} as Record<string, number>);
 
-    for (const user of users) {
-        if (user.lastLatitude && user.lastLongitude) {
-            const userZoneResult = identifyUserZone(user.lastLatitude, user.lastLongitude, zones);
-            if (userZoneResult && userZoneResult.zoneId !== 'unknown') {
-                zoneUserCounts[userZoneResult.zoneId] += user.groupSize || 1;
+        for (const user of users) {
+            if (user.lastLatitude && user.lastLongitude) {
+                const userZoneResult = identifyUserZone(user.lastLatitude, user.lastLongitude, zones);
+                if (userZoneResult && userZoneResult.zoneId !== 'unknown') {
+                    zoneUserCounts[userZoneResult.zoneId] += user.groupSize || 1;
+                }
             }
+        }
+        for (const zone of zones) {
+           const newUserCount = zoneUserCounts[zone.id];
+           
+           if (zone.manualDensity && zone.userCount === newUserCount) {
+             continue;
+           }
+
+           if (zone.userCount !== newUserCount) {
+             const newDensity = classifyDensityHardcoded(newUserCount, zone.capacity);
+             db.updateZone(zone.id, { userCount: newUserCount, density: newDensity, manualDensity: false });
+           }
         }
     }
 
-    for (const zone of zones) {
-       const newUserCount = zoneUserCounts[zone.id];
-       
-       // Only re-classify if the user count has actually changed.
-       if (zone.userCount !== newUserCount) {
-         // If count has changed, automatic classification takes over.
-         const newDensity = classifyDensityHardcoded(newUserCount, zone.capacity);
-         // Setting manualDensity to false because this is an automatic update triggered by user movement.
-         db.updateZone(zone.id, { userCount: newUserCount, density: newDensity, manualDensity: false });
-       }
-    }
 
     // 3. Re-fetch the updated zones and find the current user's new zone
     const updatedZones = db.getZones();
@@ -505,5 +516,3 @@ export async function logoutUserAction(userId: string) {
     }
     redirect('/');
 }
-
-    
