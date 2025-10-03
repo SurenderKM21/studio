@@ -127,9 +127,9 @@
       ],
       "id": "zone-4meyolm",
       "userCount": 0,
-      "density": "free",
+      "density": "crowded",
       "manualDensityUntil": "2025-09-27T05:31:00.130Z",
-      "manualDensity": false
+      "manualDensity": true
     },
     {
       "name": "Zone6",
@@ -208,8 +208,43 @@
       "userCount": 0,
       "density": "free",
       "manualDensity": false
+    },
+    {
+      "name": "Home",
+      "capacity": 1,
+      "coordinates": [
+        {
+          "lat": 10.857856,
+          "lng": 78.704978
+        },
+        {
+          "lat": 10.85774,
+          "lng": 78.705268
+        },
+        {
+          "lat": 10.857291,
+          "lng": 78.704737
+        },
+        {
+          "lat": 10.857228,
+          "lng": 78.70505
+        }
+      ],
+      "id": "zone-bvtaqd0",
+      "userCount": 1,
+      "density": "free",
+      "manualDensity": false
     }
   ],
-  "users": [],
+  "users": [
+    {
+      "id": "user-1",
+      "name": "John Doe",
+      "lastLatitude": 10.857363,
+      "lastLongitude": 78.704891,
+      "lastSeen": "2025-10-03T16:39:52.172Z",
+      "groupSize": 1
+    }
+  ],
   "settings": {}
 }

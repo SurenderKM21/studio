@@ -310,18 +310,17 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
   }
 }
 
-// Hardcoded density classification
 function classifyDensityHardcoded(userCount: number, capacity: number): DensityCategory {
-  if (capacity <= 0) return 'free'; // Avoid division by zero
+  if (capacity <= 0) return 'free';
   const ratio = userCount / capacity;
 
-  if (ratio > 1) {
+  if (ratio >= 1) {
     return 'over-crowded';
   }
-  if (ratio >= 0.8) {
+  if (ratio > 0.6) {
     return 'crowded';
   }
-  if (ratio > 0.5) {
+  if (ratio > 0.3) {
     return 'moderate';
   }
   return 'free';
@@ -465,11 +464,11 @@ export async function updateUserLocationAndClassifyZonesAction(userId: string, u
     for (const zone of zones) {
        const newUserCount = zoneUserCounts[zone.id];
        
-       // Only re-classify if the user count has actually changed.
-       if (zone.userCount !== newUserCount) {
+       // Only re-classify if the user count has actually changed or if a manual override was active
+       if (zone.userCount !== newUserCount || zone.manualDensity) {
          // If count has changed, automatic classification takes over.
          const newDensity = classifyDensityHardcoded(newUserCount, zone.capacity);
-         // Setting manualDensity to false because this is an automatic update.
+         // Setting manualDensity to false because this is an automatic update triggered by user movement.
          db.updateZone(zone.id, { userCount: newUserCount, density: newDensity, manualDensity: false });
        }
     }
