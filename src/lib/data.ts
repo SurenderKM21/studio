@@ -88,6 +88,17 @@ export const db = {
   getUsers: (): User[] => {
     return readDb().users;
   },
+  addUser: (user: User): User => {
+    const data = readDb();
+    const userIndex = data.users.findIndex(u => u.id === user.id);
+    if (userIndex > -1) {
+      data.users[userIndex] = { ...data.users[userIndex], ...user, lastSeen: new Date().toISOString() };
+    } else {
+      data.users.push(user);
+    }
+    writeDb(data);
+    return user;
+  },
   updateUserLocation: (id: string, name: string, latitude: number, longitude: number, groupSize: number): User => {
     const data = readDb();
     const userIndex = data.users.findIndex(u => u.id === id);
@@ -109,5 +120,3 @@ export const db = {
     writeDb(data);
   }
 };
-
-    

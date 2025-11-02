@@ -524,13 +524,20 @@ export async function getUsers() {
 }
 
 export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
-    const { role, username } = data;
+    const { role, username, email } = data;
     if (role === 'admin') {
         // In a real app, you'd validate admin credentials
+        const userId = email || 'admin-1';
+        const name = 'Admin';
+        db.addUser({ id: userId, name, groupSize: 1, lastSeen: new Date().toISOString() });
+        revalidatePath('/admin');
         return { success: true };
     }
     if (username) {
         // For regular users, we just need a username
+        const userId = username.toLowerCase().replace(/\s/g, '-') || `user-${Math.random().toString(36).substring(2, 9)}`;
+        db.addUser({ id: userId, name: username, groupSize: 1, lastSeen: new Date().toISOString() });
+        revalidatePath('/admin');
         return { success: true };
     }
     return { success: false, error: 'Invalid login details.' };
