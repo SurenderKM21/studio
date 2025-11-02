@@ -101,7 +101,7 @@ export function AdminDashboard({
         </Button>
       </div>
       <Tabs defaultValue="zones" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-6 h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 h-auto">
           <TabsTrigger value="zones">
             <Map className="mr-2 h-4 w-4" />
             Zone Manager
@@ -114,13 +114,13 @@ export function AdminDashboard({
             <Users className="mr-2 h-4 w-4" />
             Density Control
           </TabsTrigger>
-          <TabsTrigger value="overcrowded" className="text-destructive">
-            <AlertTriangle className="mr-2 h-4 w-4" />
-            Over-crowded ({overCrowdedCount})
-          </TabsTrigger>
           <TabsTrigger value="users">
             <Users className="mr-2 h-4 w-4" />
             Users
+          </TabsTrigger>
+          <TabsTrigger value="overcrowded" className="text-destructive">
+            <AlertTriangle className="mr-2 h-4 w-4" />
+            Over-crowded ({overCrowdedCount})
           </TabsTrigger>
           <TabsTrigger value="settings">
             <Settings className="mr-2 h-4 w-4" />

@@ -65,7 +65,7 @@ export function LoginForm() {
   };
 
   return (
-    <Card className="w-full max-w-md shadow-2xl">
+    <Card className="w-full max-w-md shadow-lg">
       <form onSubmit={handleSubmit}>
         <CardHeader>
           <CardTitle className="text-3xl font-headline">Login</CardTitle>
