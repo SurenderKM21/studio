@@ -335,7 +335,7 @@ function classifyDensityHardcoded(userCount: number, capacity: number): DensityC
 
 function rebalanceAllZoneCounts() {
   const allZones = db.getZones();
-  const allUsers = db.getUsers();
+  const allUsers = db.getUsers().filter(u => u.status === 'online'); // Only count online users
 
   // Create a fresh count for each zone
   const zoneUserCounts: Record<string, number> = allZones.reduce((acc, zone) => {
@@ -466,16 +466,18 @@ function getHaversineDistance(point1: Coordinate, point2: Coordinate): number {
 
 export async function updateUserLocationAndClassifyZonesAction(userId: string, userName: string, latitude: number, longitude: number, groupSize: number) {
   try {
-    // 1. Update the current user's location
-    db.updateUserLocation(userId, userName, latitude, longitude, groupSize);
+    const zones = db.getZones();
+    const currentUserZone = identifyUserZone(latitude, longitude, zones);
+
+    // 1. Update the current user's location and zone
+    db.updateUserLocation(userId, userName, latitude, longitude, groupSize, currentUserZone.zoneId);
     
     // 2. Recalculate counts and densities for all zones
     rebalanceAllZoneCounts();
 
-    // 3. Re-fetch the updated zones and find the current user's new zone
+    // 3. Re-fetch the updated zones
     const updatedZones = db.getZones();
-    const currentUserZone = identifyUserZone(latitude, longitude, updatedZones);
-
+    
     revalidatePath('/user');
     revalidatePath('/admin');
     
@@ -495,9 +497,12 @@ export async function updateUserLocationAndClassifyZonesAction(userId: string, u
 
 export async function logoutUserAction(userId: string) {
     try {
-        db.removeUser(userId);
-        // After removing the user, rebalance all zone counts to reflect their departure.
+        // Set user status to offline instead of removing them
+        db.updateUser(userId, { status: 'offline' });
+        
+        // After "logging out" the user, rebalance all zone counts to reflect their departure.
         rebalanceAllZoneCounts();
+        
         revalidatePath('/user');
         revalidatePath('/admin');
     } catch(e) {
@@ -529,14 +534,28 @@ export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
         // In a real app, you'd validate admin credentials
         const userId = email || 'admin-1';
         const name = 'Admin';
-        db.addUser({ id: userId, name, groupSize: 1, lastSeen: new Date().toISOString() });
+        db.addUser({ 
+            id: userId, 
+            name, 
+            groupSize: 1, 
+            lastSeen: new Date().toISOString(), 
+            role: 'admin',
+            status: 'online'
+        });
         revalidatePath('/admin');
         return { success: true };
     }
     if (username) {
         // For regular users, we just need a username
         const userId = username.toLowerCase().replace(/\s/g, '-') || `user-${Math.random().toString(36).substring(2, 9)}`;
-        db.addUser({ id: userId, name: username, groupSize: 1, lastSeen: new Date().toISOString() });
+        db.addUser({ 
+            id: userId, 
+            name: username, 
+            groupSize: 1, 
+            lastSeen: new Date().toISOString(), 
+            role: 'user',
+            status: 'online'
+        });
         revalidatePath('/admin');
         return { success: true };
     }

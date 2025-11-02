@@ -31,4 +31,7 @@ export type User = {
   lastLatitude?: number;
   lastLongitude?: number;
   lastSeen?: string;
+  lastZoneId?: string;
+  status?: 'online' | 'offline';
+  role?: 'user' | 'admin';
 };

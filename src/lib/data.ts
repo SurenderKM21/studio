@@ -99,16 +99,28 @@ export const db = {
     writeDb(data);
     return user;
   },
-  updateUserLocation: (id: string, name: string, latitude: number, longitude: number, groupSize: number): User => {
+  updateUser: (id: string, updateData: Partial<User>): User | undefined => {
+    const data = readDb();
+    const userIndex = data.users.findIndex(u => u.id === id);
+    if (userIndex > -1) {
+      data.users[userIndex] = { ...data.users[userIndex], ...updateData };
+      writeDb(data);
+      return data.users[userIndex];
+    }
+    return undefined;
+  },
+  updateUserLocation: (id: string, name: string, latitude: number, longitude: number, groupSize: number, zoneId?: string): User => {
     const data = readDb();
     const userIndex = data.users.findIndex(u => u.id === id);
     const now = new Date().toISOString();
+    const userUpdate: Partial<User> = { name, lastLatitude: latitude, lastLongitude: longitude, lastSeen: now, groupSize, lastZoneId: zoneId };
+
     if (userIndex > -1) {
-      data.users[userIndex] = { ...data.users[userIndex], name, lastLatitude: latitude, lastLongitude: longitude, lastSeen: now, groupSize };
+      data.users[userIndex] = { ...data.users[userIndex], ...userUpdate };
       writeDb(data);
       return data.users[userIndex];
     } else {
-      const newUser: User = { id, name, lastLatitude: latitude, lastLongitude: longitude, lastSeen: now, groupSize };
+      const newUser: User = { id, name, lastLatitude: latitude, lastLongitude: longitude, lastSeen: now, groupSize, lastZoneId: zoneId };
       data.users.push(newUser);
       writeDb(data);
       return newUser;
