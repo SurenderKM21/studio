@@ -259,9 +259,12 @@
       "id": "kavin",
       "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2025-11-02T11:55:04.191Z",
+      "lastSeen": "2025-11-02T12:08:45.471Z",
       "role": "user",
-      "status": "online"
+      "status": "online",
+      "lastLatitude": 11.0133248,
+      "lastLongitude": 76.9851392,
+      "lastZoneId": "unknown"
     }
   ],
   "settings": {}

@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -20,6 +19,8 @@ import { useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useActionState } from 'react';
 import { MapView } from '../user/map-view';
+import { Map } from 'lucide-react';
+import Link from 'next/link';
 
 const coordinateRegex = /^-?\d+(\.\d+)?,\s?-?\d+(\.\d+)?$/;
 
@@ -94,10 +95,20 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
     <div className="grid lg:grid-cols-2 gap-8 items-start">
       <Card>
         <CardHeader>
-          <CardTitle>Add New Zone</CardTitle>
-          <CardDescription>
-            Define a new area with four corner GPS coordinates.
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Add New Zone</CardTitle>
+              <CardDescription>
+                Define a new area with four corner GPS coordinates.
+              </CardDescription>
+            </div>
+            <Button asChild variant="outline">
+              <Link href="https://www.google.com/maps" target="_blank">
+                <Map className="mr-2 h-4 w-4" />
+                Open Google Maps
+              </Link>
+            </Button>
+          </div>
         </CardHeader>
         <form action={formAction} ref={formRef}>
           <CardContent className="space-y-4">
