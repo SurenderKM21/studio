@@ -254,6 +254,14 @@
       "lastZoneId": "unknown",
       "role": "user",
       "status": "online"
+    },
+    {
+      "id": "kavin",
+      "name": "Kavin",
+      "groupSize": 1,
+      "lastSeen": "2025-11-02T11:55:04.191Z",
+      "role": "user",
+      "status": "online"
     }
   ],
   "settings": {}

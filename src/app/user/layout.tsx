@@ -1,6 +1,5 @@
 
 import { Header } from "@/components/layout/header";
-import { redirect } from "next/navigation";
 
 export default function UserLayout({
   children,
@@ -9,12 +8,7 @@ export default function UserLayout({
   children: React.ReactNode;
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-
-  const userId = searchParams?.userId;
-
-  if (typeof userId !== 'string') {
-    redirect('/login');
-  }
+  const userId = searchParams?.userId as string | undefined;
 
   return (
     <div className="relative flex min-h-screen flex-col">
