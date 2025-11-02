@@ -10,9 +10,8 @@ import type { Zone, AppSettings, User } from '@/lib/types';
 import { ZoneManager } from './zone-manager';
 import { DensityControl } from './density-control';
 import { SettingsPanel } from './settings-panel';
-import { Users, Map, Settings, List, AlertTriangle, RefreshCw, UserCheck } from 'lucide-react';
+import { Users, Map, Settings, List, AlertTriangle, RefreshCw } from 'lucide-react';
 import { UserMonitor } from './user-monitor';
-import { UserStatusMonitor } from './user-status-monitor';
 import { ZoneDetails } from './zone-details';
 import { OvercrowdedZones } from './overcrowded-zones';
 import { useEffect, useState, useTransition } from 'react';
@@ -102,7 +101,7 @@ export function AdminDashboard({
         </Button>
       </div>
       <Tabs defaultValue="zones" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-7 h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-6 h-auto">
           <TabsTrigger value="zones">
             <Map className="mr-2 h-4 w-4" />
             Zone Manager
@@ -123,10 +122,6 @@ export function AdminDashboard({
             <Users className="mr-2 h-4 w-4" />
             Users
           </TabsTrigger>
-           <TabsTrigger value="user-status">
-            <UserCheck className="mr-2 h-4 w-4" />
-            User Status
-          </TabsTrigger>
           <TabsTrigger value="settings">
             <Settings className="mr-2 h-4 w-4" />
             Settings
@@ -145,10 +140,7 @@ export function AdminDashboard({
           <OvercrowdedZones zones={zones} />
         </TabsContent>
         <TabsContent value="users">
-          <UserMonitor initialUsers={users} />
-        </TabsContent>
-        <TabsContent value="user-status">
-          <UserStatusMonitor initialUsers={users} initialZones={zones} />
+          <UserMonitor initialUsers={users} initialZones={zones} />
         </TabsContent>
         <TabsContent value="settings">
           <SettingsPanel initialSettings={initialSettings} />

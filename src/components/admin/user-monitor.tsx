@@ -1,6 +1,7 @@
+
 'use client';
 
-import type { User } from '@/lib/types';
+import type { User, Zone } from '@/lib/types';
 import {
   Card,
   CardContent,
@@ -16,56 +17,68 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Separator } from '@/components/ui/separator';
 
-export function UserMonitor({ initialUsers }: { initialUsers: User[] }) {
+interface UserMonitorProps {
+  initialUsers: User[];
+  initialZones: Zone[];
+}
+
+export function UserMonitor({ initialUsers, initialZones }: UserMonitorProps) {
+  const users = initialUsers.filter(u => u.role !== 'admin');
+  const loggedInUsers = users.filter(user => user.status === 'online');
+  const loggedOutUsers = users.filter(user => user.status !== 'online');
   
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Active Users</CardTitle>
-        <CardDescription>
-          A list of currently tracked users and their last known location.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+  const zoneMap = new Map(initialZones.map(zone => [zone.id, zone.name]));
+
+  const UserTable = ({ users, title }: { users: User[], title: string }) => (
+    <div>
+      <h3 className="text-xl font-semibold mb-2">{title} ({users.length})</h3>
+      <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px]">User ID</TableHead>
+              <TableHead className="w-[150px]">User ID</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Latitude</TableHead>
-              <TableHead>Longitude</TableHead>
-              <TableHead className="text-right">Last Seen</TableHead>
+              <TableHead className="text-right">Zone</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {initialUsers.length > 0 ? (
-              initialUsers.map((user) => (
+            {users.length > 0 ? (
+              users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.id}</TableCell>
                   <TableCell>{user.name}</TableCell>
-                   <TableCell>
-                    {user.lastLatitude !== undefined ? user.lastLatitude.toFixed(6) : 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    {user.lastLongitude !== undefined ? user.lastLongitude.toFixed(6) : 'N/A'}
-                  </TableCell>
                   <TableCell className="text-right">
-                    {user.lastSeen
-                      ? new Date(user.lastSeen).toLocaleString()
-                      : 'Never'}
+                    {user.lastZoneId ? zoneMap.get(user.lastZoneId) ?? 'Unknown' : 'N/A'}
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
-                  No active users yet.
+                <TableCell colSpan={3} className="text-center text-muted-foreground h-24">
+                  No users in this category.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
+      </div>
+    </div>
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>User Activity</CardTitle>
+        <CardDescription>
+          A list of logged-in and logged-out users and their last known location.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-8">
+        <UserTable users={loggedInUsers} title="Logged In Users" />
+        <Separator />
+        <UserTable users={loggedOutUsers} title="Logged Out Users" />
       </CardContent>
     </Card>
   );
