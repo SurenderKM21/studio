@@ -73,8 +73,8 @@ export function UserMonitor({ initialUsers, initialZones }: UserMonitorProps) {
       const result = await clearAllUsersAction();
       if (result.success) {
         toast({
-          title: 'All Users Cleared',
-          description: 'The user list has been cleared.',
+          title: 'Logged Out Users Cleared',
+          description: 'The logged out user list has been cleared.',
         });
       } else {
         toast({
@@ -175,19 +175,19 @@ export function UserMonitor({ initialUsers, initialZones }: UserMonitorProps) {
         </div>
         <AlertDialog>
             <AlertDialogTrigger asChild>
-                 <Button variant="destructive" disabled={isPending}>Clear All User Data</Button>
+                 <Button variant="destructive" disabled={isPending}>Clear Logged-out Users</Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This will permanently delete all user data from the system. This action cannot be undone.
+                        This will permanently delete all logged-out user data from the system. This action cannot be undone.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction onClick={handleClearAllUsers} className="bg-destructive hover:bg-destructive/90">
-                        Yes, clear all data
+                        Yes, clear data
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

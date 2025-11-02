@@ -88,6 +88,10 @@ export const db = {
   getUsers: (): User[] => {
     return readDb().users;
   },
+  getUserById: (id: string): User | undefined => {
+    const { users } = readDb();
+    return users.find(u => u.id === id);
+  },
   addUser: (user: User): User => {
     const data = readDb();
     const userIndex = data.users.findIndex(u => u.id === user.id);
@@ -120,7 +124,7 @@ export const db = {
       writeDb(data);
       return data.users[userIndex];
     } else {
-      const newUser: User = { id, name, lastLatitude: latitude, lastLongitude: longitude, lastSeen: now, groupSize, lastZoneId: zoneId };
+      const newUser: User = { id, name, lastLatitude: latitude, lastLongitude: longitude, lastSeen: now, groupSize, lastZoneId: zoneId, role: 'user', status: 'online' };
       data.users.push(newUser);
       writeDb(data);
       return newUser;
@@ -133,7 +137,8 @@ export const db = {
   },
   clearAllUsers: (): void => {
     const data = readDb();
-    data.users = [];
+    // Only keep online users and admin users
+    data.users = data.users.filter(u => u.status === 'online' || u.role === 'admin');
     writeDb(data);
   }
 };
