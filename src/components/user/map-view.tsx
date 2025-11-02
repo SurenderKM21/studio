@@ -59,7 +59,7 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
   };
   
   const routePoints = useMemo(() => getRoutePoints(route), [route, zones, isClient]);
-  const altRoutePoints = useMemo(() => getRoutePoints(alternativeRoute), [alternativeRoute, zones, inClient]);
+  const altRoutePoints = useMemo(() => getRoutePoints(alternativeRoute), [alternativeRoute, zones, isClient]);
 
 
   return (
