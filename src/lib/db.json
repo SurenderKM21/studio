@@ -237,12 +237,16 @@
   ],
   "users": [
     {
-      "id": "user-1",
-      "name": "John Doe",
-      "lastLatitude": 11.042816,
-      "lastLongitude": 76.9785856,
-      "lastSeen": "2025-11-02T07:44:38.526Z",
-      "groupSize": 1
+      "id": "kavin",
+      "name": "Kavin",
+      "groupSize": 1,
+      "lastSeen": "2025-11-02T10:34:29.318Z"
+    },
+    {
+      "id": "adminevacai1@gmail.com",
+      "name": "Admin",
+      "groupSize": 1,
+      "lastSeen": "2025-11-02T10:35:09.042Z"
     }
   ],
   "settings": {}

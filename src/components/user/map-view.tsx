@@ -73,7 +73,7 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
                 <div
                   id={zone.id}
                   className={cn(
-                    'w-full h-full rounded-lg border-2 flex items-center justify-center p-2 text-center transition-all duration-300',
+                    'w-full h-full rounded-lg border-2 flex items-center justify-center p-2 text-center transition-all duration-300 relative',
                     densityStyles[zone.density].background,
                     densityStyles[zone.density].border,
                     route.includes(zone.id) || alternativeRoute.includes(zone.id)
@@ -81,7 +81,12 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
                       : 'shadow-md'
                   )}
                 >
-                  <span className="font-bold text-sm">{zone.name}</span>
+                  <span className="font-bold text-sm z-10 bg-background/50 px-1 rounded">{zone.name}</span>
+                  <div className="absolute inset-0 grid grid-cols-5 gap-1 p-2">
+                    {Array.from({ length: Math.min(zone.userCount, 50) }).map((_, i) => (
+                      <div key={i} className="w-2 h-2 bg-primary rounded-full" />
+                    ))}
+                  </div>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
