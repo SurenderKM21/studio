@@ -259,12 +259,20 @@
       "id": "kavin",
       "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2025-11-02T12:08:45.471Z",
+      "lastSeen": "2025-11-02T12:10:50.282Z",
       "role": "user",
       "status": "online",
-      "lastLatitude": 11.0133248,
-      "lastLongitude": 76.9851392,
+      "lastLatitude": 11.0248435,
+      "lastLongitude": 76.9297242,
       "lastZoneId": "unknown"
+    },
+    {
+      "id": "adminevacai1@gmail.com",
+      "name": "Admin",
+      "groupSize": 1,
+      "lastSeen": "2025-11-02T12:11:14.952Z",
+      "role": "admin",
+      "status": "online"
     }
   ],
   "settings": {}
