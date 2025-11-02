@@ -13,12 +13,12 @@ import {
 
 const densityStyles: Record<
   DensityCategory,
-  { background: string; border: string }
+  { background: string; border: string; dot: string }
 > = {
-  free: { background: 'bg-green-500/20', border: 'border-green-500' },
-  moderate: { background: 'bg-yellow-500/20', border: 'border-yellow-500' },
-  crowded: { background: 'bg-orange-500/20', border: 'border-orange-500' },
-  'over-crowded': { background: 'bg-red-500/20', border: 'border-red-500' },
+  free: { background: 'bg-green-500/20', border: 'border-green-500', dot: 'bg-green-500' },
+  moderate: { background: 'bg-yellow-500/20', border: 'border-yellow-500', dot: 'bg-yellow-500' },
+  crowded: { background: 'bg-orange-500/20', border: 'border-orange-500', dot: 'bg-orange-500' },
+  'over-crowded': { background: 'bg-red-500/20', border: 'border-red-500', dot: 'bg-red-500' },
 };
 
 interface MapViewProps {
@@ -59,7 +59,7 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
   };
   
   const routePoints = useMemo(() => getRoutePoints(route), [route, zones, isClient]);
-  const altRoutePoints = useMemo(() => getRoutePoints(alternativeRoute), [alternativeRoute, zones, isClient]);
+  const altRoutePoints = useMemo(() => getRoutePoints(alternativeRoute), [alternativeRoute, zones, inClient]);
 
 
   return (
@@ -84,7 +84,7 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
                   <span className="font-bold text-sm z-10 bg-background/50 px-1 rounded">{zone.name}</span>
                   <div className="absolute inset-0 grid grid-cols-5 gap-1 p-2">
                     {Array.from({ length: Math.min(zone.userCount, 50) }).map((_, i) => (
-                      <div key={i} className="w-2 h-2 bg-primary rounded-full" />
+                      <div key={i} className={cn("w-2 h-2 rounded-full", densityStyles[zone.density].dot)} />
                     ))}
                   </div>
                 </div>

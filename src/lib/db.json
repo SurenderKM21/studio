@@ -235,6 +235,26 @@
       "density": "free"
     }
   ],
-  "users": [],
+  "users": [
+    {
+      "id": "surenderkm",
+      "name": "SurenderKM",
+      "groupSize": 1,
+      "lastSeen": "2025-11-02T11:11:01.448Z",
+      "role": "user",
+      "status": "online"
+    },
+    {
+      "id": "user-1",
+      "name": "John Doe",
+      "lastLatitude": 11.0248435,
+      "lastLongitude": 76.9297242,
+      "lastSeen": "2025-11-02T11:12:06.056Z",
+      "groupSize": 1,
+      "lastZoneId": "unknown",
+      "role": "user",
+      "status": "online"
+    }
+  ],
   "settings": {}
 }

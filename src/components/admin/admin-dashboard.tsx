@@ -101,7 +101,7 @@ export function AdminDashboard({
         </Button>
       </div>
       <Tabs defaultValue="zones" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 h-auto">
+        <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="zones">
             <Map className="mr-2 h-4 w-4" />
             Zone Manager
