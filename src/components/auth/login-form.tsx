@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -49,10 +50,10 @@ export function LoginForm() {
             title: 'Login Successful',
             description: 'Redirecting to your dashboard...',
           });
-          if (role === 'user') {
-            router.push('/user');
+          if (result.role === 'user') {
+            router.push(`/user?userId=${result.userId}`);
           } else {
-            router.push('/admin');
+            router.push(`/admin?userId=${result.userId}`);
           }
        } else {
             toast({

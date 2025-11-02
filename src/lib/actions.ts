@@ -533,9 +533,10 @@ export async function getUsers(): Promise<User[]> {
 
 export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
     const { role, username, email } = data;
+    let userId;
     if (role === 'admin') {
         // In a real app, you'd validate admin credentials
-        const userId = email || 'admin-1';
+        userId = email || 'admin-1';
         const name = 'Admin';
         db.addUser({ 
             id: userId, 
@@ -545,12 +546,9 @@ export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
             role: 'admin',
             status: 'online'
         });
-        revalidatePath('/admin');
-        return { success: true };
-    }
-    if (username) {
+    } else if (username) {
         // For regular users, we just need a username
-        const userId = username.toLowerCase().replace(/\s/g, '-') || `user-${Math.random().toString(36).substring(2, 9)}`;
+        userId = username.toLowerCase().replace(/\s/g, '-') || `user-${Math.random().toString(36).substring(2, 9)}`;
         db.addUser({
             id: userId,
             name: username,
@@ -559,10 +557,15 @@ export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
             role: 'user',
             status: 'online'
         });
-        revalidatePath('/admin');
-        return { success: true };
+    } else {
+         return { success: false, error: 'Invalid login details.' };
     }
-    return { success: false, error: 'Invalid login details.' };
+
+    rebalanceAllZoneCounts();
+    revalidatePath('/admin');
+    revalidatePath('/user');
+
+    return { success: true, userId: userId, role: role };
 }
 
 export async function removeUserAction(userId: string) {

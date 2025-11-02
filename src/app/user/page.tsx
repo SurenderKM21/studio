@@ -1,20 +1,35 @@
 
-
 import { UserDashboard } from '@/components/user/user-dashboard';
 import { db } from '@/lib/data';
 import { User } from '@/lib/types';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-const MOCK_USER: User = { id: 'user-1', name: 'John Doe', groupSize: 1 };
 
-export default function UserPage() {
+export default function UserPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  const userId = searchParams?.userId;
+
+  if (typeof userId !== 'string') {
+    redirect('/login');
+  }
+
+  const user = db.getUserById(userId);
+
+  if (!user) {
+    redirect('/login');
+  }
+  
   const zones = db.getZones();
   const settings = db.getSettings();
   
   return (
      <div className="container mx-auto py-8">
-       <UserDashboard initialZones={zones} initialUser={MOCK_USER} settings={settings} />
+       <UserDashboard initialZones={zones} initialUser={user} settings={settings} />
     </div>
   );
 }

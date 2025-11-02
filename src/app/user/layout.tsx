@@ -1,18 +1,25 @@
 
 import { Header } from "@/components/layout/header";
+import { redirect } from "next/navigation";
 
 export default function UserLayout({
   children,
+  searchParams
 }: {
   children: React.ReactNode;
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
+
+  const userId = searchParams?.userId;
+
+  if (typeof userId !== 'string') {
+    redirect('/login');
+  }
+
   return (
     <div className="relative flex min-h-screen flex-col">
-      {/* We pass a mock userId for now, this would come from a real auth session */}
-      <Header section="User" userId="user-1" />
+      <Header section="User" userId={userId} />
       <main className="flex-1">{children}</main>
     </div>
   );
 }
-
-    
