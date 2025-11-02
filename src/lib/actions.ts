@@ -326,34 +326,49 @@ function classifyDensityHardcoded(userCount: number, capacity: number): DensityC
   return 'free';
 }
 
+function rebalanceAllZoneCounts() {
+  const allZones = db.getZones();
+  const allUsers = db.getUsers();
+
+  // Create a fresh count for each zone
+  const zoneUserCounts: Record<string, number> = allZones.reduce((acc, zone) => {
+    acc[zone.id] = 0;
+    return acc;
+  }, {});
+
+  // Tally users in their respective zones
+  for (const user of allUsers) {
+    if (user.lastLatitude && user.lastLongitude) {
+      const userZoneResult = identifyUserZone(user.lastLatitude, user.lastLongitude, allZones);
+      if (userZoneResult && userZoneResult.zoneId !== 'unknown') {
+        zoneUserCounts[userZoneResult.zoneId] += user.groupSize || 1;
+      }
+    }
+  }
+
+  // Update each zone with the new count and re-classify density if needed
+  for (const zone of allZones) {
+    const newUserCount = zoneUserCounts[zone.id];
+    // Only update if the count has actually changed
+    if (zone.userCount !== newUserCount) {
+      const newDensity = classifyDensityHardcoded(newUserCount, zone.capacity);
+      
+      // If a manual override is active, we clear it because the user count has changed.
+      const isManual = zone.manualDensity;
+      
+      db.updateZone(zone.id, { 
+        userCount: newUserCount, 
+        density: newDensity, 
+        // Reset manual flag only if it was previously true
+        manualDensity: isManual ? false : undefined 
+      });
+    }
+  }
+}
+
 export async function classifyAllZonesAction() {
-  const zones = db.getZones();
-  const users = db.getUsers();
-  
   try {
-    const zoneUserCounts = zones.reduce((acc, zone) => {
-        acc[zone.id] = 0;
-        return acc;
-    }, {} as Record<string, number>);
-
-    for (const user of users) {
-        if (user.lastLatitude && user.lastLongitude) {
-            const userZoneResult = identifyUserZone(user.lastLatitude, user.lastLongitude, zones);
-            if (userZoneResult && userZoneResult.zoneId !== 'unknown') {
-                zoneUserCounts[userZoneResult.zoneId] += user.groupSize || 1;
-            }
-        }
-    }
-
-    for (const zone of zones) {
-       const userCount = zoneUserCounts[zone.id];
-       // Reclassify only if user count has changed.
-       if (zone.userCount !== userCount) {
-         const newDensity = classifyDensityHardcoded(userCount, zone.capacity);
-         db.updateZone(zone.id, { userCount, density: newDensity, manualDensity: false });
-       }
-    }
-
+    rebalanceAllZoneCounts();
     revalidatePath('/user');
     revalidatePath('/admin');
     return { success: true };
@@ -445,44 +460,10 @@ function getHaversineDistance(point1: Coordinate, point2: Coordinate): number {
 export async function updateUserLocationAndClassifyZonesAction(userId: string, userName: string, latitude: number, longitude: number, groupSize: number) {
   try {
     // 1. Update the current user's location
-    const oldUser = db.getUsers().find(u => u.id === userId);
-    const oldZoneId = oldUser && oldUser.lastLatitude && oldUser.lastLongitude ? identifyUserZone(oldUser.lastLatitude, oldUser.lastLongitude, db.getZones()).zoneId : 'unknown';
-    
     db.updateUserLocation(userId, userName, latitude, longitude, groupSize);
-    const newZoneId = identifyUserZone(latitude, longitude, db.getZones()).zoneId;
     
-    const zones = db.getZones();
-    const users = db.getUsers();
-    
-    // Only proceed if the user has moved zones.
-    if(oldZoneId !== newZoneId) {
-        const zoneUserCounts = zones.reduce((acc, zone) => {
-            acc[zone.id] = 0;
-            return acc;
-        }, {} as Record<string, number>);
-
-        for (const user of users) {
-            if (user.lastLatitude && user.lastLongitude) {
-                const userZoneResult = identifyUserZone(user.lastLatitude, user.lastLongitude, zones);
-                if (userZoneResult && userZoneResult.zoneId !== 'unknown') {
-                    zoneUserCounts[userZoneResult.zoneId] += user.groupSize || 1;
-                }
-            }
-        }
-        for (const zone of zones) {
-           const newUserCount = zoneUserCounts[zone.id];
-           
-           if (zone.manualDensity && zone.userCount === newUserCount) {
-             continue;
-           }
-
-           if (zone.userCount !== newUserCount) {
-             const newDensity = classifyDensityHardcoded(newUserCount, zone.capacity);
-             db.updateZone(zone.id, { userCount: newUserCount, density: newDensity, manualDensity: false });
-           }
-        }
-    }
-
+    // 2. Recalculate counts and densities for all zones
+    rebalanceAllZoneCounts();
 
     // 3. Re-fetch the updated zones and find the current user's new zone
     const updatedZones = db.getZones();
@@ -508,11 +489,17 @@ export async function updateUserLocationAndClassifyZonesAction(userId: string, u
 export async function logoutUserAction(userId: string) {
     try {
         db.removeUser(userId);
-        await classifyAllZonesAction();
+        // After removing the user, rebalance all zone counts to reflect their departure.
+        rebalanceAllZoneCounts();
         revalidatePath('/user');
         revalidatePath('/admin');
     } catch(e) {
         console.error("Error during logout:", e);
     }
     redirect('/');
+}
+
+export async function refreshDataAction() {
+    revalidatePath('/user');
+    revalidatePath('/admin');
 }

@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { RouteInfo } from './route-info';
 import { Button } from '../ui/button';
 import { Loader, RefreshCw } from 'lucide-react';
-import { classifyAllZonesAction, getRouteAction, updateUserLocationAndClassifyZonesAction } from '@/lib/actions';
+import { classifyAllZonesAction, getRouteAction, updateUserLocationAndClassifyZonesAction, refreshDataAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { DensityLegend } from './density-legend';
 import { LocationTracker } from './location-tracker';
@@ -28,11 +28,12 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
   const [isClassifying, startClassification] = useTransition();
   const [isSendingLocation, setIsSendingLocation] = useState(false);
   const [lastLocationUpdate, setLastLocationUpdate] = useState<Date | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const locationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const dataRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   
+  // This effect keeps the component's state in sync with server-sent props
   useEffect(() => {
-    // This allows the component to update when the server sends new props after revalidation
     setZones(initialZones);
   }, [initialZones]);
 
@@ -105,6 +106,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
     );
   }, [toast, initialUser.id, initialUser.name, initialUser.groupSize, currentZone?.zoneId]);
   
+  // Effect for sending user location updates
   useEffect(() => {
     const updateIntervalMs = (settings.locationUpdateInterval || 30) * 1000;
     
@@ -112,18 +114,33 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
     const initialTimeout = setTimeout(() => {
       getLocationAndUpdate();
       // Then set up the interval
-      intervalRef.current = setInterval(getLocationAndUpdate, updateIntervalMs);
+      locationIntervalRef.current = setInterval(getLocationAndUpdate, updateIntervalMs);
     }, 100);
 
     // Cleanup function
     return () => {
       clearTimeout(initialTimeout);
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      if (locationIntervalRef.current) {
+        clearInterval(locationIntervalRef.current);
       }
     };
   }, [getLocationAndUpdate, settings.locationUpdateInterval]);
 
+  // Effect for periodically refreshing all data to sync with admin changes
+  useEffect(() => {
+    const refreshData = async () => {
+      // We don't need to show a toast every time, it's a background sync
+      await refreshDataAction();
+    };
+
+    dataRefreshIntervalRef.current = setInterval(refreshData, 15000); // e.g., every 15 seconds
+
+    return () => {
+      if (dataRefreshIntervalRef.current) {
+        clearInterval(dataRefreshIntervalRef.current);
+      }
+    }
+  }, []);
 
   const handlePlanRoute = (sourceZone: string, destinationZone: string) => {
     startRoutePlanning(async () => {
@@ -157,7 +174,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
       } else {
         toast({
           title: 'Densities Updated',
-          description: 'Zone crowd levels have been re-calculated. The map will update on the next data refresh.',
+          description: 'Zone crowd levels have been re-calculated and will appear shortly.',
         });
       }
     });
@@ -169,7 +186,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
         <div>
           <h1 className="text-4xl font-headline font-bold">Event Navigator</h1>
           <p className="text-muted-foreground">
-            Find the best path through the event.
+            Find the best path through the event. Last sync: {new Date().toLocaleTimeString()}
           </p>
         </div>
          <Button onClick={handleClassifyZones} disabled={isClassifying}>
