@@ -28,6 +28,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
   const [isClassifying, startClassification] = useTransition();
   const [isSendingLocation, setIsSendingLocation] = useState(false);
   const [lastLocationUpdate, setLastLocationUpdate] = useState<Date | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState('');
   const locationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const dataRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
@@ -35,6 +36,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
   // This effect keeps the component's state in sync with server-sent props
   useEffect(() => {
     setZones(initialZones);
+    setLastSyncTime(new Date().toLocaleTimeString());
   }, [initialZones]);
 
   const getLocationAndUpdate = useCallback(() => {
@@ -129,8 +131,8 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
   // Effect for periodically refreshing all data to sync with admin changes
   useEffect(() => {
     const refreshData = async () => {
-      // We don't need to show a toast every time, it's a background sync
       await refreshDataAction();
+      setLastSyncTime(new Date().toLocaleTimeString());
     };
 
     dataRefreshIntervalRef.current = setInterval(refreshData, 15000); // e.g., every 15 seconds
@@ -186,7 +188,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
         <div>
           <h1 className="text-4xl font-headline font-bold">Event Navigator</h1>
           <p className="text-muted-foreground">
-            Find the best path through the event. Last sync: {new Date().toLocaleTimeString()}
+            Find the best path through the event. Last sync: {lastSyncTime}
           </p>
         </div>
          <Button onClick={handleClassifyZones} disabled={isClassifying}>

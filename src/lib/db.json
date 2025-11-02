@@ -231,18 +231,17 @@
         }
       ],
       "id": "zone-bvtaqd0",
-      "userCount": 1,
-      "density": "over-crowded",
-      "manualDensity": false
+      "userCount": 0,
+      "density": "free"
     }
   ],
   "users": [
     {
       "id": "user-1",
       "name": "John Doe",
-      "lastLatitude": 10.857363,
-      "lastLongitude": 78.704891,
-      "lastSeen": "2025-10-03T17:00:12.571Z",
+      "lastLatitude": 11.042816,
+      "lastLongitude": 76.9785856,
+      "lastSeen": "2025-11-02T06:24:44.207Z",
       "groupSize": 1
     }
   ],
