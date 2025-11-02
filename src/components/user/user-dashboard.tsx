@@ -24,9 +24,10 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
   const [zones, setZones] = useState<Zone[]>(initialZones);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [currentZoneName, setCurrentZoneName] = useState<string>('Locating...');
+  const [currentUserLocation, setCurrentUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isPlanning, startRoutePlanning] = useTransition();
   const [isClassifying, startClassification] = useTransition();
-  const [isSendingLocation, setIsSendingLocation] = useState(false);
+  const [isSendingLocation, setIsSendingLocation] = useState(true); // Start as true
   const [lastLocationUpdate, setLastLocationUpdate] = useState<Date | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState('');
   const locationIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -46,7 +47,8 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
         title: "Unsupported Browser",
         description: "Your browser does not support geolocation.",
       });
-      setCurrentZoneName('Geolocation not supported');
+      setCurrentZoneName('Problem getting location');
+      setIsSendingLocation(false);
       return;
     }
     
@@ -55,6 +57,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
+        setCurrentUserLocation({ lat: latitude, lng: longitude });
         
         updateUserLocationAndClassifyZonesAction(
             initialUser.id, 
@@ -94,6 +97,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
               description: err.message || "Failed to update location and classify zones.",
           });
            setCurrentZoneName('Problem getting location');
+           setCurrentUserLocation(null);
         }).finally(() => {
            setIsSendingLocation(false);
         });
@@ -109,6 +113,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
           description,
         });
         setCurrentZoneName('Problem getting location');
+        setCurrentUserLocation(null);
         setIsSendingLocation(false);
       },
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
@@ -210,6 +215,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
             currentZoneName={currentZoneName} 
             isSending={isSendingLocation}
             lastUpdated={lastLocationUpdate}
+            coordinates={currentUserLocation}
         />
         <RoutePlanner
           zones={zones}
