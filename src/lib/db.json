@@ -27,24 +27,24 @@
       "manualDensity": false
     },
     {
-      "name": "Car parking",
-      "capacity": 90,
+      "name": "KV_HOME",
+      "capacity": 1,
       "coordinates": [
         {
-          "lat": 12.854117,
-          "lng": 80.079509
+          "lat": 10.940492, 
+          "lng": 76.934728
         },
         {
-          "lat": 12.853813,
-          "lng": 80.079218
+          "lat": 10.940542, 
+          "lng": 76.936217
         },
         {
-          "lat": 12.853133,
-          "lng": 80.079527
+          "lat": 10.939305, 
+          "lng": 76.936364
         },
         {
-          "lat": 12.853648,
-          "lng": 80.080145
+          "lat": 10.939201,
+          "lng": 76.934638
         }
       ],
       "id": "zone-2y5edj3",
@@ -241,7 +241,7 @@
       "name": "John Doe",
       "lastLatitude": 11.042816,
       "lastLongitude": 76.9785856,
-      "lastSeen": "2025-11-02T06:27:20.546Z",
+      "lastSeen": "2025-11-02T06:37:38.818Z",
       "groupSize": 1
     }
   ],

@@ -27,6 +27,13 @@ const updateZoneSchema = z.object({
   coordinate4: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
 });
 
+const loginUserSchema = z.object({
+  email: z.string().optional(),
+  username: z.string().optional(),
+  role: z.string(),
+  groupSize: z.number(),
+});
+
 
 export async function addZoneAction(prevState: any, formData: FormData) {
   const validatedFields = addZoneSchema.safeParse({
@@ -502,4 +509,29 @@ export async function logoutUserAction(userId: string) {
 export async function refreshDataAction() {
     revalidatePath('/user');
     revalidatePath('/admin');
+}
+
+export async function getZones() {
+    return db.getZones();
+}
+
+export async function getSettings() {
+    return db.getSettings();
+}
+
+export async function getUsers() {
+    return db.getUsers();
+}
+
+export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
+    const { role, username } = data;
+    if (role === 'admin') {
+        // In a real app, you'd validate admin credentials
+        return { success: true };
+    }
+    if (username) {
+        // For regular users, we just need a username
+        return { success: true };
+    }
+    return { success: false, error: 'Invalid login details.' };
 }
