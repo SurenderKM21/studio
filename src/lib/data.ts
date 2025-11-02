@@ -130,5 +130,10 @@ export const db = {
     const data = readDb();
     data.users = data.users.filter(u => u.id !== id);
     writeDb(data);
+  },
+  clearAllUsers: (): void => {
+    const data = readDb();
+    data.users = [];
+    writeDb(data);
   }
 };

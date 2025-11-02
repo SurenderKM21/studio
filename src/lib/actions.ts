@@ -549,7 +549,7 @@ export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
         // For regular users, we just need a username
         const userId = username.toLowerCase().replace(/\s/g, '-') || `user-${Math.random().toString(36).substring(2, 9)}`;
         db.addUser({ 
-            id: userId, 
+            id: userId, おすすめです.
             name: username, 
             groupSize: 1, 
             lastSeen: new Date().toISOString(), 
@@ -560,4 +560,26 @@ export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
         return { success: true };
     }
     return { success: false, error: 'Invalid login details.' };
+}
+
+export async function removeUserAction(userId: string) {
+    try {
+        db.removeUser(userId);
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (e) {
+        const message = e instanceof Error ? e.message : 'Could not remove user.';
+        return { success: false, error: message };
+    }
+}
+
+export async function clearAllUsersAction() {
+    try {
+        db.clearAllUsers();
+        revalidatePath('/admin');
+        return { success: true };
+    } catch (e) {
+        const message = e instanceof Error ? e.message : 'Could not clear users.';
+        return { success: false, error: message };
+    }
 }
