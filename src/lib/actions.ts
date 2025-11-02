@@ -4,7 +4,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from './data';
-import type { Zone, AppSettings, DensityCategory, RouteDetails, Coordinate } from './types';
+import type { Zone, AppSettings, DensityCategory, RouteDetails, Coordinate, User } from './types';
 import { redirect } from 'next/navigation';
 
 const coordinateRegex = /^-?\d+(\.\d+)?,\s?-?\d+(\.\d+)?$/;
@@ -498,7 +498,10 @@ export async function updateUserLocationAndClassifyZonesAction(userId: string, u
 export async function logoutUserAction(userId: string) {
     try {
         // Set user status to offline instead of removing them
-        db.updateUser(userId, { status: 'offline' });
+        const user = db.getUserById(userId);
+        if (user) {
+          db.updateUser(userId, { status: 'offline' });
+        }
         
         // After "logging out" the user, rebalance all zone counts to reflect their departure.
         rebalanceAllZoneCounts();
@@ -524,7 +527,7 @@ export async function getSettings() {
     return db.getSettings();
 }
 
-export async function getUsers() {
+export async function getUsers(): Promise<User[]> {
     return db.getUsers();
 }
 
@@ -548,11 +551,11 @@ export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
     if (username) {
         // For regular users, we just need a username
         const userId = username.toLowerCase().replace(/\s/g, '-') || `user-${Math.random().toString(36).substring(2, 9)}`;
-        db.addUser({ 
-            id: userId, おすすめです.
-            name: username, 
-            groupSize: 1, 
-            lastSeen: new Date().toISOString(), 
+        db.addUser({
+            id: userId,
+            name: username,
+            groupSize: 1,
+            lastSeen: new Date().toISOString(),
             role: 'user',
             status: 'online'
         });
