@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from 'lucide-react';
+import { loginUserAction } from '@/lib/actions';
 
 export function LoginForm() {
   const [role, setRole] = useState('user');
@@ -29,20 +30,37 @@ export function LoginForm() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // In a real app, you'd handle authentication here.
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const username = formData.get('username') as string;
+    
+    startTransition(async () => {
+       const result = await loginUserAction({
+          email,
+          username,
+          role,
+          groupSize: 1 // Default group size for login
+       });
 
-    startTransition(() => {
-      toast({
-        title: 'Login Successful',
-        description: 'Redirecting to your dashboard...',
-      });
-      if (role === 'user') {
-        router.push('/user');
-      } else {
-        router.push('/admin');
-      }
+       if (result.success) {
+          toast({
+            title: 'Login Successful',
+            description: 'Redirecting to your dashboard...',
+          });
+          if (role === 'user') {
+            router.push('/user');
+          } else {
+            router.push('/admin');
+          }
+       } else {
+            toast({
+                variant: 'destructive',
+                title: 'Login Failed',
+                description: result.error || 'An unexpected error occurred.',
+            });
+       }
     });
   };
 
@@ -56,7 +74,7 @@ export function LoginForm() {
         <CardContent className="space-y-4">
            <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select onValueChange={setRole} defaultValue={role} disabled={isPending}>
+            <Select onValueChange={setRole} defaultValue={role} disabled={isPending} name="role">
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
@@ -70,17 +88,17 @@ export function LoginForm() {
             <>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="m@example.com" required />
+                <Input id="email" name="email" type="email" placeholder="m@example.com" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required />
+                <Input id="password" name="password" type="password" required />
               </div>
             </>
           ) : (
              <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
-              <Input id="username" type="text" placeholder="e.g. John Doe" required />
+              <Input id="username" name="username" type="text" placeholder="e.g. John Doe" required />
             </div>
           )}
         </CardContent>

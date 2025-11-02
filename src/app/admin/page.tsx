@@ -1,19 +1,16 @@
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
-import { db } from '@/lib/data';
+import { getZones, getSettings, getUsers } from '@/lib/actions';
+
 
 export const dynamic = 'force-dynamic';
 
-export default function AdminPage() {
-  const zones = db.getZones();
-  const settings = db.getSettings();
-  const users = db.getUsers();
+export default async function AdminPage() {
+  const zones = await getZones();
+  const settings = await getSettings();
+  const users = await getUsers();
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-4xl font-headline font-bold mb-2">Admin Dashboard</h1>
-      <p className="text-muted-foreground mb-8">
-        Manage zones and system settings.
-      </p>
+    <div className="container mx-auto py-8 px-4">
       <AdminDashboard initialZones={zones} initialSettings={settings} initialUsers={users} />
     </div>
   );

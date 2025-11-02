@@ -32,6 +32,7 @@ export function AdminDashboard({
 }: AdminDashboardProps) {
   const [zones, setZones] = useState<Zone[]>(initialZones);
   const [users, setUsers] = useState<User[]>(initialUsers);
+  const [lastSyncTime, setLastSyncTime] = useState('');
   const { toast } = useToast();
   const [isRefreshing, startRefresh] = useTransition();
 
@@ -40,6 +41,7 @@ export function AdminDashboard({
     const previousZones = zones;
     setZones(initialZones);
     setUsers(initialUsers);
+    setLastSyncTime(new Date().toLocaleTimeString());
 
     // Compare initialZones with the previous state to find new overcrowded zones
     initialZones.forEach((newZone) => {
@@ -86,14 +88,20 @@ export function AdminDashboard({
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
-        <Button onClick={handleRefresh} disabled={isRefreshing}>
+       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
+        <div>
+           <h1 className="text-4xl font-headline font-bold mb-2">Admin Dashboard</h1>
+           <p className="text-muted-foreground">
+             Manage zones and system settings. Last sync: {lastSyncTime}
+           </p>
+        </div>
+        <Button onClick={handleRefresh} disabled={isRefreshing} className="w-full sm:w-auto">
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh Data
         </Button>
       </div>
       <Tabs defaultValue="zones" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6 h-auto">
           <TabsTrigger value="zones">
             <Map className="mr-2 h-4 w-4" />
             Zone Manager
