@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MapPin, Wifi, WifiOff } from 'lucide-react';
+import { MapPin, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface LocationTrackerProps {
@@ -37,6 +37,9 @@ export function LocationTracker({ currentZoneName, isSending, lastUpdated }: Loc
         if (lastUpdated) {
             return `Last update: ${lastUpdated.toLocaleTimeString()}`;
         }
+        if (currentZoneName === 'Problem getting location') {
+            return 'Could not determine your location. Please check browser permissions.';
+        }
         return 'Your current zone is updated automatically.';
     }
 
@@ -48,8 +51,13 @@ export function LocationTracker({ currentZoneName, isSending, lastUpdated }: Loc
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-4">
-          <MapPin className="h-8 w-8 text-primary" />
-          {currentZoneName === 'Locating...' ? (
+          {currentZoneName === 'Problem getting location' ? (
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+          ) : (
+             <MapPin className="h-8 w-8 text-primary" />
+          )}
+
+          {isSending ? (
             <Skeleton className="h-6 w-3/4" />
           ) : (
             <p className="text-2xl font-bold font-headline">{currentZoneName}</p>

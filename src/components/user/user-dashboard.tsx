@@ -23,7 +23,7 @@ interface UserDashboardProps {
 export function UserDashboard({ initialZones, initialUser, settings }: UserDashboardProps) {
   const [zones, setZones] = useState<Zone[]>(initialZones);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
-  const [currentZone, setCurrentZone] = useState<{ zoneId: string; zoneName: string} | null>(null);
+  const [currentZoneName, setCurrentZoneName] = useState<string>('Locating...');
   const [isPlanning, startRoutePlanning] = useTransition();
   const [isClassifying, startClassification] = useTransition();
   const [isSendingLocation, setIsSendingLocation] = useState(false);
@@ -46,6 +46,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
         title: "Unsupported Browser",
         description: "Your browser does not support geolocation.",
       });
+      setCurrentZoneName('Geolocation not supported');
       return;
     }
     
@@ -71,16 +72,20 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
             setZones(updatedZones); // Update the map with fresh data
 
             if (newZone) {
-              // Only show toast if zone changes
-              if (currentZone?.zoneId !== newZone.zoneId) {
-                if (newZone.zoneId !== 'unknown') {
-                   toast({
-                    title: "You've entered a new zone!",
-                    description: `You are now in: ${newZone.zoneName}`,
-                  });
+                const previousZoneName = currentZoneName;
+                const newZoneName = newZone.zoneId === 'unknown' ? 'Not in a designated zone' : newZone.zoneName;
+                
+                setCurrentZoneName(newZoneName);
+                
+                // Only show toast if user enters a *known* zone that is different from the previous one
+                if (newZone.zoneId !== 'unknown' && newZone.zoneName !== previousZoneName) {
+                    toast({
+                        title: "You've entered a new zone!",
+                        description: `You are now in: ${newZone.zoneName}`,
+                    });
                 }
-              }
-              setCurrentZone(newZone);
+            } else {
+                setCurrentZoneName('Not in a designated zone');
             }
         }).catch((err) => {
            toast({
@@ -88,6 +93,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
               title: "Update Error",
               description: err.message || "Failed to update location and classify zones.",
           });
+           setCurrentZoneName('Problem getting location');
         }).finally(() => {
            setIsSendingLocation(false);
         });
@@ -102,11 +108,12 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
           title: "Location Error",
           description,
         });
+        setCurrentZoneName('Problem getting location');
         setIsSendingLocation(false);
       },
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
-  }, [toast, initialUser.id, initialUser.name, initialUser.groupSize, currentZone?.zoneId]);
+  }, [toast, initialUser.id, initialUser.name, initialUser.groupSize, currentZoneName]);
   
   // Effect for sending user location updates
   useEffect(() => {
@@ -200,7 +207,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
     <div className="grid lg:grid-cols-3 gap-8">
       <div className="lg:col-span-1 flex flex-col gap-8">
         <LocationTracker 
-            currentZoneName={currentZone?.zoneName ?? 'Locating...'} 
+            currentZoneName={currentZoneName} 
             isSending={isSendingLocation}
             lastUpdated={lastLocationUpdate}
         />
