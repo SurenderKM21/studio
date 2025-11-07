@@ -240,9 +240,12 @@
       "id": "surenderkm",
       "name": "SurenderKM",
       "groupSize": 1,
-      "lastSeen": "2025-11-02T11:11:01.448Z",
+      "lastSeen": "2025-11-07T05:52:07.842Z",
       "role": "user",
-      "status": "online"
+      "status": "offline",
+      "lastLatitude": 11.0133248,
+      "lastLongitude": 76.9785856,
+      "lastZoneId": "unknown"
     },
     {
       "id": "user-1",
@@ -271,6 +274,14 @@
       "name": "Admin",
       "groupSize": 1,
       "lastSeen": "2025-11-02T12:11:14.952Z",
+      "role": "admin",
+      "status": "online"
+    },
+    {
+      "id": "admin2@gmail.com",
+      "name": "Admin",
+      "groupSize": 1,
+      "lastSeen": "2025-11-07T05:52:33.669Z",
       "role": "admin",
       "status": "online"
     }

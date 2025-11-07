@@ -44,7 +44,7 @@ export function UserMonitor({ initialUsers, initialZones }: UserMonitorProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
-  const users = initialUsers.filter((u) => u.role !== 'admin');
+  const users = initialUsers.filter((u) => u.role !== 'admin' && u.name !== 'John Doe');
   const loggedInUsers = users.filter((user) => user.status === 'online');
   const loggedOutUsers = users.filter((user) => user.status !== 'online');
 
