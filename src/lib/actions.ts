@@ -533,6 +533,7 @@ export async function getUsers(): Promise<User[]> {
 
 export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
     const { role, username, email } = data;
+    const loginTimestamp = new Date().toISOString();
     let userId;
     if (role === 'admin') {
         // In a real app, you'd validate admin credentials
@@ -542,7 +543,7 @@ export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
             id: userId, 
             name, 
             groupSize: 1, 
-            lastSeen: new Date().toISOString(), 
+            lastSeen: loginTimestamp, 
             role: 'admin',
             status: 'online'
         });
@@ -553,7 +554,7 @@ export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
             id: userId,
             name: username,
             groupSize: 1,
-            lastSeen: new Date().toISOString(),
+            lastSeen: loginTimestamp,
             role: 'user',
             status: 'online'
         });
@@ -565,7 +566,7 @@ export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
     revalidatePath('/admin');
     revalidatePath('/user');
 
-    return { success: true, userId: userId, role: role };
+    return { success: true, userId: userId, role: role, loginTimestamp };
 }
 
 export async function removeUserAction(userId: string) {

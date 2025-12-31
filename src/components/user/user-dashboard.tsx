@@ -30,6 +30,7 @@ interface UserDashboardProps {
 }
 
 const LAST_SEEN_ALERT_KEY = 'evacai-last-seen-alert-timestamp';
+export const SESSION_LOGIN_TIMESTAMP_KEY = 'evacai-session-login-timestamp';
 
 // Function to play sound and vibrate
 const triggerEmergencyNotification = () => {
@@ -168,17 +169,25 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
     if (result.data) {
         const newAlert = result.data;
         const lastSeenTimestamp = localStorage.getItem(LAST_SEEN_ALERT_KEY);
+        const loginTimestamp = sessionStorage.getItem(SESSION_LOGIN_TIMESTAMP_KEY);
 
-        // Check if the alert is new
-        if (newAlert.timestamp !== lastSeenTimestamp) {
-            const isGlobalAlert = !newAlert.zoneId;
-            const isUserInTargetedZone = newAlert.zoneId && initialUser.lastZoneId === newAlert.zoneId;
+        // Check 1: Is this an alert the user has already seen in this session?
+        if (newAlert.timestamp === lastSeenTimestamp) {
+            return;
+        }
 
-            if (isGlobalAlert || isUserInTargetedZone) {
-                setLatestAlert(newAlert);
-                setShowAlert(true);
-                triggerEmergencyNotification(); // Vibrate and play sound
-            }
+        // Check 2: Was the alert sent *before* this user logged in? If so, ignore it.
+        if (loginTimestamp && newAlert.timestamp < loginTimestamp) {
+            return;
+        }
+
+        const isGlobalAlert = !newAlert.zoneId;
+        const isUserInTargetedZone = newAlert.zoneId && initialUser.lastZoneId === newAlert.zoneId;
+
+        if (isGlobalAlert || isUserInTargetedZone) {
+            setLatestAlert(newAlert);
+            setShowAlert(true);
+            triggerEmergencyNotification(); // Vibrate and play sound
         }
     }
   }, [initialUser.lastZoneId]);

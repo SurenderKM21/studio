@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from 'lucide-react';
 import { loginUserAction } from '@/lib/actions';
+import { SESSION_LOGIN_TIMESTAMP_KEY } from '../user/user-dashboard';
 
 export function LoginForm() {
   const [role, setRole] = useState('user');
@@ -50,6 +51,9 @@ export function LoginForm() {
             title: 'Login Successful',
             description: 'Redirecting to your dashboard...',
           });
+          if (result.loginTimestamp && typeof window !== 'undefined') {
+            sessionStorage.setItem(SESSION_LOGIN_TIMESTAMP_KEY, result.loginTimestamp);
+          }
           if (result.role === 'user') {
             router.push(`/user?userId=${result.userId}`);
           } else {
