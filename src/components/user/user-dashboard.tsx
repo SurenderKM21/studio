@@ -2,17 +2,26 @@
 'use client';
 
 import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
-import type { Zone, RouteDetails, User, AppSettings } from '@/lib/types';
+import type { Zone, RouteDetails, User, AppSettings, AlertMessage } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { RouteInfo } from './route-info';
 import { Button } from '../ui/button';
 import { Loader, RefreshCw } from 'lucide-react';
-import { classifyAllZonesAction, getRouteAction, updateUserLocationAndClassifyZonesAction, refreshDataAction } from '@/lib/actions';
+import { classifyAllZonesAction, getRouteAction, updateUserLocationAndClassifyZonesAction, refreshDataAction, getLatestAlertAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { DensityLegend } from './density-legend';
 import { LocationTracker } from './location-tracker';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 
 interface UserDashboardProps {
   initialZones: Zone[];
@@ -30,8 +39,11 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
   const [isSendingLocation, setIsSendingLocation] = useState(true); // Start as true
   const [lastLocationUpdate, setLastLocationUpdate] = useState<Date | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState('');
+  const [latestAlert, setLatestAlert] = useState<AlertMessage | null>(null);
+  const [showAlert, setShowAlert] = useState(false);
   const locationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const dataRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSeenAlertTimestampRef = useRef<string | null>(null);
   const { toast } = useToast();
   
   // This effect keeps the component's state in sync with server-sent props
@@ -120,6 +132,18 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
     );
   }, [toast, initialUser.id, initialUser.name, initialUser.groupSize, currentZoneName]);
   
+  const checkForNewAlert = useCallback(async () => {
+    const result = await getLatestAlertAction();
+    if (result.data) {
+        const newAlert = result.data;
+        if (newAlert.timestamp !== lastSeenAlertTimestampRef.current) {
+            setLatestAlert(newAlert);
+            setShowAlert(true);
+            lastSeenAlertTimestampRef.current = newAlert.timestamp;
+        }
+    }
+  }, []);
+
   // Effect for sending user location updates
   useEffect(() => {
     const updateIntervalMs = (settings.locationUpdateInterval || 30) * 1000;
@@ -140,21 +164,25 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
     };
   }, [getLocationAndUpdate, settings.locationUpdateInterval]);
 
-  // Effect for periodically refreshing all data to sync with admin changes
+  // Effect for periodically refreshing all data and checking for alerts
   useEffect(() => {
     const refreshData = async () => {
       await refreshDataAction();
       setLastSyncTime(new Date().toLocaleTimeString());
+      await checkForNewAlert();
     };
 
     dataRefreshIntervalRef.current = setInterval(refreshData, 15000); // e.g., every 15 seconds
+
+    // Initial check
+    checkForNewAlert();
 
     return () => {
       if (dataRefreshIntervalRef.current) {
         clearInterval(dataRefreshIntervalRef.current);
       }
     }
-  }, []);
+  }, [checkForNewAlert]);
 
   const handlePlanRoute = (sourceZone: string, destinationZone: string) => {
     startRoutePlanning(async () => {
@@ -196,6 +224,20 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
 
   return (
     <div>
+      <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Important Alert</AlertDialogTitle>
+            <AlertDialogDescription>
+              {latestAlert?.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogAction onClick={() => setShowAlert(false)}>
+            Acknowledge
+          </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
+
        <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
         <div>
           <h1 className="text-4xl font-headline font-bold">Event Navigator</h1>

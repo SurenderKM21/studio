@@ -1,5 +1,5 @@
 
-import type { Zone, AppSettings, DensityCategory, User } from './types';
+import type { Zone, AppSettings, DensityCategory, User, AlertMessage } from './types';
 import fs from 'fs';
 import path from 'path';
 
@@ -7,6 +7,7 @@ type DbData = {
   zones: Zone[];
   users: User[];
   settings: AppSettings;
+  alerts: AlertMessage[];
 };
 
 // Ensure the directory exists before resolving the path
@@ -27,7 +28,7 @@ function readDb(): DbData {
     console.error('Error reading from DB, returning empty state:', error);
   }
   // If file doesn't exist or is corrupt, return a default structure
-  const defaultData = { zones: [], users: [], settings: {} };
+  const defaultData = { zones: [], users: [], settings: {}, alerts: [] };
   writeDb(defaultData);
   return defaultData;
 }
@@ -77,7 +78,8 @@ export const db = {
     return undefined;
   },
   getSettings: (): AppSettings => {
-    return readDb().settings;
+    const data = readDb();
+    return data.settings || {};
   },
   updateSettings: (newSettings: Partial<AppSettings>): AppSettings => {
     const data = readDb();
@@ -140,5 +142,24 @@ export const db = {
     // Only keep online users and admin users
     data.users = data.users.filter(u => u.status === 'online' || u.role === 'admin');
     writeDb(data);
-  }
+  },
+  addAlert: (message: string): AlertMessage => {
+    const data = readDb();
+    const timestamp = new Date().toISOString();
+    const newAlert: AlertMessage = {
+      id: `alert-${timestamp}`,
+      message,
+      timestamp,
+    };
+    data.alerts.push(newAlert);
+    // Also update settings to track the latest alert
+    data.settings.latestAlertTimestamp = timestamp;
+    writeDb(data);
+    return newAlert;
+  },
+  getLatestAlert: (): AlertMessage | undefined => {
+    const { alerts } = readDb();
+    if (alerts.length === 0) return undefined;
+    return alerts[alerts.length - 1];
+  },
 };

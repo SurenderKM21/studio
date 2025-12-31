@@ -22,6 +22,7 @@ export type RouteDetails = {
 export type AppSettings = {
   locationUpdateInterval?: number; // in seconds
   zoneSnappingThreshold?: number; // in meters
+  latestAlertTimestamp?: string;
 };
 
 export type User = {
@@ -34,4 +35,10 @@ export type User = {
   lastZoneId?: string;
   status?: 'online' | 'offline';
   role?: 'user' | 'admin';
+};
+
+export type AlertMessage = {
+  id: string;
+  message: string;
+  timestamp: string;
 };

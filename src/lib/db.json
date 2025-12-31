@@ -127,7 +127,7 @@
       ],
       "id": "zone-4meyolm",
       "userCount": 0,
-      "density": "crowded",
+      "density": "free",
       "manualDensityUntil": "2025-09-27T05:31:00.130Z",
       "manualDensity": true
     },
@@ -262,11 +262,11 @@
       "id": "kavin",
       "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2025-11-02T12:12:43.908Z",
+      "lastSeen": "2025-12-31T16:35:26.696Z",
       "role": "user",
       "status": "online",
-      "lastLatitude": 11.0133248,
-      "lastLongitude": 76.9851392,
+      "lastLatitude": 13.0514944,
+      "lastLongitude": 80.2095104,
       "lastZoneId": "unknown"
     },
     {
@@ -281,10 +281,13 @@
       "id": "admin2@gmail.com",
       "name": "Admin",
       "groupSize": 1,
-      "lastSeen": "2025-11-07T05:52:33.669Z",
+      "lastSeen": "2025-12-31T16:27:51.171Z",
       "role": "admin",
-      "status": "online"
+      "status": "offline"
     }
   ],
-  "settings": {}
+  "settings": {
+    "latestAlertTimestamp": null
+  },
+  "alerts": []
 }

@@ -589,3 +589,25 @@ export async function clearAllUsersAction() {
         return { success: false, error: message };
     }
 }
+
+export async function sendAlertAction(message: string) {
+  if (!message || message.trim().length === 0) {
+    return { error: 'Alert message cannot be empty.' };
+  }
+  try {
+    db.addAlert(message);
+    revalidatePath('/user'); // To make users aware of the new alert
+    return { success: true };
+  } catch (e) {
+    return { error: 'Failed to send alert.' };
+  }
+}
+
+export async function getLatestAlertAction() {
+    try {
+        const alert = db.getLatestAlert();
+        return { data: alert };
+    } catch (e) {
+        return { error: 'Failed to retrieve alert.' };
+    }
+}
