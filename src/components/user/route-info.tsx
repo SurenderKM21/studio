@@ -1,5 +1,4 @@
 
-
 'use client';
 import {
   Card,
@@ -16,9 +15,11 @@ import {
   Route as RouteIcon,
   ChevronsRight,
   AlertTriangle,
+  Volume2,
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
+import { Button } from '../ui/button';
 
 interface RouteInfoProps {
   routeDetails: RouteDetails | null;
@@ -38,6 +39,29 @@ const getZoneName = (zoneId: string, zones: Zone[]) => {
 };
 
 export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
+    
+  const handleSpeakRoute = () => {
+    if (!routeDetails || typeof window === 'undefined' || !window.speechSynthesis) {
+        return;
+    }
+
+    // Stop any currently speaking utterances
+    window.speechSynthesis.cancel();
+    
+    const zoneNames = routeDetails.route.map(id => getZoneName(id, zones));
+    
+    let textToSpeak = `The suggested route is: ${zoneNames.join(', then to ')}.`;
+
+    if (routeDetails.alternativeRouteAvailable) {
+        textToSpeak += ' A more direct but congested path was avoided.'
+    }
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  };
+
   if (isPlanning) {
     return (
       <Card className="shadow-lg">
@@ -86,10 +110,17 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
   return (
     <Card className="shadow-lg animate-in fade-in-50">
       <CardHeader>
-        <CardTitle>Route Details</CardTitle>
-        <CardDescription>
-          Here is the suggested path based on current crowd levels.
-        </CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Route Details</CardTitle>
+            <CardDescription>
+              Here is the suggested path based on current crowd levels.
+            </CardDescription>
+          </div>
+          <Button variant="ghost" size="icon" onClick={handleSpeakRoute} aria-label="Speak route details">
+            <Volume2 className="h-5 w-5" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-4">
@@ -129,6 +160,3 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
     </Card>
   );
 }
-
-
-    
