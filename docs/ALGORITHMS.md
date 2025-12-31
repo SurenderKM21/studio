@@ -20,12 +20,3 @@ This document provides a high-level overview of the key algorithms used in the E
     1.  **Point and Polygon**: The user's location is a single coordinate point (`lat`, `lng`), and each `Zone` is a polygon defined by a list of corner coordinates.
     2.  **Intersection Test**: The algorithm works by drawing a horizontal line extending infinitely to the right from the user's location. It then counts how many times this line intersects with the edges of the zone's polygon.
     3.  **Inside/Outside Determination**: If the number of intersections is odd, the point is inside the polygon. If the number of intersections is even, the point is outside. This provides a computationally efficient and accurate way to perform real-time zone identification without needing an external service.
-
-## 3. Gemini (Large Language Model) for Density Classification
-
-- **Purpose**: To classify the crowd density of a zone based on quantitative data.
-- **Location**: `src/ai/flows/classify-zone-density.ts`.
-- **How it Works**:
-    1.  **Input Data**: The AI flow is given the zone's ID, its maximum capacity, and the current number of users inside it.
-    2.  **Natural Language Prompt**: This data is embedded in a prompt that asks the Gemini model to act as a crowd management expert. The prompt instructs the model to classify the density into one of four categories: `over-crowded`, `crowded`, `moderate`, or `free`.
-    3.  **AI-powered Reasoning**: The model uses its reasoning ability to make a judgment that is more nuanced than simple percentage thresholds. For example, it understands that a zone can feel "crowded" even if it's not at 100% capacity. It returns the chosen category and a brief justification for its decision.
