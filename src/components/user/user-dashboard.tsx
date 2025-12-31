@@ -29,6 +29,8 @@ interface UserDashboardProps {
   settings: AppSettings;
 }
 
+const LAST_SEEN_ALERT_KEY = 'evacai-last-seen-alert-timestamp';
+
 export function UserDashboard({ initialZones, initialUser, settings }: UserDashboardProps) {
   const [zones, setZones] = useState<Zone[]>(initialZones);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
@@ -44,7 +46,6 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
   const locationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const dataRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const alertIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSeenAlertTimestampRef = useRef<string | null>(null);
   const { toast } = useToast();
   
   // This effect keeps the component's state in sync with server-sent props
@@ -137,10 +138,11 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
     const result = await getLatestAlertAction();
     if (result.data) {
         const newAlert = result.data;
-        if (newAlert.timestamp !== lastSeenAlertTimestampRef.current) {
+        const lastSeenTimestamp = localStorage.getItem(LAST_SEEN_ALERT_KEY);
+
+        if (newAlert.timestamp !== lastSeenTimestamp) {
             setLatestAlert(newAlert);
             setShowAlert(true);
-            lastSeenAlertTimestampRef.current = newAlert.timestamp;
         }
     }
   }, []);
@@ -233,6 +235,13 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
     });
   }
 
+  const handleAcknowledgeAlert = () => {
+    if (latestAlert) {
+      localStorage.setItem(LAST_SEEN_ALERT_KEY, latestAlert.timestamp);
+    }
+    setShowAlert(false);
+  };
+
   return (
     <div>
       <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
@@ -243,7 +252,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
               {latestAlert?.message}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogAction onClick={() => setShowAlert(false)}>
+          <AlertDialogAction onClick={handleAcknowledgeAlert}>
             Acknowledge
           </AlertDialogAction>
         </AlertDialogContent>

@@ -262,7 +262,7 @@
       "id": "kavin",
       "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2025-12-31T16:41:45.800Z",
+      "lastSeen": "2025-12-31T16:44:25.240Z",
       "role": "user",
       "status": "online",
       "lastLatitude": 13.0514944,
@@ -287,13 +287,18 @@
     }
   ],
   "settings": {
-    "latestAlertTimestamp": "2025-12-31T16:40:39.016Z"
+    "latestAlertTimestamp": "2025-12-31T16:42:34.376Z"
   },
   "alerts": [
     {
       "id": "alert-2025-12-31T16:40:39.016Z",
       "message": "Hello , Zone 5 people come to exit",
       "timestamp": "2025-12-31T16:40:39.016Z"
+    },
+    {
+      "id": "alert-2025-12-31T16:42:34.376Z",
+      "message": "Hey come out",
+      "timestamp": "2025-12-31T16:42:34.376Z"
     }
   ]
 }
