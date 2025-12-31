@@ -31,6 +31,7 @@ interface MapViewProps {
 
 export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
   const [isClient, setIsClient] = useState(false);
+  
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -117,32 +118,34 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
         </div>
         
         {/* Draw route lines */}
-        <svg
-          className="absolute top-0 left-0 w-full h-full"
-          style={{ pointerEvents: 'none' }}
-        >
-          {altRoutePoints.length > 1 && (
-            <polyline
-              points={altRoutePoints.map((p) => `${p.x}%,${p.y}%`).join(' ')}
-              fill="none"
-              stroke="hsl(var(--primary))"
-              strokeOpacity="0.5"
-              strokeWidth="5"
-              strokeDasharray="8 8"
-              strokeLinecap="round"
-            />
-          )}
-          {routePoints.length > 1 && (
-            <polyline
-              points={routePoints.map((p) => `${p.x}%,${p.y}%`).join(' ')}
-              fill="none"
-              stroke="hsl(var(--accent))"
-              strokeWidth="7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-        </svg>
+        {isClient && (
+            <svg
+            className="absolute top-0 left-0 w-full h-full"
+            style={{ pointerEvents: 'none' }}
+            >
+            {altRoutePoints.length > 1 && (
+                <polyline
+                points={altRoutePoints.map((p) => `${p.x}%,${p.y}%`).join(' ')}
+                fill="none"
+                stroke="hsl(var(--primary))"
+                strokeOpacity="0.5"
+                strokeWidth="5"
+                strokeDasharray="8 8"
+                strokeLinecap="round"
+                />
+            )}
+            {routePoints.length > 1 && (
+                <polyline
+                points={routePoints.map((p) => `${p.x}%,${p.y}%`).join(' ')}
+                fill="none"
+                stroke="hsl(var(--accent))"
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                />
+            )}
+            </svg>
+        )}
       </div>
     </TooltipProvider>
   );
