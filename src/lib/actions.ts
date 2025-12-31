@@ -611,3 +611,28 @@ export async function getLatestAlertAction() {
         return { error: 'Failed to retrieve alert.' };
     }
 }
+
+export async function addZoneNoteAction(zoneId: string, noteText: string, visibleToUser: boolean) {
+  if (!noteText.trim()) {
+    return { error: 'Note cannot be empty.' };
+  }
+  try {
+    db.addNoteToZone(zoneId, noteText, visibleToUser);
+    revalidatePath('/admin');
+    revalidatePath('/user');
+    return { success: true };
+  } catch (e) {
+    return { error: 'Failed to add note.' };
+  }
+}
+
+export async function deleteZoneNoteAction(zoneId: string, noteId: string) {
+  try {
+    db.deleteNoteFromZone(zoneId, noteId);
+    revalidatePath('/admin');
+    revalidatePath('/user');
+    return { success: true };
+  } catch (e) {
+    return { error: 'Failed to delete note.' };
+  }
+}

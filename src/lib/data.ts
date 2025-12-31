@@ -1,5 +1,5 @@
 
-import type { Zone, AppSettings, DensityCategory, User, AlertMessage } from './types';
+import type { Zone, AppSettings, DensityCategory, User, AlertMessage, ZoneNote } from './types';
 import fs from 'fs';
 import path from 'path';
 
@@ -57,6 +57,7 @@ export const db = {
       id: `zone-${Math.random().toString(36).substring(2, 9)}`,
       userCount: 0,
       density: 'free',
+      notes: [],
     };
     data.zones.push(newZone);
     writeDb(data);
@@ -76,6 +77,31 @@ export const db = {
       return data.zones[zoneIndex];
     }
     return undefined;
+  },
+  addNoteToZone: (zoneId: string, noteText: string, visibleToUser: boolean): void => {
+    const data = readDb();
+    const zoneIndex = data.zones.findIndex(z => z.id === zoneId);
+    if (zoneIndex > -1) {
+      if (!data.zones[zoneIndex].notes) {
+        data.zones[zoneIndex].notes = [];
+      }
+      const newNote: ZoneNote = {
+        id: `note-${Date.now()}`,
+        text: noteText,
+        visibleToUser,
+        createdAt: new Date().toISOString(),
+      };
+      data.zones[zoneIndex].notes!.push(newNote);
+      writeDb(data);
+    }
+  },
+  deleteNoteFromZone: (zoneId: string, noteId: string): void => {
+    const data = readDb();
+    const zoneIndex = data.zones.findIndex(z => z.id === zoneId);
+    if (zoneIndex > -1 && data.zones[zoneIndex].notes) {
+      data.zones[zoneIndex].notes = data.zones[zoneIndex].notes!.filter(note => note.id !== noteId);
+      writeDb(data);
+    }
   },
   getSettings: (): AppSettings => {
     const data = readDb();

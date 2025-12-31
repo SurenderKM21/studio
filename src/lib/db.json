@@ -205,8 +205,8 @@
         }
       ],
       "id": "zone-dxfb1gx",
-      "userCount": 2,
-      "density": "over-crowded"
+      "userCount": 0,
+      "density": "free"
     },
     {
       "name": "Home",
@@ -261,12 +261,12 @@
       "id": "kavin",
       "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2025-12-31T16:51:17.802Z",
+      "lastSeen": "2025-12-31T17:01:54.141Z",
       "role": "user",
       "status": "online",
-      "lastLatitude": 12.8589415,
-      "lastLongitude": 80.08454,
-      "lastZoneId": "zone-dxfb1gx"
+      "lastLatitude": 13.0514944,
+      "lastLongitude": 80.2095104,
+      "lastZoneId": "unknown"
     },
     {
       "id": "adminevacai1@gmail.com",
@@ -288,16 +288,16 @@
       "id": "surender",
       "name": "surender",
       "groupSize": 1,
-      "lastSeen": "2025-12-31T16:51:28.797Z",
+      "lastSeen": "2025-12-31T17:01:51.141Z",
       "role": "user",
       "status": "online",
-      "lastLatitude": 12.8589415,
-      "lastLongitude": 80.08454,
-      "lastZoneId": "zone-dxfb1gx"
+      "lastLatitude": 13.0514944,
+      "lastLongitude": 80.2095104,
+      "lastZoneId": "unknown"
     }
   ],
   "settings": {
-    "latestAlertTimestamp": "2025-12-31T16:50:08.985Z"
+    "latestAlertTimestamp": "2025-12-31T16:53:11.537Z"
   },
   "alerts": [
     {
@@ -324,6 +324,16 @@
       "id": "alert-2025-12-31T16:50:08.985Z",
       "message": "Move out of zone 5",
       "timestamp": "2025-12-31T16:50:08.985Z"
+    },
+    {
+      "id": "alert-2025-12-31T16:52:46.762Z",
+      "message": "hello",
+      "timestamp": "2025-12-31T16:52:46.762Z"
+    },
+    {
+      "id": "alert-2025-12-31T16:53:11.537Z",
+      "message": "hey",
+      "timestamp": "2025-12-31T16:53:11.537Z"
     }
   ]
 }

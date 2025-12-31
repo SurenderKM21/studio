@@ -10,7 +10,7 @@ import type { Zone, AppSettings, User } from '@/lib/types';
 import { ZoneManager } from './zone-manager';
 import { DensityControl } from './density-control';
 import { SettingsPanel } from './settings-panel';
-import { Users, Map, Settings, List, AlertTriangle, RefreshCw, MessageSquareWarning } from 'lucide-react';
+import { Users, Map, Settings, List, AlertTriangle, RefreshCw, MessageSquareWarning, NotebookPen } from 'lucide-react';
 import { UserMonitor } from './user-monitor';
 import { ZoneDetails } from './zone-details';
 import { OvercrowdedZones } from './overcrowded-zones';
@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 import { refreshDataAction } from '@/lib/actions';
 import { AlertManager } from './alert-manager';
+import { ZoneNotesManager } from './zone-notes-manager';
 
 interface AdminDashboardProps {
   initialZones: Zone[];
@@ -123,6 +124,10 @@ export function AdminDashboard({
             <MessageSquareWarning className="mr-2 h-4 w-4" />
             Send Alert
           </TabsTrigger>
+          <TabsTrigger value="notes">
+            <NotebookPen className="mr-2 h-4 w-4" />
+            Zone Notes
+          </TabsTrigger>
           <TabsTrigger value="overcrowded" className="text-destructive">
             <AlertTriangle className="mr-2 h-4 w-4" />
             Over-crowded ({overCrowdedCount})
@@ -149,6 +154,9 @@ export function AdminDashboard({
         </TabsContent>
         <TabsContent value="alerts">
           <AlertManager />
+        </TabsContent>
+        <TabsContent value="notes">
+            <ZoneNotesManager initialZones={zones} />
         </TabsContent>
         <TabsContent value="settings">
           <SettingsPanel initialSettings={initialSettings} />

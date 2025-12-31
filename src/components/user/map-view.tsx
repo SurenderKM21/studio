@@ -2,7 +2,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import type { Zone, DensityCategory } from '@/lib/types';
+import type { Zone, DensityCategory, ZoneNote } from '@/lib/types';
 import { useMemo, useEffect, useState } from 'react';
 import {
   Tooltip,
@@ -10,6 +10,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Separator } from '../ui/separator';
+import { NotebookPen } from 'lucide-react';
 
 const densityStyles: Record<
   DensityCategory,
@@ -67,7 +69,9 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
       <div className="relative w-full min-h-[550px] bg-muted/30 rounded-lg border-dashed border-2 p-4">
         <div className="relative grid grid-cols-3 grid-rows-3 gap-4 h-[520px]">
           {/* Render zones */}
-          {zones.map((zone) => (
+          {zones.map((zone) => {
+            const visibleNotes = zone.notes?.filter(n => n.visibleToUser) ?? [];
+            return (
             <Tooltip key={zone.id}>
               <TooltipTrigger asChild>
                 <div
@@ -94,9 +98,22 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
                 <p>
                   Users: {zone.userCount} / {zone.capacity}
                 </p>
+                {visibleNotes.length > 0 && (
+                    <>
+                        <Separator className="my-2" />
+                        <div className="space-y-1">
+                            {visibleNotes.map(note => (
+                                <div key={note.id} className="flex items-center gap-2">
+                                    <NotebookPen className="h-4 w-4 text-muted-foreground" />
+                                    <p className="text-xs">{note.text}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
               </TooltipContent>
             </Tooltip>
-          ))}
+          )})}
         </div>
         
         {/* Draw route lines */}

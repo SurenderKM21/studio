@@ -2,6 +2,13 @@ export type DensityCategory = 'free' | 'moderate' | 'crowded' | 'over-crowded';
 
 export type Coordinate = { lat: number; lng: number };
 
+export type ZoneNote = {
+  id: string;
+  text: string;
+  visibleToUser: boolean;
+  createdAt: string;
+};
+
 export type Zone = {
   id: string;
   name: string;
@@ -10,6 +17,7 @@ export type Zone = {
   userCount: number;
   density: DensityCategory;
   manualDensity?: boolean;
+  notes?: ZoneNote[];
 };
 
 export type RouteDetails = {
