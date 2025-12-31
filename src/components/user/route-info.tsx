@@ -41,7 +41,7 @@ const getZoneName = (zoneId: string, zones: Zone[]) => {
 export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
     
   const handleSpeakRoute = () => {
-    if (!routeDetails || typeof window === 'undefined' || !window.speechSynthesis) {
+    if (!routeDetails || !routeDetails.route || typeof window === 'undefined' || !window.speechSynthesis) {
         return;
     }
 
