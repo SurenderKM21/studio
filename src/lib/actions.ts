@@ -590,12 +590,12 @@ export async function clearAllUsersAction() {
     }
 }
 
-export async function sendAlertAction(message: string) {
+export async function sendAlertAction(message: string, zoneId?: string) {
   if (!message || message.trim().length === 0) {
     return { error: 'Alert message cannot be empty.' };
   }
   try {
-    db.addAlert(message);
+    db.addAlert(message, zoneId);
     revalidatePath('/user'); // To make users aware of the new alert
     return { success: true };
   } catch (e) {

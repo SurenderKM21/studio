@@ -153,7 +153,7 @@ export function AdminDashboard({
           <UserMonitor initialUsers={users} initialZones={zones} />
         </TabsContent>
         <TabsContent value="alerts">
-          <AlertManager />
+          <AlertManager zones={zones} />
         </TabsContent>
         <TabsContent value="notes">
             <ZoneNotesManager initialZones={zones} />

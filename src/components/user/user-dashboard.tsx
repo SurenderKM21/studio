@@ -169,13 +169,19 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
         const newAlert = result.data;
         const lastSeenTimestamp = localStorage.getItem(LAST_SEEN_ALERT_KEY);
 
+        // Check if the alert is new
         if (newAlert.timestamp !== lastSeenTimestamp) {
-            setLatestAlert(newAlert);
-            setShowAlert(true);
-            triggerEmergencyNotification(); // Vibrate and play sound
+            const isGlobalAlert = !newAlert.zoneId;
+            const isUserInTargetedZone = newAlert.zoneId && initialUser.lastZoneId === newAlert.zoneId;
+
+            if (isGlobalAlert || isUserInTargetedZone) {
+                setLatestAlert(newAlert);
+                setShowAlert(true);
+                triggerEmergencyNotification(); // Vibrate and play sound
+            }
         }
     }
-  }, []);
+  }, [initialUser.lastZoneId]);
 
   // Effect for sending user location updates
   useEffect(() => {

@@ -49,4 +49,5 @@ export type AlertMessage = {
   id: string;
   message: string;
   timestamp: string;
+  zoneId?: string; // If undefined, it's a global alert
 };

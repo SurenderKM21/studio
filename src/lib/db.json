@@ -24,7 +24,21 @@
       "id": "zone-e7cq1vc",
       "userCount": 0,
       "density": "free",
-      "manualDensity": false
+      "manualDensity": false,
+      "notes": [
+        {
+          "id": "note-1767200782296",
+          "text": "Slippeery floor2",
+          "visibleToUser": true,
+          "createdAt": "2025-12-31T17:06:22.296Z"
+        },
+        {
+          "id": "note-1767200806609",
+          "text": "Slippeery floor",
+          "visibleToUser": false,
+          "createdAt": "2025-12-31T17:06:46.609Z"
+        }
+      ]
     },
     {
       "name": "KV_HOME",
@@ -261,7 +275,7 @@
       "id": "kavin",
       "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2025-12-31T17:02:49.904Z",
+      "lastSeen": "2025-12-31T17:23:54.285Z",
       "role": "user",
       "status": "online",
       "lastLatitude": 13.0514944,
@@ -288,7 +302,7 @@
       "id": "surender",
       "name": "surender",
       "groupSize": 1,
-      "lastSeen": "2025-12-31T17:02:50.923Z",
+      "lastSeen": "2025-12-31T17:24:20.961Z",
       "role": "user",
       "status": "online",
       "lastLatitude": 13.0514944,

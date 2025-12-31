@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -15,9 +16,22 @@ import { useState, useTransition } from 'react';
 import { sendAlertAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader, Send } from 'lucide-react';
+import { Zone } from '@/lib/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 
-export function AlertManager() {
+interface AlertManagerProps {
+  zones: Zone[];
+}
+
+export function AlertManager({ zones }: AlertManagerProps) {
   const [message, setMessage] = useState('');
+  const [zoneId, setZoneId] = useState('all');
   const [isSending, startSending] = useTransition();
   const { toast } = useToast();
 
@@ -33,11 +47,16 @@ export function AlertManager() {
     }
 
     startSending(async () => {
-      const result = await sendAlertAction(message);
+      const targetZoneId = zoneId === 'all' ? undefined : zoneId;
+      const result = await sendAlertAction(message, targetZoneId);
       if (result.success) {
+        const targetDescription = targetZoneId
+          ? `The alert has been sent to users in the selected zone.`
+          : `The alert has been broadcast to all users.`;
+
         toast({
           title: 'Alert Sent!',
-          description: 'The alert has been broadcast to all users.',
+          description: targetDescription,
         });
         setMessage('');
       } else {
@@ -54,12 +73,26 @@ export function AlertManager() {
     <Card>
       <form onSubmit={handleSubmit}>
         <CardHeader>
-          <CardTitle>Send Global Alert</CardTitle>
+          <CardTitle>Send Alert</CardTitle>
           <CardDescription>
-            Broadcast an important message to all active users. This will appear as a popup on their screen.
+            Broadcast an important message. By default it goes to all users, or you can select a specific zone.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="grid w-full gap-2">
+            <Label htmlFor="zoneId">Target Zone</Label>
+            <Select onValueChange={setZoneId} defaultValue={zoneId} disabled={isSending}>
+                <SelectTrigger id="zoneId">
+                    <SelectValue placeholder="Select a zone" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Zones</SelectItem>
+                    {zones.map(zone => (
+                        <SelectItem key={zone.id} value={zone.id}>{zone.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+          </div>
           <div className="grid w-full gap-2">
             <Label htmlFor="message">Alert Message</Label>
             <Textarea
@@ -70,8 +103,8 @@ export function AlertManager() {
               rows={4}
               disabled={isSending}
             />
-             <p className="text-sm text-muted-foreground">
-                Users will need to acknowledge the alert to close it.
+            <p className="text-sm text-muted-foreground">
+              Users will need to acknowledge the alert to close it.
             </p>
           </div>
         </CardContent>

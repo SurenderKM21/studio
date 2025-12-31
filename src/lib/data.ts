@@ -169,13 +169,14 @@ export const db = {
     data.users = data.users.filter(u => u.status === 'online' || u.role === 'admin');
     writeDb(data);
   },
-  addAlert: (message: string): AlertMessage => {
+  addAlert: (message: string, zoneId?: string): AlertMessage => {
     const data = readDb();
     const timestamp = new Date().toISOString();
     const newAlert: AlertMessage = {
       id: `alert-${timestamp}`,
       message,
       timestamp,
+      zoneId,
     };
     data.alerts.push(newAlert);
     // Also update settings to track the latest alert
