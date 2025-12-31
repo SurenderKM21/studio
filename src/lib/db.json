@@ -240,11 +240,11 @@
       "id": "surenderkm",
       "name": "SurenderKM",
       "groupSize": 1,
-      "lastSeen": "2025-11-07T05:52:07.842Z",
+      "lastSeen": "2025-12-31T16:47:54.844Z",
       "role": "user",
       "status": "offline",
-      "lastLatitude": 11.0133248,
-      "lastLongitude": 76.9785856,
+      "lastLatitude": 13.0514944,
+      "lastLongitude": 80.2095104,
       "lastZoneId": "unknown"
     },
     {
@@ -262,7 +262,7 @@
       "id": "kavin",
       "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2025-12-31T16:44:25.240Z",
+      "lastSeen": "2025-12-31T16:48:01.235Z",
       "role": "user",
       "status": "online",
       "lastLatitude": 13.0514944,
@@ -287,7 +287,7 @@
     }
   ],
   "settings": {
-    "latestAlertTimestamp": "2025-12-31T16:42:34.376Z"
+    "latestAlertTimestamp": "2025-12-31T16:47:00.299Z"
   },
   "alerts": [
     {
@@ -299,6 +299,16 @@
       "id": "alert-2025-12-31T16:42:34.376Z",
       "message": "Hey come out",
       "timestamp": "2025-12-31T16:42:34.376Z"
+    },
+    {
+      "id": "alert-2025-12-31T16:45:50.623Z",
+      "message": "Zone 6 is crowded",
+      "timestamp": "2025-12-31T16:45:50.623Z"
+    },
+    {
+      "id": "alert-2025-12-31T16:47:00.299Z",
+      "message": "Go back",
+      "timestamp": "2025-12-31T16:47:00.299Z"
     }
   ]
 }

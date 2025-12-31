@@ -247,12 +247,12 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
       <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Important Alert</AlertDialogTitle>
+            <AlertDialogTitle className="text-destructive">Important Alert</AlertDialogTitle>
             <AlertDialogDescription>
               {latestAlert?.message}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogAction onClick={handleAcknowledgeAlert}>
+          <AlertDialogAction onClick={handleAcknowledgeAlert} className="bg-destructive hover:bg-destructive/90">
             Acknowledge
           </AlertDialogAction>
         </AlertDialogContent>
