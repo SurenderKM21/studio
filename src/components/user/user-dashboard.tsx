@@ -31,6 +31,35 @@ interface UserDashboardProps {
 
 const LAST_SEEN_ALERT_KEY = 'evacai-last-seen-alert-timestamp';
 
+// Function to play sound and vibrate
+const triggerEmergencyNotification = () => {
+  // 1. Vibration
+  if (navigator.vibrate) {
+    // Vibrate for 500ms, pause 100ms, vibrate 500ms
+    navigator.vibrate([500, 100, 500]);
+  }
+
+  // 2. Sound
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A high-pitched beep (A5)
+    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+    
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.5); // Play for 0.5 seconds
+  } catch (e) {
+    console.error("Could not play alert sound:", e);
+  }
+};
+
+
 export function UserDashboard({ initialZones, initialUser, settings }: UserDashboardProps) {
   const [zones, setZones] = useState<Zone[]>(initialZones);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
@@ -143,6 +172,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
         if (newAlert.timestamp !== lastSeenTimestamp) {
             setLatestAlert(newAlert);
             setShowAlert(true);
+            triggerEmergencyNotification(); // Vibrate and play sound
         }
     }
   }, []);

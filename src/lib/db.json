@@ -205,9 +205,8 @@
         }
       ],
       "id": "zone-dxfb1gx",
-      "userCount": 0,
-      "density": "free",
-      "manualDensity": false
+      "userCount": 2,
+      "density": "over-crowded"
     },
     {
       "name": "Home",
@@ -240,12 +239,12 @@
       "id": "surenderkm",
       "name": "SurenderKM",
       "groupSize": 1,
-      "lastSeen": "2025-12-31T16:47:54.844Z",
+      "lastSeen": "2025-12-31T16:48:56.238Z",
       "role": "user",
       "status": "offline",
-      "lastLatitude": 13.0514944,
-      "lastLongitude": 80.2095104,
-      "lastZoneId": "unknown"
+      "lastLatitude": 12.8589415,
+      "lastLongitude": 80.08454,
+      "lastZoneId": "zone-dxfb1gx"
     },
     {
       "id": "user-1",
@@ -262,12 +261,12 @@
       "id": "kavin",
       "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2025-12-31T16:48:01.235Z",
+      "lastSeen": "2025-12-31T16:51:17.802Z",
       "role": "user",
       "status": "online",
-      "lastLatitude": 13.0514944,
-      "lastLongitude": 80.2095104,
-      "lastZoneId": "unknown"
+      "lastLatitude": 12.8589415,
+      "lastLongitude": 80.08454,
+      "lastZoneId": "zone-dxfb1gx"
     },
     {
       "id": "adminevacai1@gmail.com",
@@ -284,10 +283,21 @@
       "lastSeen": "2025-12-31T16:38:44.572Z",
       "role": "admin",
       "status": "offline"
+    },
+    {
+      "id": "surender",
+      "name": "surender",
+      "groupSize": 1,
+      "lastSeen": "2025-12-31T16:51:28.797Z",
+      "role": "user",
+      "status": "online",
+      "lastLatitude": 12.8589415,
+      "lastLongitude": 80.08454,
+      "lastZoneId": "zone-dxfb1gx"
     }
   ],
   "settings": {
-    "latestAlertTimestamp": "2025-12-31T16:47:00.299Z"
+    "latestAlertTimestamp": "2025-12-31T16:50:08.985Z"
   },
   "alerts": [
     {
@@ -309,6 +319,11 @@
       "id": "alert-2025-12-31T16:47:00.299Z",
       "message": "Go back",
       "timestamp": "2025-12-31T16:47:00.299Z"
+    },
+    {
+      "id": "alert-2025-12-31T16:50:08.985Z",
+      "message": "Move out of zone 5",
+      "timestamp": "2025-12-31T16:50:08.985Z"
     }
   ]
 }
