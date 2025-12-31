@@ -43,6 +43,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
   const [showAlert, setShowAlert] = useState(false);
   const locationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const dataRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const alertIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastSeenAlertTimestampRef = useRef<string | null>(null);
   const { toast } = useToast();
   
@@ -164,24 +165,34 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
     };
   }, [getLocationAndUpdate, settings.locationUpdateInterval]);
 
-  // Effect for periodically refreshing all data and checking for alerts
+  // Effect for periodically refreshing all data
   useEffect(() => {
     const refreshData = async () => {
       await refreshDataAction();
       setLastSyncTime(new Date().toLocaleTimeString());
-      await checkForNewAlert();
     };
 
     dataRefreshIntervalRef.current = setInterval(refreshData, 15000); // e.g., every 15 seconds
-
-    // Initial check
-    checkForNewAlert();
 
     return () => {
       if (dataRefreshIntervalRef.current) {
         clearInterval(dataRefreshIntervalRef.current);
       }
     }
+  }, []);
+  
+  // Effect for checking for new alerts in near real-time
+  useEffect(() => {
+    // Check immediately on load
+    checkForNewAlert();
+    // Then check every 5 seconds
+    alertIntervalRef.current = setInterval(checkForNewAlert, 5000);
+
+    return () => {
+      if (alertIntervalRef.current) {
+        clearInterval(alertIntervalRef.current);
+      }
+    };
   }, [checkForNewAlert]);
 
   const handlePlanRoute = (sourceZone: string, destinationZone: string) => {
