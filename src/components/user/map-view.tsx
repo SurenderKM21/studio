@@ -1,4 +1,3 @@
-
 'use client';
 
 import { cn } from '@/lib/utils';
@@ -23,6 +22,17 @@ const densityStyles: Record<
   'over-crowded': { background: 'bg-red-500/20', border: 'border-red-500', dot: 'bg-red-500' },
 };
 
+// Darker styles for highlighting the route
+const highlightedDensityStyles: Record<
+  DensityCategory,
+  { background: string; border: string; dot: string }
+> = {
+  free: { background: 'bg-green-700/40', border: 'border-green-700', dot: 'bg-green-700' },
+  moderate: { background: 'bg-yellow-600/40', border: 'border-yellow-600', dot: 'bg-yellow-600' },
+  crowded: { background: 'bg-orange-700/40', border: 'border-orange-700', dot: 'bg-orange-700' },
+  'over-crowded': { background: 'bg-red-700/40', border: 'border-red-700', dot: 'bg-red-700' },
+};
+
 interface MapViewProps {
   zones: Zone[];
   route: string[];
@@ -32,23 +42,34 @@ interface MapViewProps {
 export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
   const [isClient, setIsClient] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isHighlighting, setIsHighlighting] = useState(false);
   
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   useEffect(() => {
-    // When a new route is provided, start the animation.
+    // When a new route is provided, start the animation and highlighting.
     if (route.length > 0) {
       setIsAnimating(true);
-      const timer = setTimeout(() => {
-        setIsAnimating(false); // Stop animation after 10 seconds
+      setIsHighlighting(true);
+      
+      const animationTimer = setTimeout(() => {
+        setIsAnimating(false); // Stop path animation after 10 seconds
       }, 10000);
+      
+      const highlightTimer = setTimeout(() => {
+        setIsHighlighting(false); // Stop color highlight after 7 seconds
+      }, 7000);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(animationTimer);
+        clearTimeout(highlightTimer);
+      };
     } else {
-      // If the route is cleared, ensure animation is stopped.
+      // If the route is cleared, ensure animations are stopped.
       setIsAnimating(false);
+      setIsHighlighting(false);
     }
   }, [route]);
 
@@ -88,16 +109,23 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
           {/* Render zones */}
           {zones.map((zone) => {
             const visibleNotes = zone.notes?.filter(n => n.visibleToUser) ?? [];
+            const isInRecommendedRoute = route.includes(zone.id);
+            const isInConsideredPath = isInRecommendedRoute || alternativeRoute.includes(zone.id);
+
+            const currentStyles = (isInRecommendedRoute && isHighlighting) 
+                ? highlightedDensityStyles[zone.density] 
+                : densityStyles[zone.density];
+
             return (
             <Tooltip key={zone.id}>
               <TooltipTrigger asChild>
                 <div
                   id={zone.id}
                   className={cn(
-                    'w-full h-full rounded-lg border-2 flex items-center justify-center p-2 text-center transition-all duration-300 relative',
-                    densityStyles[zone.density].background,
-                    densityStyles[zone.density].border,
-                    route.includes(zone.id) || alternativeRoute.includes(zone.id)
+                    'w-full h-full rounded-lg border-2 flex items-center justify-center p-2 text-center transition-all duration-500 ease-in-out relative',
+                    currentStyles.background,
+                    currentStyles.border,
+                    isInConsideredPath
                       ? 'shadow-2xl scale-105'
                       : 'shadow-md'
                   )}
@@ -105,7 +133,7 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
                   <span className="font-bold text-sm z-10 bg-background/50 px-1 rounded">{zone.name}</span>
                   <div className="absolute inset-0 grid grid-cols-5 gap-1 p-2">
                     {Array.from({ length: Math.min(zone.userCount, 50) }).map((_, i) => (
-                      <div key={i} className={cn("w-2 h-2 rounded-full", densityStyles[zone.density].dot)} />
+                      <div key={i} className={cn("w-2 h-2 rounded-full", currentStyles.dot)} />
                     ))}
                   </div>
                 </div>
