@@ -49,7 +49,7 @@ const translations: Record<string, Record<string, string>> = {
   'The suggested route is:': {
     ta: 'பரிந்துரைக்கப்பட்ட பாதை:',
     hi: 'सुझाया गया मार्ग है:',
-    kn: 'సూచಿಸಲಾದ ಮಾರ್ಗ:',
+    kn: 'ಸೂಚಿಸಲಾದ ಮಾರ್ಗ:',
     te: 'సూచించిన మార్గం:',
   },
   ', then to ': {
