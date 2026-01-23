@@ -71,12 +71,11 @@ export function InteractiveZoneMap({
                 Clear Points
             </Button>
        </div>
-      <div className="h-[400px] w-full rounded-md border overflow-hidden">
         <MapContainer
+          className="h-[400px] w-full rounded-md border"
           center={defaultPosition}
           zoom={13}
           scrollWheelZoom={true}
-          style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -102,7 +101,6 @@ export function InteractiveZoneMap({
           ))}
           {coordinates.length > 2 && <Polygon positions={coordinates} />}
         </MapContainer>
-      </div>
       <p className="text-xs text-muted-foreground">Click on the map to add up to 4 corner points. Drag points to adjust.</p>
     </div>
   );

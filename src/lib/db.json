@@ -272,9 +272,9 @@
       "id": "admin2@gmail.com",
       "name": "Admin",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T11:49:20.699Z",
+      "lastSeen": "2026-01-23T12:22:49.165Z",
       "role": "admin",
-      "status": "offline"
+      "status": "online"
     },
     {
       "id": "kavin",
@@ -291,7 +291,7 @@
       "id": "krishnan",
       "name": "krishnan",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T12:21:04.765Z",
+      "lastSeen": "2026-01-23T12:24:01.512Z",
       "role": "user",
       "status": "offline",
       "lastLatitude": 10.8573245,
@@ -302,9 +302,9 @@
       "id": "surenderkm",
       "name": "SurenderKM",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T12:21:41.862Z",
+      "lastSeen": "2026-01-23T12:22:12.313Z",
       "role": "user",
-      "status": "online",
+      "status": "offline",
       "lastLatitude": 10.8573245,
       "lastLongitude": 78.7033085,
       "lastZoneId": "unknown"
