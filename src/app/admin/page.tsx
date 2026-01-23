@@ -1,5 +1,6 @@
+
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
-import { getZones, getSettings, getUsers } from '@/lib/actions';
+import { getZones, getSettings, getUsers, getUserById } from '@/lib/actions';
 import { redirect } from 'next/navigation';
 import { Header } from '@/components/layout/header';
 
@@ -15,6 +16,21 @@ export default async function AdminPage({
 
   if (typeof userId !== 'string') {
     redirect('/login');
+  }
+
+  let decodedUserId;
+  try {
+    decodedUserId = Buffer.from(userId, 'base64').toString('utf-8');
+  } catch (e) {
+    console.error("Failed to decode userId:", e);
+    redirect('/login');
+  }
+
+  const adminUser = await getUserById(decodedUserId);
+
+  // Ensure the user exists and has the admin role
+  if (!adminUser || adminUser.role !== 'admin') {
+      redirect('/login');
   }
 
   const zones = await getZones();

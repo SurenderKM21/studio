@@ -19,7 +19,15 @@ export default async function UserPage({
     redirect('/login');
   }
 
-  const user = await getUserById(userId);
+  let decodedUserId;
+  try {
+    decodedUserId = Buffer.from(userId, 'base64').toString('utf-8');
+  } catch (e) {
+    console.error("Failed to decode userId:", e);
+    redirect('/login');
+  }
+
+  const user = await getUserById(decodedUserId);
 
   if (!user) {
     redirect('/login');

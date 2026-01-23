@@ -184,13 +184,13 @@
       "groupSize": 1,
       "lastSeen": "2026-01-23T17:51:30.561Z",
       "role": "admin",
-      "status": "online"
+      "status": "offline"
     },
     {
       "id": "kavin",
       "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T13:48:01.900Z",
+      "lastSeen": "2026-01-23T18:26:09.218Z",
       "role": "user",
       "status": "online",
       "lastLatitude": 10.8573245,

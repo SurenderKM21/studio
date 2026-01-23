@@ -468,12 +468,13 @@ export async function updateUserLocationAndClassifyZonesAction(userId: string, u
   }
 }
 
-export async function logoutUserAction(userId: string) {
+export async function logoutUserAction(userId: string) { // userId is Base64 encoded
     try {
+        const decodedUserId = Buffer.from(userId, 'base64').toString('utf-8');
         // Set user status to offline instead of removing them
-        const user = db.getUserById(userId);
+        const user = db.getUserById(decodedUserId);
         if (user) {
-          db.updateUser(userId, { status: 'offline' });
+          db.updateUser(decodedUserId, { status: 'offline' });
         }
         
         // After "logging out" the user, rebalance all zone counts to reflect their departure.
@@ -547,7 +548,9 @@ export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
     revalidatePath('/admin');
     revalidatePath('/user');
 
-    return { success: true, userId: userId, role: role, loginTimestamp };
+    const encodedUserId = Buffer.from(userId).toString('base64');
+
+    return { success: true, userId: encodedUserId, role: role, loginTimestamp };
 }
 
 export async function removeUserAction(userId: string) {
