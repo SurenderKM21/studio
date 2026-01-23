@@ -219,8 +219,8 @@
         }
       ],
       "id": "zone-dxfb1gx",
-      "userCount": 1,
-      "density": "over-crowded"
+      "userCount": 0,
+      "density": "free"
     },
     {
       "name": "Home",
@@ -272,24 +272,35 @@
       "id": "admin2@gmail.com",
       "name": "Admin",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T11:26:52.371Z",
+      "lastSeen": "2026-01-23T11:49:20.699Z",
       "role": "admin",
       "status": "online"
     },
     {
-      "id": "surender",
-      "name": "surender",
+      "id": "kavin",
+      "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2025-12-31T17:41:55.829Z",
+      "lastSeen": "2026-01-23T11:30:51.570Z",
       "role": "user",
       "status": "online",
-      "lastLatitude": 12.8590056,
-      "lastLongitude": 80.0845292,
-      "lastZoneId": "zone-dxfb1gx"
+      "lastLatitude": 10.8573245,
+      "lastLongitude": 78.7033085,
+      "lastZoneId": "unknown"
+    },
+    {
+      "id": "krishnan",
+      "name": "krishnan",
+      "groupSize": 1,
+      "lastSeen": "2026-01-23T11:52:57.219Z",
+      "role": "user",
+      "status": "offline",
+      "lastLatitude": 10.8573245,
+      "lastLongitude": 78.7033085,
+      "lastZoneId": "unknown"
     }
   ],
   "settings": {
-    "latestAlertTimestamp": "2025-12-31T16:53:11.537Z"
+    "latestAlertTimestamp": "2026-01-23T11:30:34.776Z"
   },
   "alerts": [
     {
@@ -326,6 +337,12 @@
       "id": "alert-2025-12-31T16:53:11.537Z",
       "message": "hey",
       "timestamp": "2025-12-31T16:53:11.537Z"
+    },
+    {
+      "id": "alert-2026-01-23T11:30:34.776Z",
+      "message": "hello",
+      "timestamp": "2026-01-23T11:30:34.776Z",
+      "zoneId": "zone-e7cq1vc"
     }
   ]
 }
