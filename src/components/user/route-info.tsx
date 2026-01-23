@@ -35,35 +35,52 @@ interface RouteInfoProps {
   zones: Zone[];
 }
 
+const desiredLanguages = [
+  { name: 'English', code: 'en' },
+  { name: 'Tamil', code: 'ta' },
+  { name: 'Hindi', code: 'hi' },
+  { name: 'Kannada', code: 'kn' },
+  { name: 'Telugu', code: 'te' },
+];
+
 // Hardcoded translations for TTS
-const translations = {
+const translations: Record<string, Record<string, string>> = {
   // Phrases
   'The suggested route is:': {
     ta: 'பரிந்துரைக்கப்பட்ட பாதை:',
     hi: 'सुझाया गया मार्ग है:',
+    kn: 'సూచಿಸಲಾದ ಮಾರ್ಗ:',
+    te: 'సూచించిన మార్గం:',
   },
   ', then to ': {
     ta: ', பிறகு ',
     hi: ', फिर ',
+    kn: ', ನಂತರ ',
+    te: ', ఆ తర్వాత ',
   },
   'A more direct but congested path was avoided.': {
     ta: 'அதிக நெரிசல் காரணமாக நேரடியான பாதை தவிர்க்கப்பட்டது.',
     hi: 'अधिक भीड़भाड़ वाला सीधा रास्ता टाला गया।',
+    kn: 'ಹೆಚ್ಚು ದಟ್ಟಣೆಯಿಂದಾಗಿ ನೇರ ಮಾರ್ಗವನ್ನು ತಪ್ಪಿಸಲಾಗಿದೆ.',
+    te: 'అధిక రద్దీ కారణంగా ప్రత్యక్ష మార్గం నివారించబడింది.',
   },
   // Zone Names from db.json
-  Area1: { ta: 'பகுதி ஒன்று', hi: 'क्षेत्र एक' },
-  KV_HOME: { ta: 'கேவி இல்லம்', hi: 'केवी होम' },
-  'IT Park': { ta: 'ஐடி பார்க்', hi: 'आईटी पार्क' },
-  Zone41: { ta: 'மண்டலம் நாற்பத்தி ஒன்று', hi: 'जोन इकतालीस' },
-  Zone5: { ta: 'மண்டலம் ஐந்து', hi: 'जोन पांच' },
-  Zone6: { ta: 'மண்டலம் ஆறு', hi: 'जोन छह' },
-  'Side Path': { ta: 'பக்கவாட்டு பாதை', hi: 'साइड पथ' },
+  Area1: { ta: 'பகுதி ஒன்று', hi: 'क्षेत्र एक', kn: 'ಪ್ರದೇಶ ಒಂದು', te: 'ప్రాంతం ఒకటి' },
+  KV_HOME: { ta: 'கேவி இல்லம்', hi: 'केवी होम', kn: 'ಕೆವಿ ಹೋಮ್', te: 'కెవి హోమ్' },
+  'IT Park': { ta: 'ஐடி பார்க்', hi: 'आईटी पार्क', kn: 'ಐಟಿ ಪಾರ್ಕ್', te: 'ఐటి పార్క్' },
+  Zone41: { ta: 'மண்டலம் நாற்பத்தி ஒன்று', hi: 'जोन इकतालीस', kn: 'ವಲಯ ನಲವತ್ತೊಂದು', te: 'జోన్ నలభై ఒకటి' },
+  Zone5: { ta: 'மண்டலம் ஐந்து', hi: 'जोन पांच', kn: 'ವಲಯ ಐದು', te: 'జోన్ ఐదు' },
+  Zone6: { ta: 'மண்டலம் ஆறு', hi: 'जोन छह', kn: 'ವಲಯ ಆರು', te: 'జోన్ ఆరు' },
+  'Side Path': { ta: 'பக்கவாட்டு பாதை', hi: 'साइड पथ', kn: 'ಬದಿಯ ದಾರಿ', te: 'ప్రక్క మార్గం' },
   'Mathura flats : Home': {
     ta: 'மதுரா குடியிருப்பு : இல்லம்',
     hi: 'मथुरा फ्लैट्स : होम',
+    kn: 'ಮಥುರಾ ಫ್ಲಾಟ್ಸ್ : ಮನೆ',
+    te: 'మధుర ఫ్లాట్స్ : ఇల్లు',
   },
-  Home: { ta: 'இல்லம்', hi: 'घर' },
+  Home: { ta: 'இல்லம்', hi: 'घर', kn: 'ಮನೆ', te: 'ఇల్లు' },
 };
+
 
 const congestionColors: Record<string, string> = {
   low: 'bg-green-500',
@@ -77,23 +94,25 @@ const getZoneName = (zoneId: string, zones: Zone[]) => {
 };
 
 export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string | undefined>(
-    undefined
-  );
+  const [supportedVoices, setSupportedVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedLang, setSelectedLang] = useState<string>('');
 
   useEffect(() => {
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
       if (availableVoices.length > 0) {
-        setVoices(availableVoices);
-        if (!selectedVoiceURI) {
+        const foundVoices = desiredLanguages
+          .map((lang) =>
+            availableVoices.find((voice) => voice.lang.startsWith(lang.code))
+          )
+          .filter((v): v is SpeechSynthesisVoice => v !== undefined);
+
+        setSupportedVoices(foundVoices);
+        
+        if (foundVoices.length > 0 && !selectedLang) {
           const defaultVoice =
-            availableVoices.find((v) => v.lang.startsWith('en')) ||
-            availableVoices[0];
-          if (defaultVoice) {
-            setSelectedVoiceURI(defaultVoice.voiceURI);
-          }
+            foundVoices.find((v) => v.lang.startsWith('en')) || foundVoices[0];
+          setSelectedLang(defaultVoice.lang);
         }
       }
     };
@@ -102,7 +121,7 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
     };
-  }, []);
+  }, [selectedLang]);
 
   const handleSpeakRoute = () => {
     if (
@@ -116,17 +135,16 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
 
     window.speechSynthesis.cancel();
 
-    const selectedVoice = voices.find((v) => v.voiceURI === selectedVoiceURI);
+    const selectedVoice = supportedVoices.find(v => v.lang === selectedLang);
     const langCode = selectedVoice ? selectedVoice.lang.split('-')[0] : 'en';
 
     const translate = (text: string, lang: string): string => {
       const key = text as keyof typeof translations;
       if (
         translations[key] &&
-        lang in translations[key] &&
-        translations[key][lang as keyof typeof translations[typeof key]]
+        lang in translations[key]
       ) {
-        return translations[key][lang as keyof typeof translations[typeof key]];
+        return translations[key][lang];
       }
       return text;
     };
@@ -221,7 +239,7 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
             size="icon"
             onClick={handleSpeakRoute}
             aria-label="Speak route details"
-            disabled={voices.length === 0}
+            disabled={supportedVoices.length === 0}
           >
             <Volume2 className="h-5 w-5" />
           </Button>
@@ -268,19 +286,22 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
             </div>
           )}
 
-        {voices.length > 0 && (
+        {supportedVoices.length > 0 && (
           <div className="space-y-2 border-t pt-4">
             <Label htmlFor="voice-select">Narration Language</Label>
-            <Select onValueChange={setSelectedVoiceURI} value={selectedVoiceURI}>
+            <Select onValueChange={setSelectedLang} value={selectedLang}>
               <SelectTrigger id="voice-select">
-                <SelectValue placeholder="Select a voice" />
+                <SelectValue placeholder="Select a language" />
               </SelectTrigger>
               <SelectContent>
-                {voices.map((voice) => (
-                  <SelectItem key={voice.voiceURI} value={voice.voiceURI}>
-                    {`${voice.name} (${voice.lang})`}
-                  </SelectItem>
-                ))}
+                {supportedVoices.map((voice) => {
+                   const langInfo = desiredLanguages.find(l => voice.lang.startsWith(l.code));
+                   return (
+                      <SelectItem key={voice.voiceURI} value={voice.lang}>
+                        {langInfo?.name || voice.lang}
+                      </SelectItem>
+                   )
+                })}
               </SelectContent>
             </Select>
           </div>
