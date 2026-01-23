@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RouteDetails, Zone, DensityCategory } from '@/lib/types';
+import { RouteDetails, Zone } from '@/lib/types';
 import {
   Map,
   Users,
@@ -19,6 +19,15 @@ import {
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
+import { useState, useEffect } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '../ui/label';
 
 interface RouteInfoProps {
   routeDetails: RouteDetails | null;
@@ -34,29 +43,73 @@ const congestionColors: Record<string, string> = {
 };
 
 const getZoneName = (zoneId: string, zones: Zone[]) => {
-  return zones.find(z => z.id === zoneId)?.name ?? 'Unknown Zone';
+  return zones.find((z) => z.id === zoneId)?.name ?? 'Unknown Zone';
 };
 
 export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
-    
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = window.speechSynthesis.getVoices();
+      if (availableVoices.length > 0) {
+        setVoices(availableVoices);
+        // Find and set a default English voice if available
+        if (!selectedVoiceURI) {
+          const defaultVoice =
+            availableVoices.find((v) => v.lang.startsWith('en')) ||
+            availableVoices[0];
+          if (defaultVoice) {
+            setSelectedVoiceURI(defaultVoice.voiceURI);
+          }
+        }
+      }
+    };
+
+    // The 'voiceschanged' event is crucial because getVoices() can be async.
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices(); // Initial call
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, [selectedVoiceURI]);
+
   const handleSpeakRoute = () => {
-    if (!routeDetails || !routeDetails.route || typeof window === 'undefined' || !window.speechSynthesis) {
-        return;
+    if (
+      !routeDetails?.route ||
+      typeof window === 'undefined' ||
+      !window.speechSynthesis
+    ) {
+      return;
     }
 
     // Stop any currently speaking utterances
     window.speechSynthesis.cancel();
-    
-    const zoneNames = routeDetails.route.map(id => getZoneName(id, zones));
-    
-    let textToSpeak = `The suggested route is: ${zoneNames.join(', then to ')}.`;
+
+    const zoneNames = routeDetails.route.map((id) => getZoneName(id, zones));
+
+    let textToSpeak = `The suggested route is: ${zoneNames.join(
+      ', then to '
+    )}.`;
 
     if (routeDetails.alternativeRouteAvailable) {
-        textToSpeak += ' A more direct but congested path was avoided.'
+      textToSpeak += ' A more direct but congested path was avoided.';
     }
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'en-US';
+    const selectedVoice = voices.find((v) => v.voiceURI === selectedVoiceURI);
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+      utterance.lang = selectedVoice.lang;
+    } else {
+      utterance.lang = 'en-US'; // Fallback
+    }
+
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
   };
@@ -92,7 +145,7 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
       </Card>
     );
   }
-  
+
   const RoutePath = ({ path }: { path: string[] }) => (
     <div className="flex items-center flex-wrap gap-2 text-sm">
       {path.map((zoneId, index) => (
@@ -116,7 +169,13 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
               Here is the suggested path based on current crowd levels.
             </CardDescription>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleSpeakRoute} aria-label="Speak route details">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSpeakRoute}
+            aria-label="Speak route details"
+            disabled={voices.length === 0}
+          >
             <Volume2 className="h-5 w-5" />
           </Button>
         </div>
@@ -145,16 +204,41 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
           </div>
         </div>
 
-        {routeDetails.alternativeRouteAvailable && routeDetails.alternativeRoute && routeDetails.alternativeRoute.length > 0 && (
-          <div className="flex items-start gap-4 border-t pt-4 border-dashed">
-            <AlertTriangle className="h-5 w-5 text-amber-500 mt-1" />
-            <div>
-              <p className="text-sm font-medium mb-2">Congested Route (Avoided)</p>
-              <p className="text-xs text-muted-foreground mb-2">The most direct path was avoided due to high congestion.</p>
-              <RoutePath path={routeDetails.alternativeRoute} />
+        {routeDetails.alternativeRouteAvailable &&
+          routeDetails.alternativeRoute &&
+          routeDetails.alternativeRoute.length > 0 && (
+            <div className="flex items-start gap-4 border-t pt-4 border-dashed">
+              <AlertTriangle className="h-5 w-5 text-amber-500 mt-1" />
+              <div>
+                <p className="text-sm font-medium mb-2">
+                  Congested Route (Avoided)
+                </p>
+                <p className="text-xs text-muted-foreground mb-2">
+                  The most direct path was avoided due to high congestion.
+                </p>
+                <RoutePath path={routeDetails.alternativeRoute} />
+              </div>
             </div>
-          </div>
+          )}
+        
+        {voices.length > 0 && (
+            <div className="space-y-2 border-t pt-4">
+                <Label htmlFor="voice-select">Narration Language</Label>
+                <Select onValueChange={setSelectedVoiceURI} value={selectedVoiceURI}>
+                    <SelectTrigger id="voice-select">
+                        <SelectValue placeholder="Select a voice" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {voices.map((voice) => (
+                            <SelectItem key={voice.voiceURI} value={voice.voiceURI}>
+                                {`${voice.name} (${voice.lang})`}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
         )}
+
       </CardContent>
     </Card>
   );
