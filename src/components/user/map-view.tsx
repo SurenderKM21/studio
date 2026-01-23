@@ -31,10 +31,26 @@ interface MapViewProps {
 
 export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
   const [isClient, setIsClient] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    // When a new route is provided, start the animation.
+    if (route.length > 0) {
+      setIsAnimating(true);
+      const timer = setTimeout(() => {
+        setIsAnimating(false); // Stop animation after 10 seconds
+      }, 10000);
+
+      return () => clearTimeout(timer);
+    } else {
+      // If the route is cleared, ensure animation is stopped.
+      setIsAnimating(false);
+    }
+  }, [route]);
 
   const getRoutePoints = (path: string[]) => {
     if (!isClient) return [];
@@ -136,13 +152,24 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
             )}
             {routePoints.length > 1 && (
                 <polyline
-                points={routePoints.map((p) => `${p.x}%,${p.y}%`).join(' ')}
-                fill="none"
-                stroke="hsl(var(--accent))"
-                strokeWidth="7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                />
+                  points={routePoints.map((p) => `${p.x}%,${p.y}%`).join(' ')}
+                  fill="none"
+                  stroke="hsl(var(--accent))"
+                  strokeWidth="7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray={isAnimating ? "20 10" : "none"}
+                >
+                  {isAnimating && (
+                    <animate
+                      attributeName="stroke-dashoffset"
+                      from="0"
+                      to="-30"
+                      dur="0.5s"
+                      repeatCount="indefinite"
+                    />
+                  )}
+                </polyline>
             )}
             </svg>
         )}
