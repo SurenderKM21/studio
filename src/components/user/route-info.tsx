@@ -76,11 +76,12 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
     };
-  }, [selectedVoiceURI]);
+  }, []);
 
   const handleSpeakRoute = () => {
     if (
       !routeDetails?.route ||
+      !routeDetails.route.length ||
       typeof window === 'undefined' ||
       !window.speechSynthesis
     ) {
