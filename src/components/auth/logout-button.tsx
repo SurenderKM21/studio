@@ -5,7 +5,6 @@ import { useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { LogOut, Loader } from 'lucide-react';
 import { logoutUserAction } from '@/lib/actions';
-import { useToast } from '@/hooks/use-toast';
 
 interface LogoutButtonProps {
     userId: string;
@@ -13,16 +12,10 @@ interface LogoutButtonProps {
 
 export function LogoutButton({ userId }: LogoutButtonProps) {
   const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
 
   const handleLogout = () => {
     startTransition(() => {
-        logoutUserAction(userId).then(() => {
-            toast({
-                title: "Logged Out",
-                description: "You have been successfully logged out."
-            });
-        });
+        logoutUserAction(userId);
     });
   };
 
@@ -42,5 +35,3 @@ export function LogoutButton({ userId }: LogoutButtonProps) {
     </Button>
   );
 }
-
-    

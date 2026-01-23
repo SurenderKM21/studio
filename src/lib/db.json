@@ -213,12 +213,20 @@
       "id": "surenderkm",
       "name": "SurenderKM",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T18:28:32.486Z",
+      "lastSeen": "2026-01-23T18:29:46.373Z",
       "role": "user",
       "status": "online",
-      "lastLatitude": 10.8573245,
-      "lastLongitude": 78.7033085,
+      "lastLatitude": 10.857167494106783,
+      "lastLongitude": 78.70428088103615,
       "lastZoneId": "zone-x9f2m4q"
+    },
+    {
+      "id": "admin2",
+      "name": "Admin",
+      "groupSize": 1,
+      "lastSeen": "2026-01-23T18:33:01.531Z",
+      "role": "admin",
+      "status": "online"
     }
   ],
   "settings": {
