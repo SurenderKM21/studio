@@ -190,12 +190,13 @@
       "id": "kavin",
       "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T13:13:38.543Z",
+      "lastSeen": "2026-01-23T13:16:25.942Z",
       "role": "user",
       "status": "online",
       "lastLatitude": 10.857167494106783,
       "lastLongitude": 78.70428088103615,
-      "lastZoneId": "zone-x9f2m4q"
+      "lastZoneId": "zone-x9f2m4q",
+      "sos": false
     },
     {
       "id": "krishnan",

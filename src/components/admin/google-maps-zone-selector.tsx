@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -7,7 +6,7 @@ import {
   Marker,
   Polygon,
 } from '@react-google-maps/api';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { Coordinate } from '@/lib/types';
 import { Button } from '../ui/button';
 import { Trash2 } from 'lucide-react';
@@ -49,6 +48,24 @@ export function GoogleMapsZoneSelector({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
   });
+  
+  const [adminLocation, setAdminLocation] = useState<Coordinate | null>(null);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setAdminLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        () => {
+          // Can be ignored if the user doesn't want to share location
+        }
+      );
+    }
+  }, []);
 
   const handleMapClick = (event: google.maps.MapMouseEvent) => {
     if (coordinates.length < 4 && event.latLng) {
@@ -86,6 +103,15 @@ export function GoogleMapsZoneSelector({
     )
   }
 
+  const blueDot = {
+    path: 'M-10,0a10,10 0 1,0 20,0a10,10 0 1,0 -20,0',
+    fillColor: '#4285F4',
+    fillOpacity: 1,
+    strokeColor: 'white',
+    strokeWeight: 2,
+    scale: 1
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
@@ -103,7 +129,7 @@ export function GoogleMapsZoneSelector({
       </div>
       <GoogleMap
         mapContainerStyle={containerStyle}
-        center={defaultCenter}
+        center={adminLocation || defaultCenter}
         zoom={13}
         onClick={handleMapClick}
       >
@@ -117,6 +143,13 @@ export function GoogleMapsZoneSelector({
         ))}
         {coordinates.length > 2 && (
           <Polygon paths={coordinates} options={polygonOptions} />
+        )}
+        {adminLocation && (
+          <Marker 
+            position={adminLocation} 
+            title="Your Location"
+            icon={blueDot} 
+          />
         )}
       </GoogleMap>
       <p className="text-xs text-muted-foreground">
