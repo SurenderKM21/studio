@@ -55,12 +55,12 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
       setIsHighlighting(true);
       
       const animationTimer = setTimeout(() => {
-        setIsAnimating(false); // Stop path animation after 10 seconds
-      }, 10000);
+        setIsAnimating(false); // Stop path animation after 15 seconds
+      }, 15000);
       
       const highlightTimer = setTimeout(() => {
-        setIsHighlighting(false); // Stop color highlight after 7 seconds
-      }, 7000);
+        setIsHighlighting(false); // Stop color highlight after 15 seconds
+      }, 15000);
 
       return () => {
         clearTimeout(animationTimer);
