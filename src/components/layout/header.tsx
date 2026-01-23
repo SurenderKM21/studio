@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { EvacAIIcon } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { LogoutButton } from '../auth/logout-button';
+import { ThemeToggle } from './theme-toggle';
 
 type HeaderProps = {
   section: 'User' | 'Admin';
@@ -22,6 +23,7 @@ export function Header({ section, userId }: HeaderProps) {
         <div className="flex flex-1 items-center justify-end space-x-4">
            <Badge variant={section === 'Admin' ? 'destructive' : 'default'}>{section} View</Badge>
            {userId && <LogoutButton userId={userId} />}
+           <ThemeToggle />
         </div>
       </div>
     </header>
