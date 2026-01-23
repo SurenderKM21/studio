@@ -12,18 +12,18 @@ const coordinateRegex = /^-?\d+(\.\d+)?,\s?-?\d+(\.\d+)?$/;
 const addZoneSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
-  coordinate1: z.string().min(1, 'Coordinate 1 is required').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
-  coordinate2: z.string().min(1, 'Coordinate 2 is required').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
-  coordinate3: z.string().min(1, 'Coordinate 3 is required').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
-  coordinate4: z.string().min(1, 'Coordinate 4 is required').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
+  coordinate1: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
+  coordinate2: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
+  coordinate3: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
+  coordinate4: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
 });
 
 const updateZoneSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
-  coordinate1: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
-  coordinate2: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
-  coordinate3: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
+  coordinate1: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
+  coordinate2: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
+  coordinate3: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
   coordinate4: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
 });
 
@@ -54,7 +54,12 @@ export async function addZoneAction(prevState: any, formData: FormData) {
   const { name, capacity, coordinate1, coordinate2, coordinate3, coordinate4 } = validatedFields.data;
 
   try {
-    const coordsStrings = [coordinate1, coordinate2, coordinate3, coordinate4];
+    const coordsStrings = [coordinate1, coordinate2, coordinate3, coordinate4].filter(c => c && c.trim() !== '');
+      
+    if (coordsStrings.length < 3) {
+       return { error: 'A zone must have at least 3 coordinates.' };
+    }
+
     const coordinates = coordsStrings
       .map(pair => {
         const [lat, lng] = pair.trim().split(',').map(Number);
@@ -64,10 +69,6 @@ export async function addZoneAction(prevState: any, formData: FormData) {
         return { lat, lng };
       });
       
-    if (coordinates.length < 3) {
-       return { error: 'A zone must have at least 3 coordinates.' };
-    }
-
     db.addZone({ name, capacity, coordinates });
     revalidatePath('/admin');
     revalidatePath('/user');
@@ -95,7 +96,8 @@ export async function updateZoneAction(zoneId: string, data: z.infer<typeof upda
         if (name) updateData.name = name;
         if (capacity) updateData.capacity = capacity;
 
-        const coordsStrings = [coordinate1, coordinate2, coordinate3, coordinate4].filter(Boolean) as string[];
+        const coordsStrings = [coordinate1, coordinate2, coordinate3, coordinate4].filter(c => c && c.trim() !== '');
+        
         if (coordsStrings.length > 0) {
             if (coordsStrings.length < 3) {
                 return { error: 'A zone must have at least 3 coordinates if you are updating them.' };

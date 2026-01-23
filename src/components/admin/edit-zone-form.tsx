@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,18 +21,22 @@ import { Label } from '@/components/ui/label';
 import { Pencil, Loader } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { updateZoneAction } from '@/lib/actions';
-import type { Zone } from '@/lib/types';
+import type { Zone, Coordinate } from '@/lib/types';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '../ui/skeleton';
 
 const coordinateRegex = /^-?\d+(\.\d+)?,\s?-?\d+(\.\d+)?$/;
 
+// Updated schema to handle 3 or 4 points
 const updateZoneSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
-  coordinate1: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
-  coordinate2: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
-  coordinate3: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
-  coordinate4: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
+  coordinate1: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format'),
+  coordinate2: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format'),
+  coordinate3: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format'),
+  coordinate4: z.string().regex(coordinateRegex, 'Invalid format').optional().or(z.literal('')),
 });
+
 
 type UpdateZoneForm = z.infer<typeof updateZoneSchema>;
 
@@ -45,7 +49,12 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<UpdateZoneForm>({
+  const InteractiveZoneMap = useMemo(() => dynamic(() => import('./interactive-zone-map').then(mod => mod.InteractiveZoneMap), {
+    ssr: false,
+    loading: () => <Skeleton className="h-[400px] w-full" />,
+  }), []);
+
+  const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<UpdateZoneForm>({
     resolver: zodResolver(updateZoneSchema),
     defaultValues: {
       name: zone.name,
@@ -56,6 +65,24 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
       coordinate4: zone.coordinates[3] ? `${zone.coordinates[3].lat},${zone.coordinates[3].lng}` : '',
     },
   });
+
+  const coordinatesFromForm = watch(['coordinate1', 'coordinate2', 'coordinate3', 'coordinate4']);
+  
+  const handleCoordinatesChange = (newCoords: Coordinate[]) => {
+      const coordStrings = newCoords.map(c => `${c.lat},${c.lng}`);
+      setValue('coordinate1', coordStrings[0] || '', { shouldValidate: true });
+      setValue('coordinate2', coordStrings[1] || '', { shouldValidate: true });
+      setValue('coordinate3', coordStrings[2] || '', { shouldValidate: true });
+      setValue('coordinate4', coordStrings[3] || '', { shouldValidate: true });
+  };
+  
+  const mapCoordinates = useMemo(() => {
+    return coordinatesFromForm.filter(c => c && coordinateRegex.test(c)).map(c => {
+        const [lat, lng] = c.split(',').map(Number);
+        return { lat, lng };
+    });
+  }, [coordinatesFromForm]);
+
 
   useEffect(() => {
     if (isOpen) {
@@ -96,7 +123,7 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
           <Pencil className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-xl">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>Edit Zone: {zone.name}</DialogTitle>
@@ -115,28 +142,19 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
               <Input id="capacity" type="number" {...register('capacity')} min="1" />
               {errors.capacity && <p className="text-xs text-destructive">{errors.capacity.message}</p>}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-2">
-                <Label htmlFor="coordinate1">Coordinate 1 (Top-Left)</Label>
-                <Input id="coordinate1" {...register('coordinate1')} placeholder="lat,lng" />
-                 {errors.coordinate1 && <p className="text-xs text-destructive">{errors.coordinate1.message}</p>}
-              </div>
-               <div className="space-y-2">
-                <Label htmlFor="coordinate2">Coordinate 2 (Top-Right)</Label>
-                <Input id="coordinate2" {...register('coordinate2')} placeholder="lat,lng" />
-                 {errors.coordinate2 && <p className="text-xs text-destructive">{errors.coordinate2.message}</p>}
-              </div>
-               <div className="space-y-2">
-                <Label htmlFor="coordinate3">Coordinate 3 (Bottom-Right)</Label>
-                <Input id="coordinate3" {...register('coordinate3')} placeholder="lat,lng" />
-                 {errors.coordinate3 && <p className="text-xs text-destructive">{errors.coordinate3.message}</p>}
-              </div>
-               <div className="space-y-2">
-                <Label htmlFor="coordinate4">Coordinate 4 (Bottom-Left)</Label>
-                <Input id="coordinate4" {...register('coordinate4')} placeholder="lat,lng" />
-                 {errors.coordinate4 && <p className="text-xs text-destructive">{errors.coordinate4.message}</p>}
-              </div>
-            </div>
+            
+            <InteractiveZoneMap 
+                coordinates={mapCoordinates} 
+                onCoordinatesChange={handleCoordinatesChange} 
+            />
+
+            {/* Hidden inputs for validation */}
+            <input type="hidden" {...register('coordinate1')} />
+            <input type="hidden" {...register('coordinate2')} />
+            <input type="hidden" {...register('coordinate3')} />
+            <input type="hidden" {...register('coordinate4')} />
+            {errors.coordinate1 && <p className="text-xs text-destructive">{errors.coordinate1.message}</p>}
+
           </div>
           <DialogFooter>
             <DialogClose asChild>
