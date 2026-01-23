@@ -43,6 +43,7 @@ export type User = {
   lastZoneId?: string;
   status?: 'online' | 'offline';
   role?: 'user' | 'admin';
+  sos?: boolean;
 };
 
 export type AlertMessage = {

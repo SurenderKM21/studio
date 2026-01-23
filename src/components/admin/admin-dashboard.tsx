@@ -10,7 +10,7 @@ import type { Zone, AppSettings, User } from '@/lib/types';
 import { ZoneManager } from './zone-manager';
 import { DensityControl } from './density-control';
 import { SettingsPanel } from './settings-panel';
-import { Users, Map, Settings, List, AlertTriangle, RefreshCw, MessageSquareWarning, NotebookPen } from 'lucide-react';
+import { Users, Map, Settings, List, AlertTriangle, RefreshCw, MessageSquareWarning, NotebookPen, Siren } from 'lucide-react';
 import { UserMonitor } from './user-monitor';
 import { ZoneDetails } from './zone-details';
 import { OvercrowdedZones } from './overcrowded-zones';
@@ -20,6 +20,7 @@ import { Button } from '../ui/button';
 import { refreshDataAction } from '@/lib/actions';
 import { AlertManager } from './alert-manager';
 import { ZoneNotesManager } from './zone-notes-manager';
+import { SOSMonitor } from './sos-monitor';
 
 interface AdminDashboardProps {
   initialZones: Zone[];
@@ -88,6 +89,8 @@ export function AdminDashboard({
     (z) => z.density === 'over-crowded'
   ).length;
 
+  const sosCount = initialUsers.filter(u => u.sos).length;
+
   return (
     <div>
        <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
@@ -102,8 +105,12 @@ export function AdminDashboard({
             Refresh Data
         </Button>
       </div>
-      <Tabs defaultValue="zones" className="w-full">
+      <Tabs defaultValue="sos" className="w-full">
         <TabsList className="flex flex-wrap h-auto">
+           <TabsTrigger value="sos" className={sosCount > 0 ? 'text-destructive' : ''}>
+            <Siren className="mr-2 h-4 w-4" />
+            SOS Alerts ({sosCount})
+          </TabsTrigger>
           <TabsTrigger value="zones">
             <Map className="mr-2 h-4 w-4" />
             Zone Manager
@@ -137,6 +144,9 @@ export function AdminDashboard({
             Settings
           </TabsTrigger>
         </TabsList>
+        <TabsContent value="sos">
+            <SOSMonitor initialUsers={initialUsers} initialZones={zones} />
+        </TabsContent>
         <TabsContent value="zones">
           <ZoneManager initialZones={zones} />
         </TabsContent>

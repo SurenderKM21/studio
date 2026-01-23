@@ -5,10 +5,10 @@ import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
 import type { Zone, RouteDetails, User, AppSettings, AlertMessage } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { RouteInfo } from './route-info';
 import { Button } from '../ui/button';
-import { Loader, RefreshCw } from 'lucide-react';
+import { Loader, RefreshCw, Siren } from 'lucide-react';
 import { classifyAllZonesAction, getRouteAction, updateUserLocationAndClassifyZonesAction, refreshDataAction, getLatestAlertAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { DensityLegend } from './density-legend';
@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { SOSButton } from './sos-button';
 
 
 interface UserDashboardProps {
@@ -252,7 +253,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
         setRoutingError(result.error);
         toast({
           variant: 'destructive',
-          title: 'Routing Error',
+          title: 'No route',
           description: result.error,
         });
       } else {
@@ -321,6 +322,20 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
 
     <div className="grid lg:grid-cols-3 gap-8">
       <div className="lg:col-span-1 flex flex-col gap-8">
+        <Card className="shadow-lg border-destructive border-2 bg-destructive/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <Siren className="h-6 w-6" />
+                Emergency SOS
+              </CardTitle>
+              <CardDescription className="text-destructive/80">
+                In case of a personal emergency, press this button to alert admin staff.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SOSButton userId={initialUser.id} initialSOSState={initialUser.sos ?? false} />
+            </CardContent>
+          </Card>
         <LocationTracker 
             currentZoneName={currentZoneName} 
             isSending={isSendingLocation}

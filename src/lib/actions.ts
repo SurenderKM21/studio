@@ -614,3 +614,15 @@ export async function deleteZoneNoteAction(zoneId: string, noteId: string) {
     return { error: 'Failed to delete note.' };
   }
 }
+
+export async function toggleSOSAction(userId: string, sosState: boolean) {
+  try {
+    db.updateUser(userId, { sos: sosState });
+    revalidatePath('/admin');
+    revalidatePath('/user');
+    return { success: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Could not update SOS status.';
+    return { success: false, error: message };
+  }
+}
