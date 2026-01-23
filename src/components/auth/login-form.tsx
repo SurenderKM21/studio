@@ -107,17 +107,11 @@ export function LoginForm() {
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex flex-col gap-4">
+        <CardFooter>
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending && <Loader className="mr-2 h-4 w-4 animate-spin" />}
             Login
           </Button>
-          <p className="text-xs text-center text-muted-foreground">
-            Don't have an account?{' '}
-            <Link href="/register" className="underline text-primary">
-              Register here
-            </Link>
-          </p>
         </CardFooter>
       </form>
     </Card>
