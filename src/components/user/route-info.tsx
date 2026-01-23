@@ -116,12 +116,14 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
         }
       }
     };
+    // onvoiceschanged is the correct event, and it can fire multiple times.
     window.speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
+    loadVoices(); // Also call it directly in case voices are already loaded.
+    
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
     };
-  }, [selectedLang]);
+  }, []); // Run only once on mount
 
   const handleSpeakRoute = () => {
     if (
@@ -139,6 +141,7 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
     const langCode = selectedVoice ? selectedVoice.lang.split('-')[0] : 'en';
 
     const translate = (text: string, lang: string): string => {
+      if (lang === 'en') return text;
       const key = text as keyof typeof translations;
       if (
         translations[key] &&
@@ -146,7 +149,7 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
       ) {
         return translations[key][lang];
       }
-      return text;
+      return text; // Fallback to original text if translation not found
     };
 
     const translatedZoneNames = routeDetails.route.map((id) => {
@@ -170,7 +173,7 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
 
     if (selectedVoice) {
       utterance.voice = selectedVoice;
-      utterance.lang = selectedVoice.lang;
+      utterance.lang = selectedVoice.lang; // Explicitly set lang property
     } else {
       utterance.lang = 'en-US'; // Fallback
     }
