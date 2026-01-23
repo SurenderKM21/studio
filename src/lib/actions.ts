@@ -533,6 +533,10 @@ export async function getUsers(): Promise<User[]> {
     return db.getUsers();
 }
 
+export async function getUserById(id: string): Promise<User | undefined> {
+    return db.getUserById(id);
+}
+
 export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
     const { role, username, email } = data;
     const loginTimestamp = new Date().toISOString();

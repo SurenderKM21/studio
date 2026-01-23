@@ -1,14 +1,14 @@
 
 import { UserDashboard } from '@/components/user/user-dashboard';
-import { db } from '@/lib/data';
 import { User } from '@/lib/types';
 import { redirect } from 'next/navigation';
 import { Header } from '@/components/layout/header';
+import { getZones, getSettings, getUserById } from '@/lib/actions';
 
 export const dynamic = 'force-dynamic';
 
 
-export default function UserPage({
+export default async function UserPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
@@ -19,14 +19,14 @@ export default function UserPage({
     redirect('/login');
   }
 
-  const user = db.getUserById(userId);
+  const user = await getUserById(userId);
 
   if (!user) {
     redirect('/login');
   }
   
-  const zones = db.getZones();
-  const settings = db.getSettings();
+  const zones = await getZones();
+  const settings = await getSettings();
   
   return (
     <>
