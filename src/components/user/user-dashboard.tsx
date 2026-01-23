@@ -64,6 +64,7 @@ const triggerEmergencyNotification = () => {
 export function UserDashboard({ initialZones, initialUser, settings }: UserDashboardProps) {
   const [zones, setZones] = useState<Zone[]>(initialZones);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
+  const [routingError, setRoutingError] = useState<string | null>(null);
   const [currentZoneName, setCurrentZoneName] = useState<string>('Locating...');
   const [currentUserLocation, setCurrentUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isPlanning, startRoutePlanning] = useTransition();
@@ -245,8 +246,10 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
   const handlePlanRoute = (sourceZone: string, destinationZone: string) => {
     startRoutePlanning(async () => {
       setRouteDetails(null);
+      setRoutingError(null);
       const result = await getRouteAction(sourceZone, destinationZone);
       if (result.error) {
+        setRoutingError(result.error);
         toast({
           variant: 'destructive',
           title: 'Routing Error',
@@ -329,7 +332,7 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
           onPlanRoute={handlePlanRoute}
           isPlanning={isPlanning}
         />
-        <RouteInfo routeDetails={routeDetails} isPlanning={isPlanning} zones={zones} />
+        <RouteInfo routeDetails={routeDetails} isPlanning={isPlanning} zones={zones} routingError={routingError} />
       </div>
       <div className="lg:col-span-2">
         <Card className="h-full min-h-[600px] shadow-lg">

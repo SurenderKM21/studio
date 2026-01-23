@@ -1,72 +1,6 @@
 {
   "zones": [
     {
-      "name": "Area1",
-      "capacity": 7,
-      "coordinates": [
-        {
-          "lat": 12.854117,
-          "lng": 80.079509
-        },
-        {
-          "lat": 12.853813,
-          "lng": 80.079218
-        },
-        {
-          "lat": 12.853133,
-          "lng": 80.079527
-        },
-        {
-          "lat": 12.853648,
-          "lng": 80.080145
-        }
-      ],
-      "id": "zone-e7cq1vc",
-      "userCount": 0,
-      "density": "free",
-      "manualDensity": false,
-      "notes": [
-        {
-          "id": "note-1767200782296",
-          "text": "Slippeery floor2",
-          "visibleToUser": true,
-          "createdAt": "2025-12-31T17:06:22.296Z"
-        },
-        {
-          "id": "note-1767200806609",
-          "text": "Slippeery floor",
-          "visibleToUser": false,
-          "createdAt": "2025-12-31T17:06:46.609Z"
-        }
-      ]
-    },
-    {
-      "name": "KV_HOME",
-      "capacity": 1,
-      "coordinates": [
-        {
-          "lat": 10.940492,
-          "lng": 76.934728
-        },
-        {
-          "lat": 10.940542,
-          "lng": 76.936217
-        },
-        {
-          "lat": 10.939305,
-          "lng": 76.936364
-        },
-        {
-          "lat": 10.939201,
-          "lng": 76.934638
-        }
-      ],
-      "id": "zone-2y5edj3",
-      "userCount": 0,
-      "density": "free",
-      "manualDensity": false
-    },
-    {
       "name": "IT Park",
       "capacity": 12,
       "coordinates": [
@@ -198,54 +132,30 @@
       "manualDensity": false
     },
     {
-      "name": "Mathura flats : Home",
-      "capacity": 1,
+      "name": "Home1",
+      "capacity": 10,
       "coordinates": [
         {
-          "lat": 12.859129,
-          "lng": 80.084309
+          "lat": 10.854385766814186,
+          "lng": 78.70826482772827
         },
         {
-          "lat": 12.859055,
-          "lng": 80.0848
+          "lat": 10.854131375153585,
+          "lng": 78.7014202978177
         },
         {
-          "lat": 12.858698,
-          "lng": 80.084305
+          "lat": 10.860673970375924,
+          "lng": 78.70190578065943
         },
         {
-          "lat": 12.858697,
-          "lng": 80.084834
+          "lat": 10.86027357687356,
+          "lng": 78.70709317289423
         }
       ],
-      "id": "zone-dxfb1gx",
-      "userCount": 0,
-      "density": "free"
-    },
-    {
-      "name": "Home",
-      "capacity": 1,
-      "coordinates": [
-        {
-          "lat": 10.857856,
-          "lng": 78.704978
-        },
-        {
-          "lat": 10.85774,
-          "lng": 78.705268
-        },
-        {
-          "lat": 10.857291,
-          "lng": 78.704737
-        },
-        {
-          "lat": 10.857228,
-          "lng": 78.70505
-        }
-      ],
-      "id": "zone-bvtaqd0",
-      "userCount": 0,
-      "density": "free"
+      "id": "zone-x9f2m4q",
+      "userCount": 1,
+      "density": "free",
+      "notes": []
     }
   ],
   "users": [
@@ -272,37 +182,37 @@
       "id": "admin2@gmail.com",
       "name": "Admin",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T12:22:49.165Z",
+      "lastSeen": "2026-01-23T12:54:48.356Z",
       "role": "admin",
-      "status": "online"
+      "status": "offline"
     },
     {
       "id": "kavin",
       "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T11:30:51.570Z",
+      "lastSeen": "2026-01-23T12:58:37.183Z",
       "role": "user",
       "status": "online",
       "lastLatitude": 10.8573245,
       "lastLongitude": 78.7033085,
-      "lastZoneId": "unknown"
+      "lastZoneId": "zone-x9f2m4q"
     },
     {
       "id": "krishnan",
       "name": "krishnan",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T12:42:23.594Z",
+      "lastSeen": "2026-01-23T12:53:05.147Z",
       "role": "user",
       "status": "offline",
-      "lastLatitude": 10.857167494106783,
-      "lastLongitude": 78.70428088103615,
+      "lastLatitude": 10.8573245,
+      "lastLongitude": 78.7033085,
       "lastZoneId": "unknown"
     },
     {
       "id": "surenderkm",
       "name": "SurenderKM",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T12:22:12.313Z",
+      "lastSeen": "2026-01-23T12:54:06.096Z",
       "role": "user",
       "status": "offline",
       "lastLatitude": 10.8573245,

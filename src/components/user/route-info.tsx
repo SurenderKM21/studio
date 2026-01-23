@@ -33,6 +33,7 @@ interface RouteInfoProps {
   routeDetails: RouteDetails | null;
   isPlanning: boolean;
   zones: Zone[];
+  routingError?: string | null;
 }
 
 const desiredLanguages = [
@@ -93,7 +94,7 @@ const getZoneName = (zoneId: string, zones: Zone[]) => {
   return zones.find((z) => z.id === zoneId)?.name ?? 'Unknown Zone';
 };
 
-export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
+export function RouteInfo({ routeDetails, isPlanning, zones, routingError }: RouteInfoProps) {
   const [supportedVoices, setSupportedVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedLang, setSelectedLang] = useState<string>('');
   const routeDetailsRef = useRef<RouteDetails | null>(null);
@@ -202,6 +203,23 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
     }
   }, [routeDetails, supportedVoices, handleSpeakRoute]);
 
+  useEffect(() => {
+    if (routingError && typeof window !== 'undefined' && window.speechSynthesis && supportedVoices.length > 0) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(routingError);
+      
+      const englishVoice = supportedVoices.find((v) => v.lang.startsWith('en'));
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+        utterance.lang = englishVoice.lang;
+      } else {
+        utterance.lang = 'en-US'; // Fallback
+      }
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+    }
+  }, [routingError, supportedVoices]);
+
 
   if (isPlanning) {
     return (
@@ -219,7 +237,7 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
     );
   }
 
-  if (!routeDetails) {
+  if (!routeDetails && !routingError) {
     return (
       <Card className="shadow-lg text-center">
         <CardHeader>
@@ -234,6 +252,25 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
       </Card>
     );
   }
+  
+  if (routingError && !isPlanning) {
+      return (
+         <Card className="shadow-lg text-center">
+            <CardHeader>
+              <div className="flex justify-center">
+                <AlertTriangle className="w-12 h-12 text-destructive" />
+              </div>
+              <CardTitle className="text-destructive">Routing Error</CardTitle>
+              <CardDescription>
+                {routingError}
+              </CardDescription>
+            </CardHeader>
+        </Card>
+      );
+  }
+
+  if (!routeDetails) return null;
+
 
   const RoutePath = ({ path }: { path: string[] }) => (
     <div className="flex items-center flex-wrap gap-2 text-sm">
