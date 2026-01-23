@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -204,21 +205,24 @@ export function RouteInfo({ routeDetails, isPlanning, zones, routingError }: Rou
   }, [routeDetails, supportedVoices, handleSpeakRoute]);
 
   useEffect(() => {
-    if (routingError && typeof window !== 'undefined' && window.speechSynthesis && supportedVoices.length > 0) {
+    if (routingError && typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(routingError);
       
-      const englishVoice = supportedVoices.find((v) => v.lang.startsWith('en'));
+      const availableVoices = window.speechSynthesis.getVoices();
+      const englishVoice = availableVoices.find((v) => v.lang.startsWith('en'));
+      
       if (englishVoice) {
         utterance.voice = englishVoice;
         utterance.lang = englishVoice.lang;
       } else {
-        utterance.lang = 'en-US'; // Fallback
+        utterance.lang = 'en-US'; // Fallback to browser default
       }
+      
       utterance.rate = 0.9;
       window.speechSynthesis.speak(utterance);
     }
-  }, [routingError, supportedVoices]);
+  }, [routingError]);
 
 
   if (isPlanning) {
@@ -371,3 +375,5 @@ export function RouteInfo({ routeDetails, isPlanning, zones, routingError }: Rou
     </Card>
   );
 }
+
+    
