@@ -514,7 +514,11 @@ export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
     let userId;
     if (role === 'admin') {
         // In a real app, you'd validate admin credentials
-        userId = email || 'admin-1';
+        if (!email) {
+             return { success: false, error: 'Admin email is required.' };
+        }
+        // Create a URL-safe ID from the email without exposing the full address.
+        userId = email.split('@')[0].toLowerCase();
         const name = 'Admin';
         db.addUser({ 
             id: userId, 

@@ -182,15 +182,15 @@
       "id": "admin2@gmail.com",
       "name": "Admin",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T12:54:48.356Z",
+      "lastSeen": "2026-01-23T17:51:30.561Z",
       "role": "admin",
-      "status": "offline"
+      "status": "online"
     },
     {
       "id": "kavin",
       "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T13:38:21.015Z",
+      "lastSeen": "2026-01-23T13:48:01.900Z",
       "role": "user",
       "status": "online",
       "lastLatitude": 10.8573245,
