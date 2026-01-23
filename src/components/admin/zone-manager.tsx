@@ -14,13 +14,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { addZoneAction } from '@/lib/actions';
-import type { Zone, Coordinate } from '@/lib/types';
-import { useEffect, useRef, useMemo } from 'react';
+import type { Zone } from '@/lib/types';
+import { useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useActionState } from 'react';
 import { MapView } from '../user/map-view';
-import dynamic from 'next/dynamic';
-import { Skeleton } from '../ui/skeleton';
 
 const coordinateRegex = /^-?\d+(\.\d+)?,\s?-?\d+(\.\d+)?$/;
 
@@ -45,18 +43,10 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
 
-  const InteractiveZoneMap = useMemo(() => dynamic(() => import('./interactive-zone-map').then(mod => mod.InteractiveZoneMap), {
-      ssr: false,
-      loading: () => <Skeleton className="h-[400px] w-full" />
-  }), []);
-
-
   const {
     register,
     reset,
     formState: { errors },
-    setValue,
-    watch
   } = useForm<AddZoneForm>({
     resolver: zodResolver(addZoneSchema),
     defaultValues: {
@@ -69,23 +59,6 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
     }
   });
 
-  const coordinatesFromForm = watch(['coordinate1', 'coordinate2', 'coordinate3', 'coordinate4']);
-
-  const handleCoordinatesChange = (newCoords: Coordinate[]) => {
-      const coordStrings = newCoords.map(c => `${c.lat},${c.lng}`);
-      setValue('coordinate1', coordStrings[0] || '', { shouldValidate: true });
-      setValue('coordinate2', coordStrings[1] || '', { shouldValidate: true });
-      setValue('coordinate3', coordStrings[2] || '', { shouldValidate: true });
-      setValue('coordinate4', coordStrings[3] || '', { shouldValidate: true });
-  };
-  
-  const mapCoordinates = useMemo(() => {
-    return coordinatesFromForm.filter(c => c && coordinateRegex.test(c)).map(c => {
-        const [lat, lng] = c.split(',').map(Number);
-        return { lat, lng };
-    });
-  }, [coordinatesFromForm]);
-
   useEffect(() => {
     if (state?.success) {
       toast({
@@ -94,7 +67,6 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
       });
       formRef.current?.reset();
       reset();
-      handleCoordinatesChange([]); // Also clear map
     } else if (state?.error) {
       let errorMsg = 'An unexpected error occurred.';
       if (typeof state.error === 'string') {
@@ -120,7 +92,7 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
             <div>
               <CardTitle>Add New Zone</CardTitle>
               <CardDescription>
-                Define a new area by clicking on the map, or see a list of existing zones.
+                Define a new area and see a list of existing zones.
               </CardDescription>
             </div>
         </CardHeader>
@@ -146,19 +118,22 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
               />
               {errors.capacity && <p className="text-xs text-destructive">{errors.capacity.message}</p>}
             </div>
+            
+            <div className="space-y-2">
+                <Label>Coordinates</Label>
+                 <p className="text-sm text-muted-foreground">
+                    Enter 3 or 4 coordinates in "latitude,longitude" format. You can get these from a tool like Google Maps.
+                </p>
+                <Input {...register('coordinate1')} placeholder="e.g., 40.7128,-74.0060" />
+                {errors.coordinate1 && <p className="text-xs text-destructive">{errors.coordinate1.message}</p>}
+                <Input {...register('coordinate2')} placeholder="e.g., 40.7138,-74.0070" />
+                {errors.coordinate2 && <p className="text-xs text-destructive">{errors.coordinate2.message}</p>}
+                <Input {...register('coordinate3')} placeholder="e.g., 40.7148,-74.0060" />
+                {errors.coordinate3 && <p className="text-xs text-destructive">{errors.coordinate3.message}</p>}
+                <Input {...register('coordinate4')} placeholder="Optional 4th coordinate" />
+                {errors.coordinate4 && <p className="text-xs text-destructive">{errors.coordinate4.message}</p>}
+            </div>
 
-            <InteractiveZoneMap 
-                coordinates={mapCoordinates} 
-                onCoordinatesChange={handleCoordinatesChange} 
-            />
-
-            {/* Hidden inputs for validation */}
-            <input type="hidden" {...register('coordinate1')} />
-            <input type="hidden" {...register('coordinate2')} />
-            <input type="hidden" {...register('coordinate3')} />
-            <input type="hidden" {...register('coordinate4')} />
-            {errors.coordinate1 && <p className="text-xs text-destructive">{errors.coordinate1.message}</p>}
-           
           </CardContent>
           <CardFooter>
             <Button type="submit">Add Zone</Button>
