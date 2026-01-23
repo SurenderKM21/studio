@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -146,6 +145,13 @@ export function RouteInfo({ routeDetails, isPlanning, zones, routingError }: Rou
 
     const translate = (text: string, lang: string): string => {
       if (lang === 'en') return text;
+      // First, check for direct zone name matches
+      const zoneName = zones.find(z => z.name === text)?.name;
+      if (zoneName && translations[zoneName] && lang in translations[zoneName]) {
+        return translations[zoneName][lang];
+      }
+
+      // Then check for general phrases
       const key = text as keyof typeof translations;
       if (
         translations[key] &&
@@ -206,21 +212,23 @@ export function RouteInfo({ routeDetails, isPlanning, zones, routingError }: Rou
 
   useEffect(() => {
     if (routingError && typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(routingError);
-      
-      const availableVoices = window.speechSynthesis.getVoices();
-      const englishVoice = availableVoices.find((v) => v.lang.startsWith('en'));
-      
-      if (englishVoice) {
-        utterance.voice = englishVoice;
-        utterance.lang = englishVoice.lang;
-      } else {
-        utterance.lang = 'en-US'; // Fallback to browser default
-      }
-      
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(routingError);
+        
+        // This logic runs immediately, without waiting for the full voice list to load.
+        const availableVoices = window.speechSynthesis.getVoices();
+        const englishVoice = availableVoices.find((v) => v.lang.startsWith('en'));
+        
+        if (englishVoice) {
+            utterance.voice = englishVoice;
+            utterance.lang = englishVoice.lang;
+        } else {
+            // Fallback to the browser's default English voice if a specific one isn't found right away.
+            utterance.lang = 'en-US'; 
+        }
+        
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
     }
   }, [routingError]);
 
@@ -264,7 +272,7 @@ export function RouteInfo({ routeDetails, isPlanning, zones, routingError }: Rou
               <div className="flex justify-center">
                 <AlertTriangle className="w-12 h-12 text-destructive" />
               </div>
-              <CardTitle className="text-destructive">Routing Error</CardTitle>
+              <CardTitle className="text-destructive">No route</CardTitle>
               <CardDescription>
                 {routingError}
               </CardDescription>
@@ -375,5 +383,3 @@ export function RouteInfo({ routeDetails, isPlanning, zones, routingError }: Rou
     </Card>
   );
 }
-
-    
