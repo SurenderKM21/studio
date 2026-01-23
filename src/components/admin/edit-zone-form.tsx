@@ -2,9 +2,6 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -21,21 +18,8 @@ import { Label } from '@/components/ui/label';
 import { Pencil, Loader } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { updateZoneAction } from '@/lib/actions';
-import type { Zone } from '@/lib/types';
-
-const coordinateRegex = /^-?\d+(\.\d+)?,\s?-?\d+(\.\d+)?$/;
-
-const updateZoneSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters'),
-  capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
-  coordinate1: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format'),
-  coordinate2: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format'),
-  coordinate3: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format'),
-  coordinate4: z.string().regex(coordinateRegex, 'Invalid format').optional().or(z.literal('')),
-});
-
-
-type UpdateZoneForm = z.infer<typeof updateZoneSchema>;
+import type { Zone, Coordinate } from '@/lib/types';
+import { GoogleMapsZoneSelector } from './google-maps-zone-selector';
 
 interface EditZoneFormProps {
   zone: Zone;
@@ -46,34 +30,27 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<UpdateZoneForm>({
-    resolver: zodResolver(updateZoneSchema),
-    defaultValues: {
-      name: zone.name,
-      capacity: zone.capacity,
-      coordinate1: zone.coordinates[0] ? `${zone.coordinates[0].lat},${zone.coordinates[0].lng}` : '',
-      coordinate2: zone.coordinates[1] ? `${zone.coordinates[1].lat},${zone.coordinates[1].lng}` : '',
-      coordinate3: zone.coordinates[2] ? `${zone.coordinates[2].lat},${zone.coordinates[2].lng}` : '',
-      coordinate4: zone.coordinates[3] ? `${zone.coordinates[3].lat},${zone.coordinates[3].lng}` : '',
-    },
-  });
+  // Local state for form fields
+  const [name, setName] = useState(zone.name);
+  const [capacity, setCapacity] = useState(zone.capacity);
+  const [coordinates, setCoordinates] = useState<Coordinate[]>(zone.coordinates);
 
   useEffect(() => {
     if (isOpen) {
-      reset({
-        name: zone.name,
-        capacity: zone.capacity,
-        coordinate1: zone.coordinates[0] ? `${zone.coordinates[0].lat},${zone.coordinates[0].lng}` : '',
-        coordinate2: zone.coordinates[1] ? `${zone.coordinates[1].lat},${zone.coordinates[1].lng}` : '',
-        coordinate3: zone.coordinates[2] ? `${zone.coordinates[2].lat},${zone.coordinates[2].lng}` : '',
-        coordinate4: zone.coordinates[3] ? `${zone.coordinates[3].lat},${zone.coordinates[3].lng}` : '',
-      });
+      setName(zone.name);
+      setCapacity(zone.capacity);
+      setCoordinates(zone.coordinates);
     }
-  }, [isOpen, reset, zone]);
+  }, [isOpen, zone]);
 
-  const onSubmit = (data: UpdateZoneForm) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     startTransition(async () => {
-      const result = await updateZoneAction(zone.id, data);
+      const result = await updateZoneAction(zone.id, {
+        name,
+        capacity,
+        coordinates,
+      });
       if (result.success) {
         toast({
           title: 'Zone Updated',
@@ -98,7 +75,7 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Edit Zone: {zone.name}</DialogTitle>
             <DialogDescription>
@@ -108,29 +85,14 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Zone Name</Label>
-              <Input id="name" {...register('name')} />
-              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="capacity">Max Capacity</Label>
-              <Input id="capacity" type="number" {...register('capacity')} min="1" />
-              {errors.capacity && <p className="text-xs text-destructive">{errors.capacity.message}</p>}
+              <Input id="capacity" type="number" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} min="1" />
             </div>
             
-            <div className="space-y-2">
-                <Label>Coordinates</Label>
-                 <p className="text-sm text-muted-foreground">
-                    Enter 3 or 4 coordinates in "latitude,longitude" format.
-                </p>
-                <Input {...register('coordinate1')} placeholder="e.g., 40.7128,-74.0060" />
-                {errors.coordinate1 && <p className="text-xs text-destructive">{errors.coordinate1.message}</p>}
-                <Input {...register('coordinate2')} placeholder="e.g., 40.7138,-74.0070" />
-                {errors.coordinate2 && <p className="text-xs text-destructive">{errors.coordinate2.message}</p>}
-                <Input {...register('coordinate3')} placeholder="e.g., 40.7148,-74.0060" />
-                {errors.coordinate3 && <p className="text-xs text-destructive">{errors.coordinate3.message}</p>}
-                <Input {...register('coordinate4')} placeholder="Optional 4th coordinate" />
-                {errors.coordinate4 && <p className="text-xs text-destructive">{errors.coordinate4.message}</p>}
-            </div>
+            <GoogleMapsZoneSelector coordinates={coordinates} onCoordinatesChange={setCoordinates} />
           </div>
           <DialogFooter>
             <DialogClose asChild>

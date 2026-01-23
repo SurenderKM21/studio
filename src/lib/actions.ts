@@ -7,24 +7,22 @@ import { db } from './data';
 import type { Zone, AppSettings, DensityCategory, RouteDetails, Coordinate, User } from './types';
 import { redirect } from 'next/navigation';
 
-const coordinateRegex = /^-?\d+(\.\d+)?,\s?-?\d+(\.\d+)?$/;
-
 const addZoneSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
-  coordinate1: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
-  coordinate2: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
-  coordinate3: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
-  coordinate4: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
+  coordinates: z.array(z.object({
+      lat: z.number(),
+      lng: z.number(),
+  })).min(3, "A zone must have at least 3 coordinates.").max(4),
 });
 
 const updateZoneSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
-  coordinate1: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
-  coordinate2: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
-  coordinate3: z.string().min(1, 'At least 3 coordinates are required.').regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
-  coordinate4: z.string().regex(coordinateRegex, 'Invalid format, use "lat,lng"').optional().or(z.literal('')),
+  coordinates: z.array(z.object({
+      lat: z.number(),
+      lng: z.number(),
+  })).min(3, "A zone must have at least 3 coordinates.").max(4),
 });
 
 const loginUserSchema = z.object({
@@ -36,13 +34,17 @@ const loginUserSchema = z.object({
 
 
 export async function addZoneAction(prevState: any, formData: FormData) {
+  let parsedCoordinates: Coordinate[];
+  try {
+      parsedCoordinates = JSON.parse(formData.get('coordinates') as string);
+  } catch (e) {
+      return { error: 'Invalid coordinate data.' };
+  }
+
   const validatedFields = addZoneSchema.safeParse({
     name: formData.get('name'),
     capacity: formData.get('capacity'),
-    coordinate1: formData.get('coordinate1'),
-    coordinate2: formData.get('coordinate2'),
-    coordinate3: formData.get('coordinate3'),
-    coordinate4: formData.get('coordinate4'),
+    coordinates: parsedCoordinates,
   });
 
   if (!validatedFields.success) {
@@ -51,24 +53,9 @@ export async function addZoneAction(prevState: any, formData: FormData) {
     };
   }
   
-  const { name, capacity, coordinate1, coordinate2, coordinate3, coordinate4 } = validatedFields.data;
+  const { name, capacity, coordinates } = validatedFields.data;
 
   try {
-    const coordsStrings = [coordinate1, coordinate2, coordinate3, coordinate4].filter(c => c && c.trim() !== '');
-      
-    if (coordsStrings.length < 3) {
-       return { error: 'A zone must have at least 3 coordinates.' };
-    }
-
-    const coordinates = coordsStrings
-      .map(pair => {
-        const [lat, lng] = pair.trim().split(',').map(Number);
-        if (isNaN(lat) || isNaN(lng)) {
-          throw new Error('Invalid coordinate format.');
-        }
-        return { lat, lng };
-      });
-      
     db.addZone({ name, capacity, coordinates });
     revalidatePath('/admin');
     revalidatePath('/user');
@@ -84,35 +71,19 @@ export async function updateZoneAction(zoneId: string, data: z.infer<typeof upda
     const validatedFields = updateZoneSchema.safeParse(data);
 
     if (!validatedFields.success) {
+        const fieldErrors = validatedFields.error.flatten().fieldErrors;
+        const errorMessage = Object.values(fieldErrors).flat().join(' ');
         return {
-            error: validatedFields.error.flatten().fieldErrors,
+            success: false,
+            error: errorMessage || 'Invalid data provided.',
         };
     }
 
-    const { name, capacity, coordinate1, coordinate2, coordinate3, coordinate4 } = validatedFields.data;
+    const { name, capacity, coordinates } = validatedFields.data;
 
     try {
-        const updateData: Partial<Zone> = {};
-        if (name) updateData.name = name;
-        if (capacity) updateData.capacity = capacity;
-
-        const coordsStrings = [coordinate1, coordinate2, coordinate3, coordinate4].filter(c => c && c.trim() !== '');
+        const updateData: Partial<Zone> = { name, capacity, coordinates };
         
-        if (coordsStrings.length > 0) {
-            if (coordsStrings.length < 3) {
-                return { error: 'A zone must have at least 3 coordinates if you are updating them.' };
-            }
-             const coordinates = coordsStrings
-                .map(pair => {
-                    const [lat, lng] = pair.trim().split(',').map(Number);
-                    if (isNaN(lat) || isNaN(lng)) {
-                        throw new Error('Invalid coordinate format.');
-                    }
-                    return { lat, lng };
-                });
-            updateData.coordinates = coordinates;
-        }
-
         db.updateZone(zoneId, updateData);
         revalidatePath('/admin');
         revalidatePath('/user');
@@ -120,7 +91,7 @@ export async function updateZoneAction(zoneId: string, data: z.infer<typeof upda
 
     } catch (error) {
         const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
-        return { error: message };
+        return { success: false, error: message };
     }
 }
 
