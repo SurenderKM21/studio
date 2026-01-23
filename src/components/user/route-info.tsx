@@ -19,7 +19,7 @@ import {
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Select,
   SelectContent,
@@ -96,6 +96,7 @@ const getZoneName = (zoneId: string, zones: Zone[]) => {
 export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
   const [supportedVoices, setSupportedVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedLang, setSelectedLang] = useState<string>('');
+  const routeDetailsRef = useRef<RouteDetails | null>(null);
 
   useEffect(() => {
     const loadVoices = () => {
@@ -125,7 +126,7 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
     };
   }, []); // Run only once on mount
 
-  const handleSpeakRoute = () => {
+  const handleSpeakRoute = useCallback((langOverride?: string) => {
     if (
       !routeDetails?.route ||
       routeDetails.route.length === 0 ||
@@ -137,7 +138,8 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
 
     window.speechSynthesis.cancel();
 
-    const selectedVoice = supportedVoices.find(v => v.lang === selectedLang);
+    const langToUse = langOverride || selectedLang;
+    const selectedVoice = supportedVoices.find(v => v.lang === langToUse);
     const langCode = selectedVoice ? selectedVoice.lang.split('-')[0] : 'en';
 
     const translate = (text: string, lang: string): string => {
@@ -180,7 +182,26 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
 
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
-  };
+  }, [routeDetails, zones, selectedLang, supportedVoices]);
+
+  useEffect(() => {
+    // When a new route is calculated and we have the voices loaded
+    if (routeDetails && routeDetails !== routeDetailsRef.current && supportedVoices.length > 0) {
+      const englishVoice = supportedVoices.find((v) => v.lang.startsWith('en'));
+      if (englishVoice) {
+        handleSpeakRoute(englishVoice.lang);
+      } else if (supportedVoices.length > 0) {
+        // Fallback to the first available voice if no english voice is found
+        handleSpeakRoute(supportedVoices[0].lang);
+      }
+      routeDetailsRef.current = routeDetails;
+    }
+    // If the route is cleared, reset the ref so the next route can be spoken
+    if (!routeDetails) {
+      routeDetailsRef.current = null;
+    }
+  }, [routeDetails, supportedVoices, handleSpeakRoute]);
+
 
   if (isPlanning) {
     return (
@@ -240,7 +261,7 @@ export function RouteInfo({ routeDetails, isPlanning, zones }: RouteInfoProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleSpeakRoute}
+            onClick={() => handleSpeakRoute()}
             aria-label="Speak route details"
             disabled={supportedVoices.length === 0}
           >
