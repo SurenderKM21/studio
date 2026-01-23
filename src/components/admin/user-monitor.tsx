@@ -194,7 +194,7 @@ export function UserMonitor({ initialUsers, initialZones }: UserMonitorProps) {
         </AlertDialog>
       </CardHeader>
       <CardContent className="space-y-8">
-        <UserTable users={loggedInUsers} title="Logged In Users" />
+        <UserTable users={loggedInUsers} title="Logged In Users" showActions />
         <Separator />
         <UserTable users={loggedOutUsers} title="Logged Out Users" showActions />
       </CardContent>

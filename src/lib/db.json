@@ -261,17 +261,6 @@
       "status": "online"
     },
     {
-      "id": "kavin",
-      "name": "Kavin",
-      "groupSize": 1,
-      "lastSeen": "2025-12-31T17:49:35.802Z",
-      "role": "user",
-      "status": "offline",
-      "lastLatitude": 13.0514944,
-      "lastLongitude": 80.2095104,
-      "lastZoneId": "unknown"
-    },
-    {
       "id": "adminevacai1@gmail.com",
       "name": "Admin",
       "groupSize": 1,
@@ -283,9 +272,9 @@
       "id": "admin2@gmail.com",
       "name": "Admin",
       "groupSize": 1,
-      "lastSeen": "2025-12-31T16:38:44.572Z",
+      "lastSeen": "2026-01-23T11:26:52.371Z",
       "role": "admin",
-      "status": "offline"
+      "status": "online"
     },
     {
       "id": "surender",
@@ -297,17 +286,6 @@
       "lastLatitude": 12.8590056,
       "lastLongitude": 80.0845292,
       "lastZoneId": "zone-dxfb1gx"
-    },
-    {
-      "id": "surenderkm",
-      "name": "SurenderKM",
-      "groupSize": 1,
-      "lastSeen": "2025-12-31T17:50:28.862Z",
-      "role": "user",
-      "status": "online",
-      "lastLatitude": 13.0514944,
-      "lastLongitude": 80.2095104,
-      "lastZoneId": "unknown"
     }
   ],
   "settings": {
