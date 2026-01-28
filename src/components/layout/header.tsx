@@ -1,6 +1,6 @@
 
 import Link from 'next/link';
-import { EvacAIIcon } from '@/components/icons';
+import { Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { LogoutButton } from '../auth/logout-button';
 import { ThemeToggle } from './theme-toggle';
@@ -16,7 +16,7 @@ export function Header({ section, userId }: HeaderProps) {
       <div className="container flex h-14 items-center">
         <div className="mr-4 flex items-center">
           <Link href={`/?userId=${userId}`} className="flex items-center gap-2">
-            <EvacAIIcon className="h-6 w-6 text-primary" />
+            <Shield className="h-6 w-6 text-primary" />
             <span className="font-bold font-headline text-lg">EvacAI</span>
           </Link>
         </div>
