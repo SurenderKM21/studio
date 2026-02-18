@@ -1,4 +1,3 @@
-
 import { initializeFirebase } from '@/firebase';
 import { 
   collection, 
@@ -20,8 +19,13 @@ const { firestore } = initializeFirebase();
 
 export const db = {
   getZones: async () => {
-    const snapshot = await getDocs(collection(firestore, 'zones'));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    try {
+      const snapshot = await getDocs(collection(firestore, 'zones'));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+      console.error('Error fetching zones:', e);
+      return [];
+    }
   },
 
   getZoneById: async (id) => {
@@ -37,8 +41,13 @@ export const db = {
   },
 
   getUsers: async () => {
-    const snapshot = await getDocs(collection(firestore, 'users'));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    try {
+      const snapshot = await getDocs(collection(firestore, 'users'));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+      console.error('Error fetching users:', e);
+      return [];
+    }
   },
 
   addUser: async (user) => {

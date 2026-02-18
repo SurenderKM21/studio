@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "Zone": {
@@ -75,7 +74,8 @@
       "type": "object",
       "properties": {
         "locationUpdateInterval": { "type": "number" },
-        "zoneSnappingThreshold": { "type": "number" }
+        "zoneSnappingThreshold": { "type": "number" },
+        "latestAlertTimestamp": { "type": "string" }
       }
     }
   },

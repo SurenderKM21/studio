@@ -1,4 +1,3 @@
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -31,33 +30,37 @@ export async function loginUserAction(data) {
   const loginTimestamp = new Date().toISOString();
   let userId;
 
-  if (role === 'admin') {
-    if (!email) return { success: false, error: 'Admin email is required.' };
-    userId = email.split('@')[0].toLowerCase();
-    await db.addUser({
-      id: userId,
-      name: 'Admin',
-      groupSize: 1,
-      lastSeen: loginTimestamp,
-      role: 'admin',
-      status: 'online'
-    });
-  } else if (username) {
-    userId = username.toLowerCase().replace(/\s/g, '-') || `user-${Math.random().toString(36).substring(2, 9)}`;
-    await db.addUser({
-      id: userId,
-      name: username,
-      groupSize: 1,
-      lastSeen: loginTimestamp,
-      role: 'user',
-      status: 'online'
-    });
-  } else {
-    return { success: false, error: 'Invalid login details.' };
-  }
+  try {
+    if (role === 'admin') {
+      if (!email) return { success: false, error: 'Admin email is required.' };
+      userId = email.split('@')[0].toLowerCase();
+      await db.addUser({
+        id: userId,
+        name: 'Admin',
+        groupSize: 1,
+        lastSeen: loginTimestamp,
+        role: 'admin',
+        status: 'online'
+      });
+    } else if (username) {
+      userId = username.toLowerCase().replace(/\s/g, '-') || `user-${Math.random().toString(36).substring(2, 9)}`;
+      await db.addUser({
+        id: userId,
+        name: username,
+        groupSize: 1,
+        lastSeen: loginTimestamp,
+        role: 'user',
+        status: 'online'
+      });
+    } else {
+      return { success: false, error: 'Invalid login details.' };
+    }
 
-  const encodedUserId = Buffer.from(userId).toString('base64');
-  return { success: true, userId: encodedUserId, role, loginTimestamp };
+    const encodedUserId = Buffer.from(userId).toString('base64');
+    return { success: true, userId: encodedUserId, role, loginTimestamp };
+  } catch (e) {
+    return { success: false, error: 'Login failed: ' + e.message };
+  }
 }
 
 export async function logoutUserAction(userId) {

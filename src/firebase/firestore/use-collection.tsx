@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,7 +20,7 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
     const unsubscribe = onSnapshot(
       query,
       (snapshot: QuerySnapshot<T>) => {
-        const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+        const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as T));
         setData(docs);
         setLoading(false);
       },
