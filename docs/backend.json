@@ -1,0 +1,103 @@
+
+{
+  "entities": {
+    "Zone": {
+      "title": "Zone",
+      "description": "A defined geographic area with crowd density monitoring.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "capacity": { "type": "number" },
+        "userCount": { "type": "number" },
+        "density": { "type": "string", "enum": ["free", "moderate", "crowded", "over-crowded"] },
+        "manualDensity": { "type": "boolean" },
+        "coordinates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "lat": { "type": "number" },
+              "lng": { "type": "number" }
+            }
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/entities/ZoneNote"
+          }
+        }
+      }
+    },
+    "ZoneNote": {
+      "title": "ZoneNote",
+      "description": "A safety or informational note attached to a zone.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "visibleToUser": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "User": {
+      "title": "User",
+      "description": "An event participant or administrator.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "status": { "type": "string", "enum": ["online", "offline"] },
+        "groupSize": { "type": "number" },
+        "lastLatitude": { "type": "number" },
+        "lastLongitude": { "type": "number" },
+        "lastSeen": { "type": "string", "format": "date-time" },
+        "lastZoneId": { "type": "string" },
+        "sos": { "type": "boolean" }
+      }
+    },
+    "Alert": {
+      "title": "Alert",
+      "description": "A broadcast message for emergencies or crowd control.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "message": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "zoneId": { "type": "string" }
+      }
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Global application configuration.",
+      "type": "object",
+      "properties": {
+        "locationUpdateInterval": { "type": "number" },
+        "zoneSnappingThreshold": { "type": "number" }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/zones/{zoneId}": {
+      "schema": "Zone",
+      "description": "Collection of event zones."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Registered event participants."
+    },
+    "/alerts/{alertId}": {
+      "schema": "Alert",
+      "description": "Emergency alerts and broadcasts."
+    },
+    "/settings/app": {
+      "schema": "Settings",
+      "description": "Global app settings."
+    }
+  }
+}
