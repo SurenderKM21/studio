@@ -1,11 +1,9 @@
+
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCollection } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-import { Map, Users, Settings, AlertTriangle, Siren, RefreshCw, MessageSquareWarning, NotebookPen, List } from 'lucide-react';
+import { Map, Users, Settings, Siren, RefreshCw, List, AlertTriangle, MessageSquareWarning, NotebookPen } from 'lucide-react';
 import { ZoneManager } from './zone-manager';
 import { DensityControl } from './density-control';
 import { SettingsPanel } from './settings-panel';
@@ -16,31 +14,56 @@ import { OvercrowdedZones } from './overcrowded-zones';
 import { AlertManager } from './alert-manager';
 import { ZoneNotesManager } from './zone-notes-manager';
 import { Button } from '../ui/button';
+import { refreshDataAction } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
 
-export function AdminDashboard() {
-  const db = useFirestore();
-  const { data: zones = [], loading: zonesLoading } = useCollection(db ? collection(db, 'zones') : null);
-  const { data: users = [], loading: usersLoading } = useCollection(db ? collection(db, 'users') : null);
+export function AdminDashboard({ initialZones = [], initialSettings = {}, initialUsers = [] }) {
+  const [zones, setZones] = useState(initialZones);
+  const [users, setUsers] = useState(initialUsers);
+  const [lastSyncTime, setLastSyncTime] = useState(new Date().toLocaleTimeString());
+  const [isRefreshing, startRefresh] = useTransition();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    setZones(initialZones);
+    setUsers(initialUsers);
+    setLastSyncTime(new Date().toLocaleTimeString());
+  }, [initialZones, initialUsers]);
+
+  const handleRefresh = () => {
+    startRefresh(async () => {
+      await refreshDataAction();
+      toast({
+        title: 'Data Refreshed',
+        description: 'The dashboard has been updated with the latest local data.',
+      });
+    });
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+       startRefresh(async () => {
+        await refreshDataAction();
+      });
+    }, 15000); // Periodic local refresh
+
+    return () => clearInterval(interval);
+  }, []);
 
   const sosCount = (users || []).filter(u => u.sos && u.status === 'online').length;
   const overCrowdedCount = (zones || []).filter(z => z.density === 'over-crowded').length;
-
-  if (zonesLoading || usersLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="animate-spin h-8 w-8 text-primary" />
-        <span className="ml-2">Loading cloud data...</span>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-4xl font-headline font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Real-time Cloud Monitoring</p>
+          <p className="text-muted-foreground text-sm">Local Monitoring (db.json). Last sync: {lastSyncTime}</p>
         </div>
+        <Button onClick={handleRefresh} disabled={isRefreshing}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          Refresh Data
+        </Button>
       </div>
 
       <Tabs defaultValue="sos" className="w-full">
@@ -61,6 +84,14 @@ export function AdminDashboard() {
             <Settings className="mr-2 h-4 w-4" />
             Settings
           </TabsTrigger>
+          <TabsTrigger value="alerts">
+            <MessageSquareWarning className="mr-2 h-4 w-4" />
+            Alerts
+          </TabsTrigger>
+          <TabsTrigger value="notes">
+            <NotebookPen className="mr-2 h-4 w-4" />
+            Notes
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="sos">
@@ -71,6 +102,8 @@ export function AdminDashboard() {
           <div className="grid gap-6">
             <ZoneManager initialZones={zones} />
             <ZoneDetails initialZones={zones} />
+            <DensityControl initialZones={zones} />
+            <OvercrowdedZones zones={zones} />
           </div>
         </TabsContent>
 
@@ -79,7 +112,15 @@ export function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="settings">
-          <SettingsPanel initialSettings={{}} />
+          <SettingsPanel initialSettings={initialSettings} />
+        </TabsContent>
+
+        <TabsContent value="alerts">
+          <AlertManager zones={zones} />
+        </TabsContent>
+
+        <TabsContent value="notes">
+          <ZoneNotesManager initialZones={zones} />
         </TabsContent>
       </Tabs>
     </div>

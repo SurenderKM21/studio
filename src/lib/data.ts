@@ -17,7 +17,6 @@ if (!fs.existsSync(dbDirectory)) {
 }
 const dbPath = path.resolve(dbDirectory, 'db.json');
 
-
 function readDb(): DbData {
   try {
     if (fs.existsSync(dbPath)) {

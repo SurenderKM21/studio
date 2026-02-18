@@ -1,190 +1,174 @@
-import { initializeFirebase } from '@/firebase';
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  orderBy, 
-  limit, 
-  serverTimestamp,
-  arrayUnion,
-  arrayRemove
-} from 'firebase/firestore';
 
-const { firestore } = initializeFirebase();
+import fs from 'fs';
+import path from 'path';
+
+const dbPath = path.resolve(process.cwd(), 'src/lib/db.json');
+
+function readDb() {
+  try {
+    if (fs.existsSync(dbPath)) {
+      const jsonString = fs.readFileSync(dbPath, 'utf8');
+      return JSON.parse(jsonString);
+    }
+  } catch (error) {
+    console.error('Error reading from DB, returning empty state:', error);
+  }
+  const defaultData = { zones: [], users: [], settings: {}, alerts: [] };
+  writeDb(defaultData);
+  return defaultData;
+}
+
+function writeDb(data) {
+  try {
+    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Error writing to DB:', error);
+  }
+}
 
 export const db = {
-  getZones: async () => {
-    try {
-      const snapshot = await getDocs(collection(firestore, 'zones'));
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-      console.error('Error fetching zones:', e);
-      return [];
+  getZones: () => {
+    return readDb().zones;
+  },
+  getZoneById: (id) => {
+    const { zones } = readDb();
+    return zones.find(z => z.id === id);
+  },
+  getUserById: (id) => {
+    const { users } = readDb();
+    return users.find(u => u.id === id);
+  },
+  getUsers: () => {
+    return readDb().users;
+  },
+  addUser: (user) => {
+    const data = readDb();
+    const userIndex = data.users.findIndex(u => u.id === user.id);
+    if (userIndex > -1) {
+      data.users[userIndex] = { ...data.users[userIndex], ...user, lastSeen: new Date().toISOString() };
+    } else {
+      data.users.push(user);
     }
-  },
-
-  getZoneById: async (id) => {
-    const docRef = doc(firestore, 'zones', id);
-    const snap = await getDoc(docRef);
-    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-  },
-
-  getUserById: async (id) => {
-    const docRef = doc(firestore, 'users', id);
-    const snap = await getDoc(docRef);
-    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-  },
-
-  getUsers: async () => {
-    try {
-      const snapshot = await getDocs(collection(firestore, 'users'));
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-      console.error('Error fetching users:', e);
-      return [];
-    }
-  },
-
-  addUser: async (user) => {
-    const docRef = doc(firestore, 'users', user.id);
-    await setDoc(docRef, { 
-      ...user, 
-      updatedAt: serverTimestamp() 
-    }, { merge: true });
+    writeDb(data);
     return user;
   },
-
-  updateUser: async (id, data) => {
-    const docRef = doc(firestore, 'users', id);
-    await updateDoc(docRef, { 
-      ...data, 
-      updatedAt: serverTimestamp() 
-    });
+  updateUser: (id, updateData) => {
+    const data = readDb();
+    const userIndex = data.users.findIndex(u => u.id === id);
+    if (userIndex > -1) {
+      data.users[userIndex] = { ...data.users[userIndex], ...updateData };
+      writeDb(data);
+      return data.users[userIndex];
+    }
+    return undefined;
   },
+  updateUserLocation: (id, name, latitude, longitude, groupSize, zoneId) => {
+    const data = readDb();
+    const userIndex = data.users.findIndex(u => u.id === id);
+    const now = new Date().toISOString();
+    const userUpdate = { name, lastLatitude: latitude, lastLongitude: longitude, lastSeen: now, groupSize, lastZoneId: zoneId };
 
-  updateUserLocation: async (id, name, latitude, longitude, groupSize, zoneId) => {
-    const docRef = doc(firestore, 'users', id);
-    const data = {
-      name,
-      lastLatitude: latitude,
-      lastLongitude: longitude,
-      lastSeen: new Date().toISOString(),
-      groupSize,
-      lastZoneId: zoneId || 'unknown',
-      status: 'online',
-      updatedAt: serverTimestamp()
-    };
-    await setDoc(docRef, data, { merge: true });
-  },
-
-  removeUser: async (id) => {
-    await deleteDoc(doc(firestore, 'users', id));
-  },
-
-  clearAllUsers: async () => {
-    const snapshot = await getDocs(collection(firestore, 'users'));
-    const promises = snapshot.docs
-      .filter(doc => doc.data().status !== 'online' && doc.data().role !== 'admin')
-      .map(doc => deleteDoc(doc.ref));
-    await Promise.all(promises);
-  },
-
-  addZone: async (zone) => {
-    const id = zone.id || `zone-${Math.random().toString(36).substring(2, 9)}`;
-    const docRef = doc(firestore, 'zones', id);
-    await setDoc(docRef, {
-      ...zone,
-      userCount: zone.userCount || 0,
-      density: zone.density || 'free',
-      notes: zone.notes || [],
-      updatedAt: serverTimestamp()
-    });
-  },
-
-  updateZone: async (id, data) => {
-    const docRef = doc(firestore, 'zones', id);
-    await updateDoc(docRef, { 
-      ...data, 
-      updatedAt: serverTimestamp() 
-    });
-  },
-
-  deleteZone: async (id) => {
-    await deleteDoc(doc(firestore, 'zones', id));
-  },
-
-  addNoteToZone: async (zoneId, noteText, visibleToUser) => {
-    const docRef = doc(firestore, 'zones', zoneId);
-    const newNote = {
-      id: `note-${Date.now()}`,
-      text: noteText,
-      visibleToUser,
-      createdAt: new Date().toISOString()
-    };
-    await updateDoc(docRef, {
-      notes: arrayUnion(newNote),
-      updatedAt: serverTimestamp()
-    });
-  },
-
-  deleteNoteFromZone: async (zoneId, noteId) => {
-    const docRef = doc(firestore, 'zones', zoneId);
-    const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      const notes = snap.data().notes || [];
-      const noteToRemove = notes.find(n => n.id === noteId);
-      if (noteToRemove) {
-        await updateDoc(docRef, {
-          notes: arrayRemove(noteToRemove),
-          updatedAt: serverTimestamp()
-        });
-      }
+    if (userIndex > -1) {
+      data.users[userIndex] = { ...data.users[userIndex], ...userUpdate };
+      writeDb(data);
+      return data.users[userIndex];
+    } else {
+      const newUser = { id, name, lastLatitude: latitude, lastLongitude: longitude, lastSeen: now, groupSize, lastZoneId: zoneId, role: 'user', status: 'online' };
+      data.users.push(newUser);
+      writeDb(data);
+      return newUser;
     }
   },
-
-  getSettings: async () => {
-    const docRef = doc(firestore, 'settings', 'app');
-    const snap = await getDoc(docRef);
-    return snap.exists() ? snap.data() : { locationUpdateInterval: 30, zoneSnappingThreshold: 15 };
+  removeUser: (id) => {
+    const data = readDb();
+    data.users = data.users.filter(u => u.id !== id);
+    writeDb(data);
   },
-
-  updateSettings: async (settings) => {
-    const docRef = doc(firestore, 'settings', 'app');
-    await setDoc(docRef, { 
-      ...settings, 
-      updatedAt: serverTimestamp() 
-    }, { merge: true });
+  clearAllUsers: () => {
+    const data = readDb();
+    data.users = data.users.filter(u => u.status === 'online' || u.role === 'admin');
+    writeDb(data);
   },
-
-  addAlert: async (message, zoneId = null) => {
-    const id = `alert-${Date.now()}`;
-    const docRef = doc(firestore, 'alerts', id);
-    const alertData = {
-      id,
-      message,
-      zoneId: zoneId || null,
-      timestamp: new Date().toISOString(),
-      createdAt: serverTimestamp()
+  addZone: (zone) => {
+    const data = readDb();
+    const newZone = {
+      ...zone,
+      id: `zone-${Math.random().toString(36).substring(2, 9)}`,
+      userCount: 0,
+      density: 'free',
+      notes: [],
     };
-    await setDoc(docRef, alertData);
-    
-    // Update latest alert timestamp in settings
-    const settingsRef = doc(firestore, 'settings', 'app');
-    await setDoc(settingsRef, { 
-      latestAlertTimestamp: alertData.timestamp 
-    }, { merge: true });
-    
-    return alertData;
+    data.zones.push(newZone);
+    writeDb(data);
+    return newZone;
   },
-
-  getLatestAlert: async () => {
-    const q = query(collection(firestore, 'alerts'), orderBy('createdAt', 'desc'), limit(1));
-    const snap = await getDocs(q);
-    return snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() };
-  }
+  updateZone: (id, updatedData) => {
+    const data = readDb();
+    const zoneIndex = data.zones.findIndex(z => z.id === id);
+    if (zoneIndex > -1) {
+      data.zones[zoneIndex] = { ...data.zones[zoneIndex], ...updatedData };
+      writeDb(data);
+      return data.zones[zoneIndex];
+    }
+    return undefined;
+  },
+  deleteZone: (id) => {
+    const data = readDb();
+    data.zones = data.zones.filter(z => z.id !== id);
+    writeDb(data);
+  },
+  addNoteToZone: (zoneId, noteText, visibleToUser) => {
+    const data = readDb();
+    const zoneIndex = data.zones.findIndex(z => z.id === zoneId);
+    if (zoneIndex > -1) {
+      if (!data.zones[zoneIndex].notes) {
+        data.zones[zoneIndex].notes = [];
+      }
+      const newNote = {
+        id: `note-${Date.now()}`,
+        text: noteText,
+        visibleToUser,
+        createdAt: new Date().toISOString(),
+      };
+      data.zones[zoneIndex].notes.push(newNote);
+      writeDb(data);
+    }
+  },
+  deleteNoteFromZone: (zoneId, noteId) => {
+    const data = readDb();
+    const zoneIndex = data.zones.findIndex(z => z.id === zoneId);
+    if (zoneIndex > -1 && data.zones[zoneIndex].notes) {
+      data.zones[zoneIndex].notes = data.zones[zoneIndex].notes.filter(note => note.id !== noteId);
+      writeDb(data);
+    }
+  },
+  getSettings: () => {
+    const data = readDb();
+    return data.settings || { locationUpdateInterval: 30, zoneSnappingThreshold: 15 };
+  },
+  updateSettings: (newSettings) => {
+    const data = readDb();
+    data.settings = { ...data.settings, ...newSettings };
+    writeDb(data);
+    return data.settings;
+  },
+  addAlert: (message, zoneId) => {
+    const data = readDb();
+    const timestamp = new Date().toISOString();
+    const newAlert = {
+      id: `alert-${timestamp}`,
+      message,
+      timestamp,
+      zoneId: zoneId || null,
+    };
+    data.alerts.push(newAlert);
+    data.settings.latestAlertTimestamp = timestamp;
+    writeDb(data);
+    return newAlert;
+  },
+  getLatestAlert: () => {
+    const { alerts } = readDb();
+    if (alerts.length === 0) return undefined;
+    return alerts[alerts.length - 1];
+  },
 };
