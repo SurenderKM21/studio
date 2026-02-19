@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Zone, RouteDetails, AlertMessage, User, DensityCategory } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
@@ -68,7 +68,7 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     });
   }, [zones, users]);
 
-  // Fetch the 5 most recent alerts to ensure we find one applicable to the user's current zone
+  // Fetch the 5 most recent alerts
   const alertsQuery = useMemoFirebase(() => query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(5)), [db]);
   const { data: alertsData = [] } = useCollection(alertsQuery);
   const alerts = alertsData as AlertMessage[];
@@ -81,17 +81,43 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   const [latestAlert, setLatestAlert] = useState<AlertMessage | null>(null);
   const [mountedTime, setMountedTime] = useState<Date | null>(null);
 
+  // Track session and zone entry times to avoid showing "old" alerts
+  const sessionStartTime = useRef<Date>(new Date());
+  const zoneEntryTime = useRef<Date>(new Date());
+  const lastZoneId = useRef<string | null>(null);
+
   useEffect(() => {
     setMountedTime(new Date());
   }, []);
 
-  // Targeted Alert Logic: Only show alerts that are global or match the user's zone
+  // Update zone entry time when the user enters a new zone
   useEffect(() => {
-    if (alerts && alerts.length > 0) {
-      // Find the most recent alert that applies to this user
-      const applicableAlert = alerts.find(alert => 
-        !alert.zoneId || alert.zoneId === userProfile?.lastZoneId
-      );
+    if (userProfile?.lastZoneId && userProfile.lastZoneId !== lastZoneId.current) {
+      zoneEntryTime.current = new Date();
+      lastZoneId.current = userProfile.lastZoneId;
+    }
+  }, [userProfile?.lastZoneId]);
+
+  // Targeted Alert Logic: Freshness check
+  useEffect(() => {
+    if (alerts && alerts.length > 0 && userProfile) {
+      // Find the most recent alert that applies to this user's current context
+      const applicableAlert = alerts.find(alert => {
+        const isTargeted = !alert.zoneId || alert.zoneId === userProfile.lastZoneId;
+        if (!isTargeted) return false;
+
+        const alertTime = new Date(alert.timestamp);
+        
+        // 1. Alert must be created AFTER the user started this session
+        const afterSessionStart = alertTime > sessionStartTime.current;
+        
+        // 2. If it's a zone-specific alert, it must be created AFTER the user entered that zone
+        // We add a tiny 5-second buffer to handle race conditions during entry
+        const entryThreshold = new Date(zoneEntryTime.current.getTime() - 5000);
+        const afterZoneEntry = alert.zoneId ? alertTime > entryThreshold : true;
+
+        return afterSessionStart && afterZoneEntry;
+      });
 
       if (applicableAlert) {
         const lastSeen = localStorage.getItem(LAST_SEEN_ALERT_KEY);
@@ -112,7 +138,6 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   const updateLocation = useCallback(async (lat: number, lng: number) => {
     setCurrentUserLocation({ lat, lng });
     
-    // Identify which zone the user is currently in
     const identifiedZoneId = await identifyZoneAction(lat, lng, zones);
     
     const userUpdate = {
@@ -147,7 +172,6 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     setIsPlanning(true);
     setRouteDetails(null);
     setRoutingError(null);
-    // Use enriched zones for routing logic
     const result = await getRouteAction(sourceZone, destinationZone, enrichedZones);
     if (result.error) {
       setRoutingError(result.error);
@@ -178,7 +202,7 @@ export function UserDashboard({ userId }: UserDashboardProps) {
       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
         <div>
           <h1 className="text-4xl font-headline font-bold">Event Navigator</h1>
-          <p className="text-muted-foreground">Live Cloud Sync Active</p>
+          <p className="text-muted-foreground">Navigate smarter, not harder.</p>
         </div>
       </div>
 
@@ -207,7 +231,7 @@ export function UserDashboard({ userId }: UserDashboardProps) {
           <Card className="h-full min-h-[600px] shadow-lg">
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Cloud Map</CardTitle>
+                <CardTitle>Zone Map</CardTitle>
                 <DensityLegend />
               </div>
             </CardHeader>

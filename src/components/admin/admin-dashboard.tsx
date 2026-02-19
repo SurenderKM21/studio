@@ -61,7 +61,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-4xl font-headline font-bold">Admin Central</h1>
-          <p className="text-muted-foreground text-sm">Real-time Cloud Management</p>
+          <p className="text-muted-foreground text-sm">Real-time Crowd Management</p>
         </div>
       </div>
 
