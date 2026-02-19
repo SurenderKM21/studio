@@ -68,7 +68,8 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     });
   }, [zones, users]);
 
-  const alertsQuery = useMemoFirebase(() => query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(1)), [db]);
+  // Fetch the 5 most recent alerts to ensure we find one applicable to the user's current zone
+  const alertsQuery = useMemoFirebase(() => query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(5)), [db]);
   const { data: alertsData = [] } = useCollection(alertsQuery);
   const alerts = alertsData as AlertMessage[];
 
@@ -84,17 +85,23 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     setMountedTime(new Date());
   }, []);
 
-  // Alert Handling
+  // Targeted Alert Logic: Only show alerts that are global or match the user's zone
   useEffect(() => {
     if (alerts && alerts.length > 0) {
-      const newAlert = alerts[0];
-      const lastSeen = localStorage.getItem(LAST_SEEN_ALERT_KEY);
-      if (newAlert.timestamp !== lastSeen) {
-        setLatestAlert(newAlert);
-        setShowAlert(true);
+      // Find the most recent alert that applies to this user
+      const applicableAlert = alerts.find(alert => 
+        !alert.zoneId || alert.zoneId === userProfile?.lastZoneId
+      );
+
+      if (applicableAlert) {
+        const lastSeen = localStorage.getItem(LAST_SEEN_ALERT_KEY);
+        if (applicableAlert.timestamp !== lastSeen) {
+          setLatestAlert(applicableAlert);
+          setShowAlert(true);
+        }
       }
     }
-  }, [alerts]);
+  }, [alerts, userProfile?.lastZoneId]);
 
   const handleAcknowledgeAlert = () => {
     if (latestAlert) localStorage.setItem(LAST_SEEN_ALERT_KEY, latestAlert.timestamp);
