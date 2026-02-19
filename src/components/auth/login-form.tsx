@@ -22,8 +22,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from 'lucide-react';
 import { loginUserAction } from '@/lib/actions';
-import { SESSION_LOGIN_TIMESTAMP_KEY } from '../user/user-dashboard';
-import { signInAnonymously, signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
 import { initializeFirebase } from '@/firebase';
 
 export function LoginForm() {
@@ -44,10 +43,8 @@ export function LoginForm() {
          const { auth } = initializeFirebase();
          
          if (role === 'admin') {
-           // Perform real Firebase Email/Password Auth for Admins
            await signInWithEmailAndPassword(auth, email, password);
          } else {
-           // Perform Anonymous Auth for regular users
            await signInAnonymously(auth);
          }
 
@@ -64,27 +61,21 @@ export function LoginForm() {
               description: role === 'admin' ? 'Admin session verified.' : 'Welcome to EvacAI!',
             });
             
-            if (result.loginTimestamp && typeof window !== 'undefined') {
-              sessionStorage.setItem(SESSION_LOGIN_TIMESTAMP_KEY, result.loginTimestamp);
-            }
-
             const targetPath = result.role === 'user' ? '/user' : '/admin';
             router.push(`${targetPath}?userId=${result.userId}`);
          } else {
             toast({
                 variant: 'destructive',
                 title: 'Sync Failed',
-                description: result.error || 'Could not synchronize session with the cloud.',
+                description: result.error || 'Could not synchronize session.',
             });
          }
        } catch (error: any) {
          let errorMessage = 'An unexpected error occurred.';
          if (error.code === 'auth/invalid-credential') {
-           errorMessage = 'Invalid admin credentials. Please check your email and password.';
+           errorMessage = 'Invalid credentials. Please check your email and password.';
          } else if (error.code === 'auth/user-not-found') {
-           errorMessage = 'Admin account not found.';
-         } else if (error.code === 'auth/wrong-password') {
-           errorMessage = 'Incorrect password.';
+           errorMessage = 'Account not found.';
          }
 
          toast({
@@ -103,7 +94,7 @@ export function LoginForm() {
           <CardTitle className="text-3xl font-headline">Login</CardTitle>
           <CardDescription>
             {role === 'admin' 
-              ? 'Admin access requires verified credentials.' 
+              ? 'Use default: admin@evacai.com / adminpassword' 
               : 'Enter a username to start navigating.'}
           </CardDescription>
         </CardHeader>
@@ -139,7 +130,7 @@ export function LoginForm() {
                   id="password" 
                   name="password" 
                   type="password" 
-                  placeholder="••••••••"
+                  placeholder="adminpassword"
                   required 
                   disabled={isPending} 
                 />
