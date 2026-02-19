@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Map, Users, Settings, Siren, MessageSquareWarning, AlertTriangle, NotebookPen, Activity } from 'lucide-react';
 import { ZoneManager } from './zone-manager';
@@ -17,8 +17,9 @@ import {
   useMemoFirebase, 
   useFirestore 
 } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import type { Zone, User, DensityCategory } from '@/lib/types';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 interface AdminDashboardProps {
   userId: string;
@@ -46,10 +47,28 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const enrichedZones = useMemo(() => {
     return zones.map(zone => {
       const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
-      const density = zone.manualDensity ? zone.density : calculateDensity(count, zone.capacity);
-      return { ...zone, userCount: count, density };
+      
+      // Safety and Staleness Logic:
+      // If the user count has changed since the manual override was set, revert to automatic.
+      const isOverrideStale = zone.manualDensity && zone.manualDensityAtCount !== undefined && count !== zone.manualDensityAtCount;
+      const density = (zone.manualDensity && !isOverrideStale) ? zone.density : calculateDensity(count, zone.capacity);
+      
+      return { ...zone, userCount: count, density, isOverrideStale };
     });
   }, [zones, users]);
+
+  // Effect to clean up stale manual overrides in the database
+  useEffect(() => {
+    enrichedZones.forEach(zone => {
+      if (zone.isOverrideStale) {
+        const zoneRef = doc(db, 'zones', zone.id);
+        updateDocumentNonBlocking(zoneRef, {
+          manualDensity: false,
+          manualDensityAtCount: null
+        });
+      }
+    });
+  }, [enrichedZones, db]);
 
   const sosCount = users.filter(u => u.sos).length;
   const overCrowdedCount = enrichedZones.filter(z => z.density === 'over-crowded').length;

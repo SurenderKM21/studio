@@ -17,6 +17,7 @@ export type Zone = {
   userCount: number;
   density: DensityCategory;
   manualDensity?: boolean;
+  manualDensityAtCount?: number;
   notes?: ZoneNote[];
 };
 

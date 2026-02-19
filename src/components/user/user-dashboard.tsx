@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -63,7 +62,13 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   const enrichedZones = useMemo(() => {
     return zones.map(zone => {
       const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
-      const density = zone.manualDensity ? zone.density : calculateDensity(count, zone.capacity);
+      
+      // Dynamic Derivation:
+      // If the zone has a manual density override AND the count still matches the count when the override was set,
+      // use the manual value. Otherwise, revert to dynamic calculation.
+      const isOverrideStale = zone.manualDensity && zone.manualDensityAtCount !== undefined && count !== zone.manualDensityAtCount;
+      const density = (zone.manualDensity && !isOverrideStale) ? zone.density : calculateDensity(count, zone.capacity);
+      
       return { ...zone, userCount: count, density };
     });
   }, [zones, users]);
@@ -109,7 +114,6 @@ export function UserDashboard({ userId }: UserDashboardProps) {
         const alertTime = new Date(alert.timestamp);
         
         // 1. Alert must be created AFTER the user started this session
-        // This solves the issue where a new user logs in 5 mins after an alert was sent
         const afterSessionStart = alertTime > sessionStartTime.current;
         
         // 2. If it's a zone-specific alert, it must be created AFTER the user entered that zone
