@@ -109,10 +109,10 @@ export function UserDashboard({ userId }: UserDashboardProps) {
         const alertTime = new Date(alert.timestamp);
         
         // 1. Alert must be created AFTER the user started this session
+        // This solves the issue where a new user logs in 5 mins after an alert was sent
         const afterSessionStart = alertTime > sessionStartTime.current;
         
         // 2. If it's a zone-specific alert, it must be created AFTER the user entered that zone
-        // We add a tiny 5-second buffer to handle race conditions during entry
         const entryThreshold = new Date(zoneEntryTime.current.getTime() - 5000);
         const afterZoneEntry = alert.zoneId ? alertTime > entryThreshold : true;
 
@@ -138,6 +138,7 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   const updateLocation = useCallback(async (lat: number, lng: number) => {
     setCurrentUserLocation({ lat, lng });
     
+    // Use the action to identify the zone geometrically
     const identifiedZoneId = await identifyZoneAction(lat, lng, zones);
     
     const userUpdate = {
