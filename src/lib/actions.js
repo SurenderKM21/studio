@@ -1,26 +1,11 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import fs from 'fs';
-import path from 'path';
 
 /**
  * Server actions for EvacAI.
- * Consolidates authentication and data utility logic for Firestore migration.
+ * Consolidates authentication and data utility logic for a cloud-native Firestore application.
  */
-
-export async function getLocalDataAction() {
-  const dbPath = path.resolve(process.cwd(), 'src/lib/db.json');
-  try {
-    if (fs.existsSync(dbPath)) {
-      const jsonString = fs.readFileSync(dbPath, 'utf8');
-      return JSON.parse(jsonString);
-    }
-  } catch (error) {
-    console.error('Error reading local DB:', error);
-  }
-  return { zones: [], users: [], settings: {}, alerts: [] };
-}
 
 export async function loginUserAction(data) {
   const { role, username, email } = data;
@@ -42,10 +27,6 @@ export async function loginUserAction(data) {
 
 export async function logoutUserAction() {
   redirect('/');
-}
-
-export async function refreshDataAction() {
-    // Used for cache revalidation in server-side contexts
 }
 
 /**

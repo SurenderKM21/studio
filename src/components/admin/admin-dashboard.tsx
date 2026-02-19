@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Map, Users, Settings, Siren, MessageSquareWarning, AlertTriangle, Database, NotebookPen, Activity } from 'lucide-react';
+import { Map, Users, Settings, Siren, MessageSquareWarning, AlertTriangle, NotebookPen, Activity } from 'lucide-react';
 import { ZoneManager } from './zone-manager';
 import { DensityControl } from './density-control';
 import { SettingsPanel } from './settings-panel';
@@ -12,7 +11,6 @@ import { UserMonitor } from './user-monitor';
 import { ZoneDetails } from './zone-details';
 import { OvercrowdedZones } from './overcrowded-zones';
 import { AlertManager } from './alert-manager';
-import { MigrationTool } from './migration-tool';
 import { ZoneNotesManager } from './zone-notes-manager';
 import { 
   useCollection, 
@@ -88,9 +86,6 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           <TabsTrigger value="overcrowded">
             <AlertTriangle className="mr-2 h-4 w-4" /> Overcrowded ({overCrowdedCount})
           </TabsTrigger>
-          <TabsTrigger value="migration">
-            <Database className="mr-2 h-4 w-4" /> Migration
-          </TabsTrigger>
           <TabsTrigger value="settings">
             <Settings className="mr-2 h-4 w-4" /> Settings
           </TabsTrigger>
@@ -119,9 +114,6 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </TabsContent>
         <TabsContent value="overcrowded">
           <OvercrowdedZones zones={enrichedZones} />
-        </TabsContent>
-        <TabsContent value="migration">
-          <MigrationTool />
         </TabsContent>
         <TabsContent value="settings">
           <SettingsPanel initialSettings={{}} />

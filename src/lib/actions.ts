@@ -1,17 +1,14 @@
-
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import type { Zone, AppSettings, DensityCategory, Coordinate, User, AlertMessage } from './types';
 import { redirect } from 'next/navigation';
-import fs from 'fs';
-import path from 'path';
 
 /**
  * Server Actions for EvacAI.
  * Data mutations are primarily handled client-side via Firestore SDK.
- * These actions handle server-side specific tasks like file reading and pathfinding logic.
+ * These actions handle server-side specific tasks like login session management and pathfinding logic.
  */
 
 const loginUserSchema = z.object({
@@ -20,23 +17,6 @@ const loginUserSchema = z.object({
   role: z.string(),
   groupSize: z.number(),
 });
-
-/**
- * Reads the local db.json file.
- * This is used for the one-time migration to Firestore.
- */
-export async function getLocalDataAction() {
-  const dbPath = path.resolve(process.cwd(), 'src/lib/db.json');
-  try {
-    if (fs.existsSync(dbPath)) {
-      const jsonString = fs.readFileSync(dbPath, 'utf8');
-      return JSON.parse(jsonString);
-    }
-  } catch (error) {
-    console.error('Error reading local DB:', error);
-  }
-  return { zones: [], users: [], settings: {}, alerts: [] };
-}
 
 export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
     const { role, username, email } = data;
