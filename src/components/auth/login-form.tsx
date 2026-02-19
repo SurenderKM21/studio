@@ -85,7 +85,6 @@ export function LoginForm() {
             });
          }
        } catch (error: any) {
-         console.error("Login error:", error);
          let errorMessage = 'An unexpected error occurred.';
          if (error.code === 'auth/invalid-credential') {
            errorMessage = 'Invalid credentials. Please check your email and password.';
