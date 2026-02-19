@@ -24,6 +24,7 @@ import { Loader } from 'lucide-react';
 import { loginUserAction } from '@/lib/actions';
 import { signInWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
 import { initializeFirebase } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 export function LoginForm() {
   const [role, setRole] = useState('user');
@@ -40,10 +41,23 @@ export function LoginForm() {
     
     startTransition(async () => {
        try {
-         const { auth } = initializeFirebase();
+         const { auth, firestore } = initializeFirebase();
          
          if (role === 'admin') {
            await signInWithEmailAndPassword(auth, email, password);
+           
+           // Ensure admin profile exists in Firestore
+           const adminId = email.split('@')[0].toLowerCase();
+           const adminRef = doc(firestore, 'users', adminId);
+           await setDoc(adminRef, {
+             id: adminId,
+             name: 'Main Admin',
+             email: email,
+             role: 'admin',
+             status: 'online',
+             lastSeen: new Date().toISOString()
+           }, { merge: true });
+
          } else {
            await signInAnonymously(auth);
          }
@@ -71,11 +85,14 @@ export function LoginForm() {
             });
          }
        } catch (error: any) {
+         console.error("Login error:", error);
          let errorMessage = 'An unexpected error occurred.';
          if (error.code === 'auth/invalid-credential') {
            errorMessage = 'Invalid credentials. Please check your email and password.';
          } else if (error.code === 'auth/user-not-found') {
            errorMessage = 'Account not found.';
+         } else if (error.code === 'auth/wrong-password') {
+           errorMessage = 'Incorrect password.';
          }
 
          toast({

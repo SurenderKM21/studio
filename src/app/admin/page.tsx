@@ -16,17 +16,22 @@ function AdminAuthGuard({ userId, decodedUserId }: { userId: string, decodedUser
   const userRef = useMemoFirebase(() => doc(firestore, 'users', decodedUserId), [firestore, decodedUserId]);
   const { data: profile, isLoading: isProfileLoading } = useDoc(userRef);
 
+  // For the prototype, we trust the admin@evacai.com email directly
+  const isAdminByEmail = user?.email === 'admin@evacai.com';
+  const isAdminByRole = profile?.role === 'admin';
+
   useEffect(() => {
     if (!isUserLoading && !isProfileLoading) {
       if (!user) {
         router.push('/login');
-      } else if (profile && profile.role !== 'admin') {
+      } else if (!isAdminByEmail && profile && profile.role !== 'admin') {
+        // Only redirect regular users away if they aren't the special admin email
         router.push('/user?userId=' + userId);
       }
     }
-  }, [user, isUserLoading, profile, isProfileLoading, router, userId]);
+  }, [user, isUserLoading, profile, isProfileLoading, router, userId, isAdminByEmail]);
 
-  if (isUserLoading || isProfileLoading) {
+  if (isUserLoading || (isProfileLoading && !isAdminByEmail)) {
     return (
       <div className="flex h-screen items-center justify-center gap-2">
         <Loader className="h-6 w-6 animate-spin text-primary" />
@@ -35,7 +40,8 @@ function AdminAuthGuard({ userId, decodedUserId }: { userId: string, decodedUser
     );
   }
 
-  if (profile?.role !== 'admin') {
+  // If not admin by email and (profile loaded but not admin by role)
+  if (!isAdminByEmail && !isProfileLoading && profile?.role !== 'admin') {
     return (
       <div className="flex flex-col h-screen items-center justify-center gap-4 text-center p-8">
         <Lock className="h-12 w-12 text-destructive" />
