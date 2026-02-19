@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -18,7 +19,7 @@ import {
   errorEmitter 
 } from '@/firebase';
 import { collection, doc, query, orderBy, limit, setDoc } from 'firebase/firestore';
-import { getRouteAction } from '@/lib/actions';
+import { getRouteAction, identifyZoneAction } from '@/lib/actions';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 import {
@@ -42,13 +43,14 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   // Real-time Firestore Queries
   const zonesQuery = useMemoFirebase(() => collection(db, 'zones'), [db]);
   const { data: zonesData } = useCollection(zonesQuery);
-  const zones = zonesData || [];
+  const zones = (zonesData as Zone[]) || [];
 
   const userRef = useMemoFirebase(() => doc(db, 'users', userId), [db, userId]);
   const { data: userProfile } = useDoc(userRef);
 
   const alertsQuery = useMemoFirebase(() => query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(1)), [db]);
-  const { data: alerts = [] } = useCollection(alertsQuery);
+  const { data: alertsData = [] } = useCollection(alertsQuery);
+  const alerts = alertsData as AlertMessage[];
 
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [routingError, setRoutingError] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   // Alert Handling
   useEffect(() => {
     if (alerts && alerts.length > 0) {
-      const newAlert = alerts[0] as AlertMessage;
+      const newAlert = alerts[0];
       const lastSeen = localStorage.getItem(LAST_SEEN_ALERT_KEY);
       if (newAlert.timestamp !== lastSeen) {
         setLatestAlert(newAlert);
@@ -80,13 +82,18 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     setShowAlert(false);
   };
 
-  // Location Tracking
-  const updateLocation = useCallback((lat: number, lng: number) => {
+  // Location Tracking & Zone Identification
+  const updateLocation = useCallback(async (lat: number, lng: number) => {
     setCurrentUserLocation({ lat, lng });
+    
+    // Identify which zone the user is currently in
+    const identifiedZoneId = await identifyZoneAction(lat, lng, zones);
+    
     const userUpdate = {
       lastLatitude: lat,
       lastLongitude: lng,
       lastSeen: new Date().toISOString(),
+      lastZoneId: identifiedZoneId || 'outside',
       status: 'online'
     };
     
@@ -97,13 +104,13 @@ export function UserDashboard({ userId }: UserDashboardProps) {
         requestResourceData: userUpdate
       }));
     });
-  }, [userRef]);
+  }, [userRef, zones]);
 
   useEffect(() => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(
         (pos) => updateLocation(pos.coords.latitude, pos.coords.longitude),
-        (err) => console.error(err),
+        (err) => console.error('Geolocation error:', err),
         { enableHighAccuracy: true }
       );
       return () => navigator.geolocation.clearWatch(watchId);
@@ -123,6 +130,12 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     }
     setIsPlanning(false);
   };
+
+  const getFriendlyZoneName = (zoneId: string | undefined) => {
+      if (!zoneId || zoneId === 'Locating...') return 'Locating...';
+      if (zoneId === 'outside') return 'Outside Event Area';
+      return zones.find(z => z.id === zoneId)?.name || 'Outside Event Area';
+  }
 
   return (
     <div>
@@ -156,7 +169,7 @@ export function UserDashboard({ userId }: UserDashboardProps) {
             </CardContent>
           </Card>
           <LocationTracker 
-            currentZoneName={userProfile?.lastZoneId ?? 'Locating...'} 
+            currentZoneName={getFriendlyZoneName(userProfile?.lastZoneId)} 
             isSending={false}
             lastUpdated={mountedTime}
             coordinates={currentUserLocation}
