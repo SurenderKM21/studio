@@ -62,7 +62,7 @@ export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
       <CardHeader>
         <CardTitle>Existing Zones</CardTitle>
         <CardDescription>
-          Detailed overview of all configured areas and their current cloud state.
+          Detailed overview of all configured areas. Click the edit icon to modify a zone.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -93,13 +93,14 @@ export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right space-x-2">
-                   <EditZoneForm zone={zone} />
+                  <EditZoneForm zone={zone} />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="text-destructive hover:text-destructive"
+                        title="Delete Zone"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -111,7 +112,7 @@ export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                           This action cannot be undone. This will permanently
-                          delete the <strong>{zone.name}</strong> zone.
+                          delete the <strong>{zone.name}</strong> zone from the cloud.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

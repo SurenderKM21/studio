@@ -46,6 +46,15 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (coordinates.length < 3) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Zones must have at least 3 points.',
+      });
+      return;
+    }
+
     const zoneRef = doc(db, 'zones', zone.id);
     updateDocumentNonBlocking(zoneRef, {
       name,
@@ -55,7 +64,7 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
     
     toast({
       title: 'Zone Updated',
-      description: 'The zone details are being updated in the cloud.',
+      description: `Changes for "${name}" are being synced to the cloud.`,
     });
     setIsOpen(false);
   };
@@ -63,26 +72,28 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" title="Edit Zone">
           <Pencil className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Edit Zone: {zone.name}</DialogTitle>
             <DialogDescription>
-              Make changes to your zone here. Changes will be reflected in real-time on all user maps.
+              Modify the zone parameters or adjust its boundary on the map.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Zone Name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="capacity">Max Capacity</Label>
-              <Input id="capacity" type="number" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} min="1" required />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Zone Name</Label>
+                <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-capacity">Max Capacity</Label>
+                <Input id="edit-capacity" type="number" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} min="1" required />
+              </div>
             </div>
             
             <GoogleMapsZoneSelector coordinates={coordinates} onCoordinatesChange={setCoordinates} />

@@ -48,7 +48,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </div>
       </div>
 
-      <Tabs defaultValue="sos" className="w-full">
+      <Tabs defaultValue="zones" className="w-full">
         <TabsList className="flex flex-wrap h-auto bg-muted p-1">
           <TabsTrigger value="sos" className={sosCount > 0 ? 'text-destructive font-bold animate-pulse' : ''}>
             <Siren className="mr-2 h-4 w-4" /> SOS ({sosCount})
