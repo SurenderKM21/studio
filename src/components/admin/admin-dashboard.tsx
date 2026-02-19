@@ -2,7 +2,7 @@
 'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Map, Users, Settings, Siren, MessageSquareWarning, AlertTriangle, Database, NotebookPen } from 'lucide-react';
+import { Map, Users, Settings, Siren, MessageSquareWarning, AlertTriangle, Database, NotebookPen, Activity } from 'lucide-react';
 import { ZoneManager } from './zone-manager';
 import { DensityControl } from './density-control';
 import { SettingsPanel } from './settings-panel';
@@ -19,7 +19,7 @@ import {
   useFirestore 
 } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import type { Zone } from '@/lib/types';
+import type { Zone, User } from '@/lib/types';
 
 interface AdminDashboardProps {
   userId: string;
@@ -34,7 +34,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
   const usersQuery = useMemoFirebase(() => collection(db, 'users'), [db]);
   const { data: usersData } = useCollection(usersQuery);
-  const users = usersData || [];
+  const users = (usersData as User[]) || [];
 
   const sosCount = users.filter(u => u.sos).length;
   const overCrowdedCount = zones.filter(z => z.density === 'over-crowded').length;
@@ -55,6 +55,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           </TabsTrigger>
           <TabsTrigger value="zones">
             <Map className="mr-2 h-4 w-4" /> Zones
+          </TabsTrigger>
+          <TabsTrigger value="density">
+            <Activity className="mr-2 h-4 w-4" /> Density
           </TabsTrigger>
           <TabsTrigger value="users">
             <Users className="mr-2 h-4 w-4" /> Users
@@ -83,8 +86,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           <div className="grid gap-6">
             <ZoneManager initialZones={zones} />
             <ZoneDetails initialZones={zones} />
-            <DensityControl initialZones={zones} />
           </div>
+        </TabsContent>
+        <TabsContent value="density">
+          <DensityControl initialZones={zones} />
         </TabsContent>
         <TabsContent value="users">
           <UserMonitor initialUsers={users} initialZones={zones} />

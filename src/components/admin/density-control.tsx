@@ -27,7 +27,7 @@ import type { Zone, DensityCategory } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Activity } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -59,10 +59,12 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Manual Density Override</CardTitle>
+        <div className="flex items-center gap-2">
+          <Activity className="h-6 w-6 text-primary" />
+          <CardTitle>Crowd Density Management</CardTitle>
+        </div>
         <CardDescription>
-          Manually set the crowd density for each zone. This will override
-          automatic classification until the user count in the zone changes.
+          Override the automatic density classification. Changes are broadcast to all users in real-time.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -70,8 +72,8 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>Zone Name</TableHead>
-              <TableHead>Current Density</TableHead>
-              <TableHead className="text-right">Set Density</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -82,7 +84,7 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
                   <div className="flex items-center gap-2">
                     <Badge
                       className={cn(
-                        'text-white',
+                        'text-white capitalize',
                         densityColors[zone.density]
                       )}
                     >
@@ -113,6 +115,13 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
                 </TableCell>
               </TableRow>
             ))}
+            {initialZones.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground italic">
+                  No zones found.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>

@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -15,8 +16,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import type { Zone } from '@/lib/types';
-import { Trash2 } from 'lucide-react';
+import type { Zone, DensityCategory } from '@/lib/types';
+import { Trash2, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -33,6 +34,15 @@ import { EditZoneForm } from './edit-zone-form';
 import { useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
+
+const densityColors: Record<DensityCategory, string> = {
+  free: 'bg-green-500',
+  moderate: 'bg-yellow-500',
+  crowded: 'bg-orange-500',
+  'over-crowded': 'bg-red-500',
+};
 
 export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
   const { toast } = useToast();
@@ -52,7 +62,7 @@ export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
       <CardHeader>
         <CardTitle>Existing Zones</CardTitle>
         <CardDescription>
-          A detailed list of all currently configured zones in the cloud.
+          Detailed overview of all configured areas and their current cloud state.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -61,19 +71,26 @@ export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Capacity</TableHead>
-              <TableHead>Coordinates</TableHead>
+              <TableHead>Users</TableHead>
+              <TableHead>Density</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {initialZones.map((zone) => (
               <TableRow key={zone.id}>
-                <TableCell className="font-medium">{zone.name}</TableCell>
+                <TableCell className="font-bold">{zone.name}</TableCell>
                 <TableCell>{zone.capacity}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                    {zone.coordinates
-                        .map((c) => `(${c.lat.toFixed(4)}, ${c.lng.toFixed(4)})`)
-                        .join(', ')}
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <Users className="h-3 w-3 text-muted-foreground" />
+                    {zone.userCount}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge className={cn('text-white capitalize', densityColors[zone.density])}>
+                    {zone.density}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-right space-x-2">
                    <EditZoneForm zone={zone} />
@@ -113,8 +130,8 @@ export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
             ))}
             {initialZones.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground italic">
-                  No zones found. Add one in the "Add New Zone" section or use the Migration Tool.
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground italic">
+                  No zones found. Add one in the "Add New Zone" section.
                 </TableCell>
               </TableRow>
             )}
