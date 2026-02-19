@@ -24,12 +24,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Zone, DensityCategory } from '@/lib/types';
-import { manualUpdateDensityAction } from '@/lib/actions';
-import { useState, useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ShieldCheck } from 'lucide-react';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const densityColors: Record<DensityCategory, string> = {
   free: 'bg-green-500',
@@ -39,23 +40,19 @@ const densityColors: Record<DensityCategory, string> = {
 };
 
 export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
-  const [zones, setZones] = useState<Zone[]>(initialZones);
-  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const db = useFirestore();
 
   const handleDensityChange = (zoneId: string, value: DensityCategory) => {
-    startTransition(async () => {
-      await manualUpdateDensityAction(zoneId, value);
-      
-      const updatedZones = zones.map(z => 
-        z.id === zoneId ? { ...z, density: value, manualDensity: true } : z
-      );
-      setZones(updatedZones);
+    const zoneRef = doc(db, 'zones', zoneId);
+    updateDocumentNonBlocking(zoneRef, { 
+      density: value, 
+      manualDensity: true 
+    });
 
-      toast({
-        title: 'Density Updated',
-        description: `Zone density has been manually set to ${value}.`,
-      });
+    toast({
+      title: 'Density Updated',
+      description: `Zone density has been manually set to ${value}.`,
     });
   };
 
@@ -78,7 +75,7 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {zones.map((zone) => (
+            {initialZones.map((zone) => (
               <TableRow key={zone.id}>
                 <TableCell className="font-medium">{zone.name}</TableCell>
                 <TableCell>
@@ -102,7 +99,6 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
                       handleDensityChange(zone.id, value)
                     }
                     defaultValue={zone.density}
-                    disabled={isPending}
                   >
                     <SelectTrigger className="w-[180px] ml-auto">
                       <SelectValue placeholder="Set density" />

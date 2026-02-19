@@ -22,8 +22,7 @@ import { Button } from '../ui/button';
 import { Trash2 } from 'lucide-react';
 import { useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { removeUserAction, clearAllUsersAction } from '@/lib/actions';
-import {
+import { 
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -34,6 +33,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 interface UserMonitorProps {
   initialUsers: User[];
@@ -42,6 +44,7 @@ interface UserMonitorProps {
 
 export function UserMonitor({ initialUsers, initialZones }: UserMonitorProps) {
   const { toast } = useToast();
+  const db = useFirestore();
   const [isPending, startTransition] = useTransition();
 
   const users = initialUsers.filter((u) => u.role !== 'admin' && u.name !== 'John Doe');
@@ -51,41 +54,26 @@ export function UserMonitor({ initialUsers, initialZones }: UserMonitorProps) {
   const zoneMap = new Map(initialZones.map((zone) => [zone.id, zone.name]));
 
   const handleRemoveUser = (userId: string, userName: string) => {
-    startTransition(async () => {
-      const result = await removeUserAction(userId);
-      if (result.success) {
-        toast({
-          title: 'User Removed',
-          description: `User "${userName}" has been removed.`,
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: result.error,
-        });
-      }
+    const userRef = doc(db, 'users', userId);
+    deleteDocumentNonBlocking(userRef);
+    toast({
+      title: 'User Removed',
+      description: `User "${userName}" has been removed.`,
     });
   };
 
   const handleClearAllUsers = () => {
-     startTransition(async () => {
-      const result = await clearAllUsersAction();
-      if (result.success) {
-        toast({
-          title: 'Logged Out Users Cleared',
-          description: 'The logged out user list has been cleared.',
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: result.error,
-        });
-      }
+    startTransition(() => {
+      loggedOutUsers.forEach(user => {
+        const userRef = doc(db, 'users', user.id);
+        deleteDocumentNonBlocking(userRef);
+      });
+      toast({
+        title: 'Logged Out Users Cleared',
+        description: 'The logged out user list is being cleared.',
+      });
     });
   };
-
 
   const UserTable = ({
     users,
@@ -125,7 +113,7 @@ export function UserMonitor({ initialUsers, initialZones }: UserMonitorProps) {
                      <TableCell className="text-right">
                        <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={isPending}>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
                               <Trash2 className="h-4 w-4" />
                           </Button>
                          </AlertDialogTrigger>
@@ -175,7 +163,7 @@ export function UserMonitor({ initialUsers, initialZones }: UserMonitorProps) {
         </div>
         <AlertDialog>
             <AlertDialogTrigger asChild>
-                 <Button variant="destructive" disabled={isPending}>Clear Logged-out Users</Button>
+                 <Button variant="destructive">Clear Logged-out Users</Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>

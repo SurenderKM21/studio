@@ -18,10 +18,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Zone, ZoneNote } from '@/lib/types';
-import { useState, useTransition } from 'react';
-import { addZoneNoteAction, deleteZoneNoteAction } from '@/lib/actions';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Eye, EyeOff, Loader } from 'lucide-react';
+import { Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import {
   AlertDialog,
@@ -34,6 +33,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 interface ZoneNotesManagerProps {
   initialZones: Zone[];
@@ -42,10 +44,10 @@ interface ZoneNotesManagerProps {
 export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
   const [noteText, setNoteText] = useState('');
   const [visibleToUser, setVisibleToUser] = useState(true);
-  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const db = useFirestore();
 
-  const handleAddNote = (zoneId: string) => {
+  const handleAddNote = (zoneId: string, currentNotes: ZoneNote[] = []) => {
     if (!noteText.trim()) {
       toast({
         variant: 'destructive',
@@ -54,39 +56,35 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
       });
       return;
     }
-    startTransition(async () => {
-      const result = await addZoneNoteAction(zoneId, noteText, visibleToUser);
-      if (result.success) {
-        toast({
-          title: 'Note Added',
-          description: 'The note has been successfully added to the zone.',
-        });
-        setNoteText('');
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: result.error,
-        });
-      }
+
+    const newNote = {
+      id: `note-${Date.now()}`,
+      text: noteText,
+      visibleToUser,
+      createdAt: new Date().toISOString(),
+    };
+
+    const zoneRef = doc(db, 'zones', zoneId);
+    updateDocumentNonBlocking(zoneRef, {
+      notes: [...currentNotes, newNote]
     });
+
+    toast({
+      title: 'Note Added',
+      description: 'The note is being added to the zone.',
+    });
+    setNoteText('');
   };
 
-  const handleDeleteNote = (zoneId: string, noteId: string) => {
-    startTransition(async () => {
-      const result = await deleteZoneNoteAction(zoneId, noteId);
-      if (result.success) {
-        toast({
-          title: 'Note Deleted',
-          description: 'The note has been removed.',
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: result.error,
-        });
-      }
+  const handleDeleteNote = (zoneId: string, noteId: string, currentNotes: ZoneNote[] = []) => {
+    const zoneRef = doc(db, 'zones', zoneId);
+    updateDocumentNonBlocking(zoneRef, {
+      notes: currentNotes.filter(n => n.id !== noteId)
+    });
+
+    toast({
+      title: 'Note Deleted',
+      description: 'The note is being removed.',
     });
   };
 
@@ -105,7 +103,6 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
               <AccordionTrigger className='font-bold'>{zone.name}</AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-4">
-                  {/* Add new note form */}
                   <div className="p-4 border rounded-lg space-y-4">
                     <h4 className="font-semibold">Add New Note</h4>
                     <div className="space-y-2">
@@ -114,7 +111,6 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
                         id={`note-text-${zone.id}`}
                         placeholder="e.g., Slippery floor"
                         onChange={(e) => setNoteText(e.target.value)}
-                        disabled={isPending}
                       />
                     </div>
                     <div className="flex items-center space-x-2">
@@ -122,24 +118,17 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
                         id={`visible-switch-${zone.id}`}
                         checked={visibleToUser}
                         onCheckedChange={setVisibleToUser}
-                        disabled={isPending}
                       />
                       <Label htmlFor={`visible-switch-${zone.id}`}>Visible to Users</Label>
                     </div>
                     <Button
                       size="sm"
-                      onClick={() => handleAddNote(zone.id)}
-                      disabled={isPending}
+                      onClick={() => handleAddNote(zone.id, zone.notes)}
                     >
-                      {isPending ? (
-                        <Loader className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Plus className="mr-2 h-4 w-4" />
-                      )}
+                      <Plus className="mr-2 h-4 w-4" />
                       Add Note
                     </Button>
                   </div>
-                  {/* Existing notes list */}
                   <div className="space-y-2">
                      <h4 className="font-semibold">Existing Notes</h4>
                      {zone.notes && zone.notes.length > 0 ? (
@@ -154,7 +143,7 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
                                 </div>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={isPending}>
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </AlertDialogTrigger>
@@ -167,7 +156,7 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteNote(zone.id, note.id)} className="bg-destructive hover:bg-destructive/90">
+                                            <AlertDialogAction onClick={() => handleDeleteNote(zone.id, note.id, zone.notes)} className="bg-destructive hover:bg-destructive/90">
                                                 Delete Note
                                             </AlertDialogAction>
                                         </AlertDialogFooter>

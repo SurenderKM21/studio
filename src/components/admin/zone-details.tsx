@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Card,
@@ -15,10 +16,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { deleteZoneAction } from '@/lib/actions';
 import type { Zone } from '@/lib/types';
-import { Trash2, Pencil } from 'lucide-react';
-import { useTransition } from 'react';
+import { Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -32,26 +31,20 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { EditZoneForm } from './edit-zone-form';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
   const { toast } = useToast();
-  const [isDeleting, startDeleteTransition] = useTransition();
+  const db = useFirestore();
 
   const handleDelete = (zoneId: string, zoneName: string) => {
-    startDeleteTransition(async () => {
-      const result = await deleteZoneAction(zoneId);
-      if (result?.success) {
-        toast({
-          title: 'Zone Deleted',
-          description: `The "${zoneName}" zone has been successfully removed.`,
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error Deleting Zone',
-          description: result?.error || 'An unexpected error occurred.',
-        });
-      }
+    const zoneRef = doc(db, 'zones', zoneId);
+    deleteDocumentNonBlocking(zoneRef);
+    toast({
+      title: 'Zone Deleted',
+      description: `The "${zoneName}" zone is being removed.`,
     });
   };
 
@@ -109,10 +102,9 @@ export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDelete(zone.id, zone.name)}
-                          disabled={isDeleting}
                           className="bg-destructive hover:bg-destructive/90"
                         >
-                          {isDeleting ? 'Deleting...' : 'Delete'}
+                          Delete
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

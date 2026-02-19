@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,11 +15,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Pencil, Loader } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { updateZoneAction } from '@/lib/actions';
 import type { Zone, Coordinate } from '@/lib/types';
 import { GoogleMapsZoneSelector } from './google-maps-zone-selector';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 interface EditZoneFormProps {
   zone: Zone;
@@ -27,10 +29,9 @@ interface EditZoneFormProps {
 
 export function EditZoneForm({ zone }: EditZoneFormProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const db = useFirestore();
 
-  // Local state for form fields
   const [name, setName] = useState(zone.name);
   const [capacity, setCapacity] = useState(zone.capacity);
   const [coordinates, setCoordinates] = useState<Coordinate[]>(zone.coordinates);
@@ -45,26 +46,18 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    startTransition(async () => {
-      const result = await updateZoneAction(zone.id, {
-        name,
-        capacity,
-        coordinates,
-      });
-      if (result.success) {
-        toast({
-          title: 'Zone Updated',
-          description: 'The zone details have been successfully updated.',
-        });
-        setIsOpen(false);
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Update Failed',
-          description: result.error || 'An unexpected error occurred.',
-        });
-      }
+    const zoneRef = doc(db, 'zones', zone.id);
+    updateDocumentNonBlocking(zoneRef, {
+      name,
+      capacity,
+      coordinates,
     });
+    
+    toast({
+      title: 'Zone Updated',
+      description: 'The zone details have been updated.',
+    });
+    setIsOpen(false);
   };
 
   return (
@@ -98,9 +91,7 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
             <DialogClose asChild>
               <Button type="button" variant="secondary">Cancel</Button>
             </DialogClose>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}
-            </Button>
+            <Button type="submit">Save Changes</Button>
           </DialogFooter>
         </form>
       </DialogContent>

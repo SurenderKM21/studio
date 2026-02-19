@@ -11,53 +11,52 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { addZoneAction } from '@/lib/actions';
 import type { Zone, Coordinate } from '@/lib/types';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useActionState } from 'react';
 import { MapView } from '../user/map-view';
 import { GoogleMapsZoneSelector } from './google-maps-zone-selector';
-import { z } from 'zod';
-
-const initialState = {
-  error: undefined,
-  success: false,
-};
+import { useFirestore } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
-  const [state, formAction] = useActionState(addZoneAction, initialState);
-  const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
+  const db = useFirestore();
   const [coordinates, setCoordinates] = useState<Coordinate[]>([]);
+  const [name, setName] = useState('');
+  const [capacity, setCapacity] = useState(10);
 
-  const customFormAction = (formData: FormData) => {
-    formData.append('coordinates', JSON.stringify(coordinates));
-    formAction(formData);
-  };
-
-  useEffect(() => {
-    if (state?.success) {
-      toast({
-        title: 'Success!',
-        description: 'New zone has been added.',
-      });
-      formRef.current?.reset();
-      setCoordinates([]);
-    } else if (state?.error) {
-       let errorMsg = 'An unexpected error occurred.';
-       if (typeof state.error === 'string') {
-        errorMsg = state.error;
-      } else if (typeof state.error === 'object' && state.error !== null) {
-        errorMsg = Object.values(state.error).flat().join(' ');
-      }
+  const handleAddZone = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (coordinates.length < 3) {
       toast({
         variant: 'destructive',
-        title: 'Error Adding Zone',
-        description: errorMsg,
+        title: 'Insufficient Coordinates',
+        description: 'Please define at least 3 points for the zone.',
       });
+      return;
     }
-  }, [state, toast]);
+
+    const zonesRef = collection(db, 'zones');
+    addDocumentNonBlocking(zonesRef, {
+      name,
+      capacity,
+      coordinates,
+      userCount: 0,
+      density: 'free',
+      manualDensity: false,
+      notes: []
+    });
+
+    toast({
+      title: 'Success!',
+      description: 'New zone is being added.',
+    });
+    setName('');
+    setCapacity(10);
+    setCoordinates([]);
+  };
 
   return (
     <div className="grid lg:grid-cols-2 gap-8 items-start">
@@ -70,14 +69,15 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
               </CardDescription>
             </div>
         </CardHeader>
-        <form action={customFormAction} ref={formRef}>
+        <form onSubmit={handleAddZone}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Zone Name</Label>
               <Input
                 id="name"
-                name="name"
                 placeholder="e.g., Main Stage"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
@@ -85,20 +85,16 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
               <Label htmlFor="capacity">Max Capacity</Label>
               <Input
                 id="capacity"
-                name="capacity"
                 type="number"
                 placeholder="e.g., 500"
                 min="1"
-                defaultValue="10"
+                value={capacity}
+                onChange={(e) => setCapacity(Number(e.target.value))}
                 required
               />
             </div>
             
             <GoogleMapsZoneSelector coordinates={coordinates} onCoordinatesChange={setCoordinates} />
-            
-            {state?.error && typeof state.error === 'object' && state.error.coordinates && (
-                 <p className="text-xs text-destructive">{state.error.coordinates.join(' ')}</p>
-            )}
 
           </CardContent>
           <CardFooter>

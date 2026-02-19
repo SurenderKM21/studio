@@ -12,10 +12,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useState, useTransition } from 'react';
-import { sendAlertAction } from '@/lib/actions';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Loader, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { Zone } from '@/lib/types';
 import {
   Select,
@@ -24,6 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
+import { useFirestore } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 interface AlertManagerProps {
   zones: Zone[];
@@ -32,10 +34,10 @@ interface AlertManagerProps {
 export function AlertManager({ zones }: AlertManagerProps) {
   const [message, setMessage] = useState('');
   const [zoneId, setZoneId] = useState('all');
-  const [isSending, startSending] = useTransition();
   const { toast } = useToast();
+  const db = useFirestore();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) {
       toast({
@@ -46,27 +48,18 @@ export function AlertManager({ zones }: AlertManagerProps) {
       return;
     }
 
-    startSending(async () => {
-      const targetZoneId = zoneId === 'all' ? undefined : zoneId;
-      const result = await sendAlertAction(message, targetZoneId);
-      if (result.success) {
-        const targetDescription = targetZoneId
-          ? `The alert has been sent to users in the selected zone.`
-          : `The alert has been broadcast to all users.`;
-
-        toast({
-          title: 'Alert Sent!',
-          description: targetDescription,
-        });
-        setMessage('');
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Failed to Send Alert',
-          description: result.error,
-        });
-      }
+    const alertsRef = collection(db, 'alerts');
+    addDocumentNonBlocking(alertsRef, {
+      message,
+      timestamp: new Date().toISOString(),
+      zoneId: zoneId === 'all' ? null : zoneId
     });
+
+    toast({
+      title: 'Alert Sent!',
+      description: zoneId === 'all' ? 'Broadcast to all users.' : 'Sent to selected zone.',
+    });
+    setMessage('');
   };
 
   return (
@@ -81,7 +74,7 @@ export function AlertManager({ zones }: AlertManagerProps) {
         <CardContent className="space-y-4">
           <div className="grid w-full gap-2">
             <Label htmlFor="zoneId">Target Zone</Label>
-            <Select onValueChange={setZoneId} defaultValue={zoneId} disabled={isSending}>
+            <Select onValueChange={setZoneId} defaultValue={zoneId}>
                 <SelectTrigger id="zoneId">
                     <SelectValue placeholder="Select a zone" />
                 </SelectTrigger>
@@ -101,7 +94,6 @@ export function AlertManager({ zones }: AlertManagerProps) {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={4}
-              disabled={isSending}
             />
             <p className="text-sm text-muted-foreground">
               Users will need to acknowledge the alert to close it.
@@ -109,12 +101,8 @@ export function AlertManager({ zones }: AlertManagerProps) {
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" disabled={isSending || !message.trim()}>
-            {isSending ? (
-              <Loader className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="mr-2 h-4 w-4" />
-            )}
+          <Button type="submit" disabled={!message.trim()}>
+            <Send className="mr-2 h-4 w-4" />
             Send Alert
           </Button>
         </CardFooter>

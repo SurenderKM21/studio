@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -11,10 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { AppSettings } from '@/lib/types';
-import { useState, startTransition } from 'react';
-import { updateSettingsAction } from '@/lib/actions';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '../ui/input';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export function SettingsPanel({
   initialSettings,
@@ -22,21 +25,20 @@ export function SettingsPanel({
   initialSettings: AppSettings;
 }) {
   const { toast } = useToast();
+  const db = useFirestore();
   const [interval, setInterval] = useState(initialSettings.locationUpdateInterval || 30);
   const [threshold, setThreshold] = useState(initialSettings.zoneSnappingThreshold || 15);
 
-
   const handleSave = () => {
-    startTransition(() => {
-        updateSettingsAction({
-            locationUpdateInterval: interval,
-            zoneSnappingThreshold: threshold
-        }).then(() => {
-            toast({
-                title: 'Settings Saved',
-                description: 'The new settings have been applied.',
-            });
-        });
+    const settingsRef = doc(db, 'settings', 'global');
+    setDocumentNonBlocking(settingsRef, {
+        locationUpdateInterval: interval,
+        zoneSnappingThreshold: threshold
+    }, { merge: true });
+
+    toast({
+        title: 'Settings Saved',
+        description: 'The new settings are being applied.',
     });
   };
 

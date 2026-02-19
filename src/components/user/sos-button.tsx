@@ -1,10 +1,9 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader, Siren } from 'lucide-react';
-import { toggleSOSAction } from '@/lib/actions';
+import { Siren } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -18,6 +17,9 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 interface SOSButtonProps {
   userId: string;
@@ -26,29 +28,22 @@ interface SOSButtonProps {
 
 export function SOSButton({ userId, initialSOSState }: SOSButtonProps) {
   const [isSOS, setIsSOS] = useState(initialSOSState);
-  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const db = useFirestore();
 
   const handleToggleSOS = () => {
     const newSOSState = !isSOS;
-    startTransition(async () => {
-      const result = await toggleSOSAction(userId, newSOSState);
-      if (result.success) {
-        setIsSOS(newSOSState);
-        toast({
-          title: newSOSState ? 'SOS Signal Sent' : 'SOS Signal Cancelled',
-          description: newSOSState
-            ? 'Admin has been notified. Help is on the way.'
-            : 'Your SOS signal has been cancelled.',
-          variant: newSOSState ? 'destructive' : 'default',
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: result.error,
-        });
-      }
+    const userRef = doc(db, 'users', userId);
+    
+    updateDocumentNonBlocking(userRef, { sos: newSOSState });
+    
+    setIsSOS(newSOSState);
+    toast({
+      title: newSOSState ? 'SOS Signal Sent' : 'SOS Signal Cancelled',
+      description: newSOSState
+        ? 'Admin has been notified. Help is on the way.'
+        : 'Your SOS signal has been cancelled.',
+      variant: newSOSState ? 'destructive' : 'default',
     });
   };
 
@@ -61,16 +56,9 @@ export function SOSButton({ userId, initialSOSState }: SOSButtonProps) {
             'w-full h-24 text-2xl font-bold',
             isSOS && 'animate-pulse'
           )}
-          disabled={isPending}
         >
-          {isPending ? (
-            <Loader className="h-8 w-8 animate-spin" />
-          ) : (
-            <>
-              <Siren className="mr-4 h-8 w-8" />
-              {isSOS ? 'Cancel SOS' : 'Raise SOS'}
-            </>
-          )}
+          <Siren className="mr-4 h-8 w-8" />
+          {isSOS ? 'Cancel SOS' : 'Raise SOS'}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

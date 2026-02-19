@@ -18,10 +18,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '../ui/button';
-import { useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { toggleSOSAction } from '@/lib/actions';
 import { Siren, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 interface SOSMonitorProps {
   initialUsers: User[];
@@ -30,27 +31,17 @@ interface SOSMonitorProps {
 
 export function SOSMonitor({ initialUsers, initialZones }: SOSMonitorProps) {
   const { toast } = useToast();
-  const [isPending, startTransition] = useTransition();
+  const db = useFirestore();
 
   const sosUsers = initialUsers.filter((u) => u.sos);
-
   const zoneMap = new Map(initialZones.map((zone) => [zone.id, zone.name]));
 
   const handleResolveSOS = (userId: string, userName: string) => {
-    startTransition(async () => {
-      const result = await toggleSOSAction(userId, false);
-      if (result.success) {
-        toast({
-          title: 'SOS Resolved',
-          description: `User "${userName}" has been marked as safe.`,
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: result.error,
-        });
-      }
+    const userRef = doc(db, 'users', userId);
+    updateDocumentNonBlocking(userRef, { sos: false });
+    toast({
+      title: 'SOS Resolved',
+      description: `User "${userName}" has been marked as safe.`,
     });
   };
 
@@ -90,7 +81,6 @@ export function SOSMonitor({ initialUsers, initialZones }: SOSMonitorProps) {
                       <Button
                         size="sm"
                         onClick={() => handleResolveSOS(user.id, user.name)}
-                        disabled={isPending}
                       >
                         <ShieldCheck className="mr-2 h-4 w-4" />
                         Mark as Safe
