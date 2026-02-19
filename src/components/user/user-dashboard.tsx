@@ -1,18 +1,29 @@
 
 'use client';
 
-import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Zone, RouteDetails, User, AppSettings, AlertMessage } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { RouteInfo } from './route-info';
 import { Button } from '../ui/button';
-import { Loader, RefreshCw, Siren } from 'lucide-react';
-import { classifyAllZonesAction, getRouteAction, updateUserLocationAndClassifyZonesAction, refreshDataAction, getLatestAlertAction } from '@/lib/actions';
+import { RefreshCw, Siren } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DensityLegend } from './density-legend';
 import { LocationTracker } from './location-tracker';
+import { SOSButton } from './sos-button';
+import { 
+  useCollection, 
+  useDoc, 
+  useMemoFirebase, 
+  useFirestore, 
+  errorEmitter, 
+  FirestorePermissionError 
+} from '@/firebase';
+import { collection, doc, query, orderBy, limit, setDoc, serverTimestamp } from 'firebase/firestore';
+import { getRouteAction } from '@/lib/actions';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,8 +32,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { SOSButton } from './sos-button';
-
 
 interface UserDashboardProps {
   initialZones: Zone[];
@@ -31,264 +40,88 @@ interface UserDashboardProps {
 }
 
 const LAST_SEEN_ALERT_KEY = 'evacai-last-seen-alert-timestamp';
-export const SESSION_LOGIN_TIMESTAMP_KEY = 'evacai-session-login-timestamp';
 
-// Function to play sound and vibrate
-const triggerEmergencyNotification = () => {
-  // 1. Vibration
-  if (navigator.vibrate) {
-    // Vibrate for 500ms, pause 100ms, vibrate 500ms
-    navigator.vibrate([500, 100, 500]);
-  }
+export function UserDashboard({ initialUser }: UserDashboardProps) {
+  const db = useFirestore();
+  const { toast } = useToast();
+  
+  // Real-time Firestore Queries
+  const zonesQuery = useMemoFirebase(() => collection(db, 'zones'), [db]);
+  const { data: zones = [] } = useCollection<Zone>(zonesQuery);
 
-  // 2. Sound
-  try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A high-pitched beep (A5)
-    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.5); // Play for 0.5 seconds
-  } catch (e) {
-    console.error("Could not play alert sound:", e);
-  }
-};
+  const userRef = useMemoFirebase(() => doc(db, 'users', initialUser.id), [db, initialUser.id]);
+  const { data: userProfile } = useDoc<User>(userRef);
 
+  const alertsQuery = useMemoFirebase(() => query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(1)), [db]);
+  const { data: alerts = [] } = useCollection<AlertMessage>(alertsQuery);
 
-export function UserDashboard({ initialZones, initialUser, settings }: UserDashboardProps) {
-  const [zones, setZones] = useState<Zone[]>(initialZones);
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [routingError, setRoutingError] = useState<string | null>(null);
   const [currentZoneName, setCurrentZoneName] = useState<string>('Locating...');
   const [currentUserLocation, setCurrentUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [isPlanning, startRoutePlanning] = useTransition();
-  const [isClassifying, startClassification] = useTransition();
-  const [isSendingLocation, setIsSendingLocation] = useState(true); // Start as true
-  const [lastLocationUpdate, setLastLocationUpdate] = useState<Date | null>(null);
-  const [lastSyncTime, setLastSyncTime] = useState('');
-  const [latestAlert, setLatestAlert] = useState<AlertMessage | null>(null);
+  const [isPlanning, setIsPlanning] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
-  const locationIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const dataRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const alertIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const { toast } = useToast();
-  
-  // This effect keeps the component's state in sync with server-sent props
+  const [latestAlert, setLatestAlert] = useState<AlertMessage | null>(null);
+
+  // Alert Handling
   useEffect(() => {
-    setZones(initialZones);
-    setLastSyncTime(new Date().toLocaleTimeString());
-  }, [initialZones]);
-
-  const getLocationAndUpdate = useCallback(() => {
-    if (!navigator.geolocation) {
-      toast({
-        variant: "destructive",
-        title: "Unsupported Browser",
-        description: "Your browser does not support geolocation.",
-      });
-      setCurrentZoneName('Problem getting location');
-      setIsSendingLocation(false);
-      return;
-    }
-    
-    setIsSendingLocation(true);
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setCurrentUserLocation({ lat: latitude, lng: longitude });
-        
-        updateUserLocationAndClassifyZonesAction(
-            initialUser.id, 
-            initialUser.name, 
-            latitude, 
-            longitude, 
-            initialUser.groupSize
-        ).then((result) => {
-            if (result.error) {
-                throw new Error(result.error);
-            }
-            const { zones: updatedZones, currentZone: newZone } = result.data!;
-            
-            setLastLocationUpdate(new Date());
-            setZones(updatedZones); // Update the map with fresh data
-
-            if (newZone) {
-                const previousZoneName = currentZoneName;
-                const newZoneName = newZone.zoneId === 'unknown' ? 'Not in a designated zone' : newZone.zoneName;
-                
-                setCurrentZoneName(newZoneName);
-                
-                // Only show toast if user enters a *known* zone that is different from the previous one
-                if (newZone.zoneId !== 'unknown' && newZone.zoneName !== previousZoneName) {
-                    toast({
-                        title: "You've entered a new zone!",
-                        description: `You are now in: ${newZone.zoneName}`,
-                    });
-                }
-            } else {
-                setCurrentZoneName('Not in a designated zone');
-            }
-        }).catch((err) => {
-           toast({
-              variant: "destructive",
-              title: "Update Error",
-              description: err.message || "Failed to update location and classify zones.",
-          });
-           setCurrentZoneName('Problem getting location');
-           setCurrentUserLocation(null);
-        }).finally(() => {
-           setIsSendingLocation(false);
-        });
-      },
-      (error) => {
-        let description = "Could not get your location. Please ensure location services are enabled.";
-        if (error?.code === error.PERMISSION_DENIED) {
-          description = "Location permission denied. Please enable it in your browser settings to use this feature.";
-        }
-        toast({
-          variant: "destructive",
-          title: "Location Error",
-          description,
-        });
-        setCurrentZoneName('Problem getting location');
-        setCurrentUserLocation(null);
-        setIsSendingLocation(false);
-      },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-    );
-  }, [toast, initialUser.id, initialUser.name, initialUser.groupSize, currentZoneName]);
-  
-  const checkForNewAlert = useCallback(async () => {
-    const result = await getLatestAlertAction();
-    if (result.data) {
-        const newAlert = result.data;
-        const lastSeenTimestamp = localStorage.getItem(LAST_SEEN_ALERT_KEY);
-        const loginTimestamp = sessionStorage.getItem(SESSION_LOGIN_TIMESTAMP_KEY);
-
-        // Check 1: Is this an alert the user has already seen in this session?
-        if (newAlert.timestamp === lastSeenTimestamp) {
-            return;
-        }
-
-        // Check 2: Was the alert sent *before* this user logged in? If so, ignore it.
-        if (loginTimestamp && newAlert.timestamp < loginTimestamp) {
-            return;
-        }
-
-        const isGlobalAlert = !newAlert.zoneId;
-        const isUserInTargetedZone = newAlert.zoneId && initialUser.lastZoneId === newAlert.zoneId;
-
-        if (isGlobalAlert || isUserInTargetedZone) {
-            setLatestAlert(newAlert);
-            setShowAlert(true);
-            triggerEmergencyNotification(); // Vibrate and play sound
-        }
-    }
-  }, [initialUser.lastZoneId]);
-
-  // Effect for sending user location updates
-  useEffect(() => {
-    const updateIntervalMs = (settings.locationUpdateInterval || 30) * 1000;
-    
-    // Initial call after a short delay
-    const initialTimeout = setTimeout(() => {
-      getLocationAndUpdate();
-      // Then set up the interval
-      locationIntervalRef.current = setInterval(getLocationAndUpdate, updateIntervalMs);
-    }, 100);
-
-    // Cleanup function
-    return () => {
-      clearTimeout(initialTimeout);
-      if (locationIntervalRef.current) {
-        clearInterval(locationIntervalRef.current);
-      }
-    };
-  }, [getLocationAndUpdate, settings.locationUpdateInterval]);
-
-  // Effect for periodically refreshing all data
-  useEffect(() => {
-    const refreshData = async () => {
-      await refreshDataAction();
-      setLastSyncTime(new Date().toLocaleTimeString());
-    };
-
-    dataRefreshIntervalRef.current = setInterval(refreshData, 15000); // e.g., every 15 seconds
-
-    return () => {
-      if (dataRefreshIntervalRef.current) {
-        clearInterval(dataRefreshIntervalRef.current);
+    if (alerts.length > 0) {
+      const newAlert = alerts[0];
+      const lastSeen = localStorage.getItem(LAST_SEEN_ALERT_KEY);
+      if (newAlert.timestamp !== lastSeen) {
+        setLatestAlert(newAlert);
+        setShowAlert(true);
       }
     }
-  }, []);
-  
-  // Effect for checking for new alerts in near real-time
-  useEffect(() => {
-    // Check immediately on load
-    checkForNewAlert();
-    // Then check every 5 seconds
-    alertIntervalRef.current = setInterval(checkForNewAlert, 5000);
-
-    return () => {
-      if (alertIntervalRef.current) {
-        clearInterval(alertIntervalRef.current);
-      }
-    };
-  }, [checkForNewAlert]);
-
-  const handlePlanRoute = (sourceZone: string, destinationZone: string) => {
-    startRoutePlanning(async () => {
-      setRouteDetails(null);
-      setRoutingError(null);
-      const result = await getRouteAction(sourceZone, destinationZone);
-      if (result.error) {
-        setRoutingError(result.error);
-        toast({
-          variant: 'destructive',
-          title: 'No route',
-          description: result.error,
-        });
-      } else {
-        setRouteDetails(result.data!);
-        toast({
-          title: 'Route Found!',
-          description: 'Displaying the most optimal path.',
-        });
-      }
-    });
-  };
-
-  const handleClassifyZones = () => {
-    startClassification(async () => {
-      const result = await classifyAllZonesAction();
-       if (result.error) {
-        toast({
-          variant: 'destructive',
-          title: 'Classification Error',
-          description: result.error,
-        });
-      } else {
-        toast({
-          title: 'Densities Updated',
-          description: 'Zone crowd levels have been re-calculated and will appear shortly.',
-        });
-      }
-    });
-  }
+  }, [alerts]);
 
   const handleAcknowledgeAlert = () => {
-    if (latestAlert) {
-      localStorage.setItem(LAST_SEEN_ALERT_KEY, latestAlert.timestamp);
-    }
+    if (latestAlert) localStorage.setItem(LAST_SEEN_ALERT_KEY, latestAlert.timestamp);
     setShowAlert(false);
+  };
+
+  // Location Tracking
+  const updateLocation = useCallback((lat: number, lng: number) => {
+    setCurrentUserLocation({ lat, lng });
+    const userUpdate = {
+      ...initialUser,
+      lastLatitude: lat,
+      lastLongitude: lng,
+      lastSeen: new Date().toISOString(),
+      status: 'online'
+    };
+    
+    setDoc(userRef, userUpdate, { merge: true }).catch(async (e) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: userRef.path,
+        operation: 'update',
+        requestResourceData: userUpdate
+      }));
+    });
+  }, [userRef, initialUser]);
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => updateLocation(pos.coords.latitude, pos.coords.longitude),
+        (err) => console.error(err),
+        { enableHighAccuracy: true }
+      );
+      return () => navigator.geolocation.clearWatch(watchId);
+    }
+  }, [updateLocation]);
+
+  const handlePlanRoute = async (sourceZone: string, destinationZone: string) => {
+    setIsPlanning(true);
+    setRouteDetails(null);
+    setRoutingError(null);
+    const result = await getRouteAction(sourceZone, destinationZone, zones);
+    if (result.error) {
+      setRoutingError(result.error);
+    } else {
+      setRouteDetails(result.data);
+    }
+    setIsPlanning(false);
   };
 
   return (
@@ -296,77 +129,55 @@ export function UserDashboard({ initialZones, initialUser, settings }: UserDashb
       <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive">Important Alert</AlertDialogTitle>
-            <AlertDialogDescription>
-              {latestAlert?.message}
-            </AlertDialogDescription>
+            <AlertDialogTitle className="text-destructive">Emergency Alert</AlertDialogTitle>
+            <AlertDialogDescription>{latestAlert?.message}</AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogAction onClick={handleAcknowledgeAlert} className="bg-destructive hover:bg-destructive/90">
-            Acknowledge
-          </AlertDialogAction>
+          <AlertDialogAction onClick={handleAcknowledgeAlert}>Acknowledge</AlertDialogAction>
         </AlertDialogContent>
       </AlertDialog>
 
-       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
         <div>
           <h1 className="text-4xl font-headline font-bold">Event Navigator</h1>
-          <p className="text-muted-foreground">
-            Find the best path through the event. Last sync: {lastSyncTime}
-          </p>
+          <p className="text-muted-foreground">Live Cloud Sync Active</p>
         </div>
-         <Button onClick={handleClassifyZones} disabled={isClassifying}>
-           {isClassifying ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-          Update Crowd Levels
-        </Button>
       </div>
 
-    <div className="grid lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-1 flex flex-col gap-8">
-        <Card className="shadow-lg border-destructive border-2 bg-destructive/10">
+      <div className="grid lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-1 flex flex-col gap-8">
+          <Card className="border-destructive border-2 bg-destructive/10">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-destructive">
-                <Siren className="h-6 w-6" />
-                Emergency SOS
+                <Siren className="h-6 w-6" /> SOS
               </CardTitle>
-              <CardDescription className="text-destructive/80">
-                In case of a personal emergency, press this button to alert admin staff.
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              <SOSButton userId={initialUser.id} initialSOSState={initialUser.sos ?? false} />
+              <SOSButton userId={initialUser.id} initialSOSState={userProfile?.sos ?? false} />
             </CardContent>
           </Card>
-        <LocationTracker 
+          <LocationTracker 
             currentZoneName={currentZoneName} 
-            isSending={isSendingLocation}
-            lastUpdated={lastLocationUpdate}
+            isSending={false}
+            lastUpdated={new Date()}
             coordinates={currentUserLocation}
-        />
-        <RoutePlanner
-          zones={zones}
-          onPlanRoute={handlePlanRoute}
-          isPlanning={isPlanning}
-        />
-        <RouteInfo routeDetails={routeDetails} isPlanning={isPlanning} zones={zones} routingError={routingError} />
-      </div>
-      <div className="lg:col-span-2">
-        <Card className="h-full min-h-[600px] shadow-lg">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-                <CardTitle>Event Map</CardTitle>
+          />
+          <RoutePlanner zones={zones} onPlanRoute={handlePlanRoute} isPlanning={isPlanning} />
+          <RouteInfo routeDetails={routeDetails} isPlanning={isPlanning} zones={zones} routingError={routingError} />
+        </div>
+        <div className="lg:col-span-2">
+          <Card className="h-full min-h-[600px] shadow-lg">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Cloud Map</CardTitle>
                 <DensityLegend />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <MapView 
-              zones={zones} 
-              route={routeDetails?.route ?? []} 
-              alternativeRoute={routeDetails?.alternativeRoute ?? []} 
-            />
-          </CardContent>
-        </Card>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <MapView zones={zones} route={routeDetails?.route ?? []} alternativeRoute={routeDetails?.alternativeRoute ?? []} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
     </div>
   );
 }

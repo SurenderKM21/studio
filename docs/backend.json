@@ -1,397 +1,103 @@
+
 {
   "entities": {
-    "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserProfile",
-      "type": "object",
-      "description": "Represents an individual user (either a general user or an admin) of the CrowdNav application, storing their profile information and last known location.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserProfile entity."
-        },
-        "email": {
-          "type": "string",
-          "description": "The email address of the user, primarily for identification purposes. Authentication is handled by an external system.",
-          "format": "email"
-        },
-        "lastKnownLatitude": {
-          "type": "number",
-          "description": "The latitude coordinate of the user's most recently reported GPS location."
-        },
-        "lastKnownLongitude": {
-          "type": "number",
-          "description": "The longitude coordinate of the user's most recently reported GPS location."
-        },
-        "lastLocationUpdateTime": {
-          "type": "string",
-          "description": "Timestamp indicating when the user's last known location was recorded.",
-          "format": "date-time"
-        },
-        "userType": {
-          "type": "string",
-          "description": "The classification of the user, defining their role within the application.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when this user profile was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when this user profile was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "email",
-        "userType",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
-    "AppConfiguration": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AppConfiguration",
-      "type": "object",
-      "description": "Stores global application settings and parameters that can be configured by an administrator.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the AppConfiguration entity. (Expected to be a singleton, e.g., 'global-settings')."
-        },
-        "locationUpdateFrequencySeconds": {
-          "type": "number",
-          "description": "The interval in seconds at which the application collects and updates user GPS locations. Configurable by an admin, between 30 and 300 seconds."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the app configuration was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the app configuration was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "locationUpdateFrequencySeconds",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
     "Zone": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Zone",
+      "description": "Represents a geographical area with crowd density tracking.",
       "type": "object",
-      "description": "Represents a distinct geographical area or division within the event ground, used for crowd management and route calculation.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Zone entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "A human-readable name for the zone (e.g., 'Main Stage', 'Entrance A')."
-        },
-        "description": {
-          "type": "string",
-          "description": "An optional detailed description of the zone's purpose or characteristics."
-        },
-        "zoneBoundaryCoordinates": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "capacity": { "type": "number" },
+        "userCount": { "type": "number" },
+        "density": { "type": "string", "enum": ["free", "moderate", "crowded", "over-crowded"] },
+        "coordinates": {
           "type": "array",
-          "description": "An ordered array of GPS coordinate pairs (latitude, longitude) that define the polygonal boundary of the zone.",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "lat": { "type": "number" },
+              "lng": { "type": "number" }
+            }
           }
         },
-        "currentCrowdDensityCategory": {
-          "type": "string",
-          "description": "The real-time classification of crowd density for the zone, automatically calculated based on user location data.",
+        "manualDensity": { "type": "boolean" },
+        "notes": {
+          "type": "array",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "text": { "type": "string" },
+              "visibleToUser": { "type": "boolean" },
+              "createdAt": { "type": "string", "format": "date-time" }
+            }
           }
-        },
-        "manualCrowdDensityCategory": {
-          "type": "string",
-          "description": "The crowd density classification manually set by an admin. 'auto' indicates that the zone's density follows the current calculated category.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "estimatedOccupancyCount": {
-          "type": "number",
-          "description": "The estimated number of users currently detected within this zone based on real-time location data."
-        },
-        "lastDensityCalculationTime": {
-          "type": "string",
-          "description": "Timestamp of the last moment the crowd density for this zone was calculated.",
-          "format": "date-time"
-        },
-        "manualOverrideTimestamp": {
-          "type": "string",
-          "description": "Timestamp indicating when the manual crowd density override was last set by an administrator.",
-          "format": "date-time"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the zone was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the zone was last updated.",
-          "format": "date-time"
         }
       },
-      "required": [
-        "id",
-        "name",
-        "zoneBoundaryCoordinates",
-        "currentCrowdDensityCategory",
-        "manualCrowdDensityCategory",
-        "estimatedOccupancyCount",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "name", "capacity", "userCount", "density", "coordinates"]
     },
-    "Pathway": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Pathway",
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account and real-time location data.",
       "type": "object",
-      "description": "Represents a traversable connection or route segment between two zones or specific points within the event ground, used as edges in the route finding graph.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Pathway entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "A human-readable name for the pathway (e.g., 'Path between Main Stage and Food Court')."
-        },
-        "description": {
-          "type": "string",
-          "description": "An optional detailed description of the pathway."
-        },
-        "startZoneId": {
-          "type": "string",
-          "description": "Reference to the Zone entity from which this pathway originates. (Relationship: Zone 1:N Pathway)"
-        },
-        "endZoneId": {
-          "type": "string",
-          "description": "Reference to the Zone entity where this pathway terminates. (Relationship: Zone 1:N Pathway)"
-        },
-        "pathCoordinates": {
-          "type": "array",
-          "description": "An ordered array of GPS coordinate pairs (latitude, longitude) defining the physical geometry of the pathway.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "currentCongestionFactor": {
-          "type": "number",
-          "description": "A numerical factor (0-1) representing the current congestion level of the pathway, where 0 is clear and 1 indicates heavy congestion or blockage."
-        },
-        "isBidirectional": {
-          "type": "boolean",
-          "description": "Indicates if the pathway can be traversed in both directions (true) or only from its startZone to its endZone (false)."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the pathway was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the pathway was last updated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "status": { "type": "string", "enum": ["online", "offline"] },
+        "groupSize": { "type": "number" },
+        "lastLatitude": { "type": "number" },
+        "lastLongitude": { "type": "number" },
+        "lastSeen": { "type": "string", "format": "date-time" },
+        "lastZoneId": { "type": "string" },
+        "sos": { "type": "boolean" }
       },
-      "required": [
-        "id",
-        "name",
-        "startZoneId",
-        "endZoneId",
-        "pathCoordinates",
-        "currentCongestionFactor",
-        "isBidirectional",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "name", "role", "status"]
     },
-    "UserRoute": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserRoute",
+    "Alert": {
+      "title": "Alert",
+      "description": "A broadcast message sent to users.",
       "type": "object",
-      "description": "Represents a specific optimal route generated for a user from a source zone to a destination zone, including congestion-aware path details.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserRoute entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile entity who requested this route. (Relationship: UserProfile 1:N UserRoute)"
-        },
-        "sourceZoneId": {
-          "type": "string",
-          "description": "Reference to the Zone entity from which the route starts. (Relationship: Zone 1:N UserRoute)"
-        },
-        "destinationZoneId": {
-          "type": "string",
-          "description": "Reference to the Zone entity where the route ends. (Relationship: Zone 1:N UserRoute)"
-        },
-        "requestedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the route was requested by the user.",
-          "format": "date-time"
-        },
-        "generatedRoutePathwayIds": {
-          "type": "array",
-          "description": "An ordered list of Pathway IDs that constitute the recommended optimal route from source to destination. (Relationship: Pathway N:N UserRoute)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "fullRouteCoordinates": {
-          "type": "array",
-          "description": "An ordered array of GPS coordinate pairs (latitude, longitude) representing the entire recommended route's geometry for display.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "estimatedTravelTimeMinutes": {
-          "type": "number",
-          "description": "The estimated travel time in minutes for the generated route, taking into account current congestion levels."
-        },
-        "isAlternativeRouteSuggested": {
-          "type": "boolean",
-          "description": "Indicates if this route was suggested as an alternative due to congestion detected on a primary pathway."
-        },
-        "congestionAlertIssued": {
-          "type": "boolean",
-          "description": "Indicates if a real-time congestion alert was issued in conjunction with this route generation (e.g., prompting an alternative path)."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when this user route was generated and recorded.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when this user route was last updated (e.g., re-calculated).",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "message": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "zoneId": { "type": "string" }
       },
-      "required": [
-        "id",
-        "userId",
-        "sourceZoneId",
-        "destinationZoneId",
-        "requestedAt",
-        "generatedRoutePathwayIds",
-        "fullRouteCoordinates",
-        "estimatedTravelTimeMinutes",
-        "isAlternativeRouteSuggested",
-        "congestionAlertIssued",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "message", "timestamp"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Global application configuration.",
+      "type": "object",
+      "properties": {
+        "locationUpdateInterval": { "type": "number" },
+        "zoneSnappingThreshold": { "type": "number" },
+        "latestAlertTimestamp": { "type": "string" }
+      }
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/user_profiles/{userId}",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores individual user profiles. Access is restricted to the owner (matching `request.auth.uid`) for read/write. The document's 'id' field MUST match the 'userId' in the path and `request.auth.uid`. Includes 'userType' for role-based authorization (e.g., 'admin').",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user, corresponding to `request.auth.uid`."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/app_configuration/global-settings",
-        "definition": {
-          "entityName": "AppConfiguration",
-          "schema": {
-            "$ref": "#/backend/entities/AppConfiguration"
-          },
-          "description": "A singleton document storing global application settings. Read access for all authenticated users. Write access is restricted to 'admin' users as defined in their UserProfile."
-        }
-      },
-      {
-        "path": "/zones/{zoneId}",
-        "definition": {
-          "entityName": "Zone",
-          "schema": {
-            "$ref": "#/backend/entities/Zone"
-          },
-          "description": "Defines geographical zones within the event ground. Read access for all authenticated users. Write access (create, update, delete) is restricted to 'admin' users. Documents include 'currentCrowdDensityCategory' and 'manualCrowdDensityCategory'.",
-          "params": [
-            {
-              "name": "zoneId",
-              "description": "The unique identifier for a specific zone."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/pathways/{pathwayId}",
-        "definition": {
-          "entityName": "Pathway",
-          "schema": {
-            "$ref": "#/backend/entities/Pathway"
-          },
-          "description": "Represents traversable connections between zones. Read access for all authenticated users. Write access (create, update, delete) is restricted to 'admin' users. Documents include 'startZoneId' and 'endZoneId' for graph construction.",
-          "params": [
-            {
-              "name": "pathwayId",
-              "description": "The unique identifier for a specific pathway."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/user_profiles/{userId}/routes/{routeId}",
-        "definition": {
-          "entityName": "UserRoute",
-          "schema": {
-            "$ref": "#/backend/entities/UserRoute"
-          },
-          "description": "Stores optimal routes generated for a specific user. Access is restricted to the owner (matching 'request.auth.uid' with 'userId' in the path). The document also includes a denormalized 'userId' field for authorization independence and data integrity.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns this route, corresponding to `request.auth.uid`."
-            },
-            {
-              "name": "routeId",
-              "description": "The unique identifier for a specific user route."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The recommended Firestore structure is designed to be highly secure, scalable, and debuggable, strictly adhering to the core design principles and strategy mandates. \n\n**Authorization Independence (CRITICAL):**\nThis design prioritizes Authorization Independence by eliminating hierarchical authorization dependencies (avoiding `get()` calls in security rules for authorization logic). \n*   For user-specific data, such as `UserProfile` and `UserRoute` entries, the `userId` is embedded directly into the document path (e.g., `/user_profiles/{userId}/routes/{routeId}`). This means that security rules can directly compare `request.auth.uid` against the `{userId}` wildcard in the path, requiring no additional `get()` calls to determine ownership or permissions for these documents. The `UserProfile` document itself also has an `id` field matching `request.auth.uid`, providing a self-contained authorization context. For `UserRoute` documents, the `userId` field within the document serves as a denormalized authorization context, even though the path also contains the `userId` parameter.\n*   For global settings (`app_configuration`), `zones`, and `pathways`, access control is based on whether a user has an 'admin' `userType` as stored in their own `UserProfile`. While this involves a `get()` call to `user_profiles/{request.auth.uid}` to fetch the user's role, this is an explicit role check on the *current authenticated user's own data*, not a hierarchical dependency on parent document data to authorize a child document. This `get()` is predictable, atomic, and does not break transactions/batches.\n\n**QAPs (Rules are not Filters):**\nThe structure ensures Queryable Authorization Patterns (QAPs) by applying the 'Structural Segregation' mandate:\n*   **User-Owned Data**: Collections like `/user_profiles/{userId}/routes` are explicitly segregated by user, allowing users to query (`list`) *only their own routes* without needing complex filtering in rules. The path itself enforces the filter, `request.auth.uid` must match `{userId}` in the query path. Similarly, a user querying their own `/user_profiles/{userId}` document is implicitly secure.\n*   **Public Read, Admin Write Data**: Collections like `/zones` and `/pathways` have a homogeneous security posture: all authenticated users can read, and only admins can write. This allows any authenticated user to `list` all documents in these collections securely, as no filtering based on user-specific permissions is required in the query itself. The rules simply enforce the read/write permissions based on the user's authenticated status and role.\n*   **Global Configuration**: `/app_configuration/global-settings` is a singleton, so `list` operations are not applicable. Read access is global for authenticated users, write is admin-only.\n\n**Structural Segregation & Access Modeling:**\n*   `UserProfile` and `UserRoute` entities follow **Path-Based Ownership** and **Hierarchical Paths for User-Owned Data** (`/user_profiles/{userId}`, `/user_profiles/{userId}/routes/{routeId}`), making `request.auth.uid` the primary authorization key.\n*   `AppConfiguration`, `Zone`, and `Pathway` entities are treated as shared resources with differentiated read/write permissions, managed by admin roles. This allows for straightforward global access for reads by all authenticated users and restricted writes for administrators.\n*   Global roles are implicitly handled via the `userType` field within the `UserProfile` document itself, aligning with the DBAC principle and keeping role information within the database."
+    "/zones/{zoneId}": {
+      "schema": "#/backend/entities/Zone",
+      "description": "Collection of event zones."
+    },
+    "/users/{userId}": {
+      "schema": "#/backend/entities/UserProfile",
+      "description": "Collection of user profiles."
+    },
+    "/alerts/{alertId}": {
+      "schema": "#/backend/entities/Alert",
+      "description": "Collection of broadcast alerts."
+    },
+    "/settings/global": {
+      "schema": "#/backend/entities/Settings",
+      "description": "Global settings singleton."
+    }
   }
 }

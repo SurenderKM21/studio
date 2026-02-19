@@ -1,163 +1,77 @@
 
 'use client';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import type { Zone, AppSettings, User } from '@/lib/types';
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Map, Users, Settings, Siren, MessageSquareWarning, NotebookPen, AlertTriangle } from 'lucide-react';
 import { ZoneManager } from './zone-manager';
 import { DensityControl } from './density-control';
 import { SettingsPanel } from './settings-panel';
-import { Users, Map, Settings, List, AlertTriangle, RefreshCw, MessageSquareWarning, NotebookPen, Siren } from 'lucide-react';
+import { SOSMonitor } from './sos-monitor';
 import { UserMonitor } from './user-monitor';
 import { ZoneDetails } from './zone-details';
 import { OvercrowdedZones } from './overcrowded-zones';
-import { useEffect, useState, useTransition } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '../ui/button';
-import { refreshDataAction } from '@/lib/actions';
 import { AlertManager } from './alert-manager';
 import { ZoneNotesManager } from './zone-notes-manager';
-import { SOSMonitor } from './sos-monitor';
+import { 
+  useCollection, 
+  useMemoFirebase, 
+  useFirestore 
+} from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Zone, User, AppSettings } from '@/lib/types';
 
-interface AdminDashboardProps {
-  initialZones: Zone[];
-  initialSettings: AppSettings;
-  initialUsers: User[];
-}
+export function AdminDashboard({ initialSettings }: { initialSettings: AppSettings }) {
+  const db = useFirestore();
 
-export function AdminDashboard({
-  initialZones,
-  initialSettings,
-  initialUsers,
-}: AdminDashboardProps) {
-  const [zones, setZones] = useState<Zone[]>(initialZones);
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [lastSyncTime, setLastSyncTime] = useState('');
-  const { toast } = useToast();
-  const [isRefreshing, startRefresh] = useTransition();
+  const zonesQuery = useMemoFirebase(() => collection(db, 'zones'), [db]);
+  const { data: zones = [] } = useCollection<Zone>(zonesQuery);
 
-  // This effect ensures that when the server sends updated props, the local state is updated.
-  useEffect(() => {
-    const previousZones = zones;
-    setZones(initialZones);
-    setUsers(initialUsers);
-    setLastSyncTime(new Date().toLocaleTimeString());
+  const usersQuery = useMemoFirebase(() => collection(db, 'users'), [db]);
+  const { data: users = [] } = useCollection<User>(usersQuery);
 
-    // Compare initialZones with the previous state to find new overcrowded zones
-    initialZones.forEach((newZone) => {
-      const prevZone = previousZones.find((z) => z.id === newZone.id);
-      if (
-        prevZone &&
-        newZone.density === 'over-crowded' &&
-        prevZone.density !== 'over-crowded'
-      ) {
-        toast({
-          variant: 'destructive',
-          title: 'Zone Over-crowded!',
-          description: `The "${newZone.name}" zone has reached maximum capacity.`,
-          duration: 10000,
-        });
-      }
-    });
-  }, [initialZones, initialUsers]);
-
-
-  const handleRefresh = () => {
-    startRefresh(async () => {
-      await refreshDataAction();
-      toast({
-        title: 'Data Refreshed',
-        description: 'The dashboard has been updated with the latest data.',
-      });
-    });
-  };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-       startRefresh(async () => {
-        await refreshDataAction();
-      });
-    }, 15000); // Refresh every 15 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const overCrowdedCount = zones.filter(
-    (z) => z.density === 'over-crowded'
-  ).length;
-
-  const sosCount = initialUsers.filter(u => u.sos).length;
+  const sosCount = users.filter(u => u.sos).length;
+  const overCrowdedCount = zones.filter(z => z.density === 'over-crowded').length;
 
   return (
-    <div>
-       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-           <h1 className="text-4xl font-headline font-bold mb-2">Admin Dashboard</h1>
-           <p className="text-muted-foreground">
-             Manage zones and system settings. Last sync: {lastSyncTime}
-           </p>
+          <h1 className="text-4xl font-headline font-bold">Admin Central</h1>
+          <p className="text-muted-foreground text-sm">Real-time Firestore Management</p>
         </div>
-        <Button onClick={handleRefresh} disabled={isRefreshing} className="w-full sm:w-auto">
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh Data
-        </Button>
       </div>
+
       <Tabs defaultValue="sos" className="w-full">
-        <TabsList className="flex flex-wrap h-auto">
-           <TabsTrigger value="sos" className={sosCount > 0 ? 'text-destructive' : ''}>
-            <Siren className="mr-2 h-4 w-4" />
-            SOS Alerts ({sosCount})
+        <TabsList className="flex flex-wrap h-auto bg-muted p-1">
+          <TabsTrigger value="sos" className={sosCount > 0 ? 'text-destructive font-bold' : ''}>
+            <Siren className="mr-2 h-4 w-4" /> SOS ({sosCount})
           </TabsTrigger>
           <TabsTrigger value="zones">
-            <Map className="mr-2 h-4 w-4" />
-            Zone Manager
-          </TabsTrigger>
-          <TabsTrigger value="zone-details">
-            <List className="mr-2 h-4 w-4" />
-            Zone Details
-          </TabsTrigger>
-          <TabsTrigger value="density">
-            <Users className="mr-2 h-4 w-4" />
-            Density Control
+            <Map className="mr-2 h-4 w-4" /> Zones
           </TabsTrigger>
           <TabsTrigger value="users">
-            <Users className="mr-2 h-4 w-4" />
-            Users
+            <Users className="mr-2 h-4 w-4" /> Users
           </TabsTrigger>
-           <TabsTrigger value="alerts">
-            <MessageSquareWarning className="mr-2 h-4 w-4" />
-            Send Alert
+          <TabsTrigger value="alerts">
+            <MessageSquareWarning className="mr-2 h-4 w-4" /> Alerts
           </TabsTrigger>
-          <TabsTrigger value="notes">
-            <NotebookPen className="mr-2 h-4 w-4" />
-            Zone Notes
-          </TabsTrigger>
-          <TabsTrigger value="overcrowded" className="text-destructive">
-            <AlertTriangle className="mr-2 h-4 w-4" />
-            Over-crowded ({overCrowdedCount})
+          <TabsTrigger value="overcrowded">
+            <AlertTriangle className="mr-2 h-4 w-4" /> Overcrowded ({overCrowdedCount})
           </TabsTrigger>
           <TabsTrigger value="settings">
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
+            <Settings className="mr-2 h-4 w-4" /> Settings
           </TabsTrigger>
         </TabsList>
+
         <TabsContent value="sos">
-            <SOSMonitor initialUsers={initialUsers} initialZones={zones} />
+          <SOSMonitor initialUsers={users} initialZones={zones} />
         </TabsContent>
         <TabsContent value="zones">
-          <ZoneManager initialZones={zones} />
-        </TabsContent>
-        <TabsContent value="zone-details">
-          <ZoneDetails initialZones={zones} />
-        </TabsContent>
-        <TabsContent value="density">
-          <DensityControl initialZones={zones} />
-        </TabsContent>
-        <TabsContent value="overcrowded">
-          <OvercrowdedZones zones={zones} />
+          <div className="grid gap-6">
+            <ZoneManager initialZones={zones} />
+            <ZoneDetails initialZones={zones} />
+            <DensityControl initialZones={zones} />
+          </div>
         </TabsContent>
         <TabsContent value="users">
           <UserMonitor initialUsers={users} initialZones={zones} />
@@ -165,8 +79,8 @@ export function AdminDashboard({
         <TabsContent value="alerts">
           <AlertManager zones={zones} />
         </TabsContent>
-        <TabsContent value="notes">
-            <ZoneNotesManager initialZones={zones} />
+        <TabsContent value="overcrowded">
+          <OvercrowdedZones zones={zones} />
         </TabsContent>
         <TabsContent value="settings">
           <SettingsPanel initialSettings={initialSettings} />
