@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import type { Zone, RouteDetails, AlertMessage } from '@/lib/types';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import type { Zone, RouteDetails, AlertMessage, User, DensityCategory } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -37,6 +37,14 @@ interface UserDashboardProps {
 
 const LAST_SEEN_ALERT_KEY = 'evacai-last-seen-alert-timestamp';
 
+function calculateDensity(count: number, capacity: number): DensityCategory {
+  const ratio = count / capacity;
+  if (ratio >= 1) return 'over-crowded';
+  if (ratio >= 0.7) return 'crowded';
+  if (ratio >= 0.3) return 'moderate';
+  return 'free';
+}
+
 export function UserDashboard({ userId }: UserDashboardProps) {
   const db = useFirestore();
   
@@ -45,8 +53,20 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   const { data: zonesData } = useCollection(zonesQuery);
   const zones = (zonesData as Zone[]) || [];
 
+  const usersQuery = useMemoFirebase(() => collection(db, 'users'), [db]);
+  const { data: usersData } = useCollection(usersQuery);
+  const users = (usersData as User[]) || [];
+
   const userRef = useMemoFirebase(() => doc(db, 'users', userId), [db, userId]);
   const { data: userProfile } = useDoc(userRef);
+
+  const enrichedZones = useMemo(() => {
+    return zones.map(zone => {
+      const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
+      const density = zone.manualDensity ? zone.density : calculateDensity(count, zone.capacity);
+      return { ...zone, userCount: count, density };
+    });
+  }, [zones, users]);
 
   const alertsQuery = useMemoFirebase(() => query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(1)), [db]);
   const { data: alertsData = [] } = useCollection(alertsQuery);
@@ -61,7 +81,6 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   const [mountedTime, setMountedTime] = useState<Date | null>(null);
 
   useEffect(() => {
-    // Avoid hydration mismatch by setting time after mount
     setMountedTime(new Date());
   }, []);
 
@@ -121,8 +140,8 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     setIsPlanning(true);
     setRouteDetails(null);
     setRoutingError(null);
-    // Use zones from current cloud state
-    const result = await getRouteAction(sourceZone, destinationZone, zones);
+    // Use enriched zones for routing logic
+    const result = await getRouteAction(sourceZone, destinationZone, enrichedZones);
     if (result.error) {
       setRoutingError(result.error);
     } else {
@@ -174,8 +193,8 @@ export function UserDashboard({ userId }: UserDashboardProps) {
             lastUpdated={mountedTime}
             coordinates={currentUserLocation}
           />
-          <RoutePlanner zones={zones} onPlanRoute={handlePlanRoute} isPlanning={isPlanning} />
-          <RouteInfo routeDetails={routeDetails} isPlanning={isPlanning} zones={zones} routingError={routingError} />
+          <RoutePlanner zones={enrichedZones} onPlanRoute={handlePlanRoute} isPlanning={isPlanning} />
+          <RouteInfo routeDetails={routeDetails} isPlanning={isPlanning} zones={enrichedZones} routingError={routingError} />
         </div>
         <div className="lg:col-span-2">
           <Card className="h-full min-h-[600px] shadow-lg">
@@ -186,7 +205,7 @@ export function UserDashboard({ userId }: UserDashboardProps) {
               </div>
             </CardHeader>
             <CardContent>
-              <MapView zones={zones} route={routeDetails?.route ?? []} alternativeRoute={routeDetails?.alternativeRoute ?? []} />
+              <MapView zones={enrichedZones} route={routeDetails?.route ?? []} alternativeRoute={routeDetails?.alternativeRoute ?? []} />
             </CardContent>
           </Card>
         </div>

@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Map, Users, Settings, Siren, MessageSquareWarning, AlertTriangle, Database, NotebookPen, Activity } from 'lucide-react';
 import { ZoneManager } from './zone-manager';
@@ -19,10 +20,18 @@ import {
   useFirestore 
 } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import type { Zone, User } from '@/lib/types';
+import type { Zone, User, DensityCategory } from '@/lib/types';
 
 interface AdminDashboardProps {
   userId: string;
+}
+
+function calculateDensity(count: number, capacity: number): DensityCategory {
+  const ratio = count / capacity;
+  if (ratio >= 1) return 'over-crowded';
+  if (ratio >= 0.7) return 'crowded';
+  if (ratio >= 0.3) return 'moderate';
+  return 'free';
 }
 
 export function AdminDashboard({ userId }: AdminDashboardProps) {
@@ -36,8 +45,16 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const { data: usersData } = useCollection(usersQuery);
   const users = (usersData as User[]) || [];
 
+  const enrichedZones = useMemo(() => {
+    return zones.map(zone => {
+      const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
+      const density = zone.manualDensity ? zone.density : calculateDensity(count, zone.capacity);
+      return { ...zone, userCount: count, density };
+    });
+  }, [zones, users]);
+
   const sosCount = users.filter(u => u.sos).length;
-  const overCrowdedCount = zones.filter(z => z.density === 'over-crowded').length;
+  const overCrowdedCount = enrichedZones.filter(z => z.density === 'over-crowded').length;
 
   return (
     <div className="space-y-6">
@@ -80,28 +97,28 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </TabsList>
 
         <TabsContent value="sos">
-          <SOSMonitor initialUsers={users} initialZones={zones} />
+          <SOSMonitor initialUsers={users} initialZones={enrichedZones} />
         </TabsContent>
         <TabsContent value="zones">
           <div className="grid gap-6">
-            <ZoneManager initialZones={zones} />
-            <ZoneDetails initialZones={zones} />
+            <ZoneManager initialZones={enrichedZones} />
+            <ZoneDetails initialZones={enrichedZones} />
           </div>
         </TabsContent>
         <TabsContent value="density">
-          <DensityControl initialZones={zones} />
+          <DensityControl initialZones={enrichedZones} />
         </TabsContent>
         <TabsContent value="users">
-          <UserMonitor initialUsers={users} initialZones={zones} />
+          <UserMonitor initialUsers={users} initialZones={enrichedZones} />
         </TabsContent>
         <TabsContent value="alerts">
-          <AlertManager zones={zones} />
+          <AlertManager zones={enrichedZones} />
         </TabsContent>
         <TabsContent value="notes">
-          <ZoneNotesManager initialZones={zones} />
+          <ZoneNotesManager initialZones={enrichedZones} />
         </TabsContent>
         <TabsContent value="overcrowded">
-          <OvercrowdedZones zones={zones} />
+          <OvercrowdedZones zones={enrichedZones} />
         </TabsContent>
         <TabsContent value="migration">
           <MigrationTool />
