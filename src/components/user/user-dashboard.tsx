@@ -20,6 +20,7 @@ import {
 import { collection, doc, query, orderBy, limit, setDoc } from 'firebase/firestore';
 import { getRouteAction, identifyZoneAction } from '@/lib/actions';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 import {
   AlertDialog,
@@ -63,15 +64,32 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     return zones.map(zone => {
       const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
       
-      // Dynamic Derivation:
-      // If the zone has a manual density override AND the count still matches the count when the override was set,
-      // use the manual value. Otherwise, revert to dynamic calculation.
-      const isOverrideStale = zone.manualDensity && zone.manualDensityAtCount !== undefined && count !== zone.manualDensityAtCount;
-      const density = (zone.manualDensity && !isOverrideStale) ? zone.density : calculateDensity(count, zone.capacity);
+      // Dynamic Derivation with staleness check:
+      // If the zone has a manual override, it is ONLY valid while the count is exactly what it was when set.
+      const isOverrideStale = zone.manualDensity && 
+                              zone.manualDensityAtCount !== undefined && 
+                              count !== zone.manualDensityAtCount;
       
-      return { ...zone, userCount: count, density };
+      const density = (zone.manualDensity && !isOverrideStale) 
+                      ? zone.density 
+                      : calculateDensity(count, zone.capacity);
+      
+      return { ...zone, userCount: count, density, isOverrideStale };
     });
   }, [zones, users]);
+
+  // Self-Healing Logic: Even users help clean up stale overrides to prevent them from "reviving"
+  useEffect(() => {
+    enrichedZones.forEach(zone => {
+      if (zone.isOverrideStale) {
+        const zoneRef = doc(db, 'zones', zone.id);
+        updateDocumentNonBlocking(zoneRef, {
+          manualDensity: false,
+          manualDensityAtCount: null
+        });
+      }
+    });
+  }, [enrichedZones, db]);
 
   // Fetch the 5 most recent alerts
   const alertsQuery = useMemoFirebase(() => query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(5)), [db]);
@@ -106,17 +124,12 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   // Targeted Alert Logic: Freshness check
   useEffect(() => {
     if (alerts && alerts.length > 0 && userProfile) {
-      // Find the most recent alert that applies to this user's current context
       const applicableAlert = alerts.find(alert => {
         const isTargeted = !alert.zoneId || alert.zoneId === userProfile.lastZoneId;
         if (!isTargeted) return false;
 
         const alertTime = new Date(alert.timestamp);
-        
-        // 1. Alert must be created AFTER the user started this session
         const afterSessionStart = alertTime > sessionStartTime.current;
-        
-        // 2. If it's a zone-specific alert, it must be created AFTER the user entered that zone
         const entryThreshold = new Date(zoneEntryTime.current.getTime() - 5000);
         const afterZoneEntry = alert.zoneId ? alertTime > entryThreshold : true;
 
@@ -131,18 +144,15 @@ export function UserDashboard({ userId }: UserDashboardProps) {
         }
       }
     }
-  }, [alerts, userProfile?.lastZoneId]);
+  }, [alerts, userProfile]);
 
   const handleAcknowledgeAlert = () => {
     if (latestAlert) localStorage.setItem(LAST_SEEN_ALERT_KEY, latestAlert.timestamp);
     setShowAlert(false);
   };
 
-  // Location Tracking & Zone Identification
   const updateLocation = useCallback(async (lat: number, lng: number) => {
     setCurrentUserLocation({ lat, lng });
-    
-    // Use the action to identify the zone geometrically
     const identifiedZoneId = await identifyZoneAction(lat, lng, zones);
     
     const userUpdate = {

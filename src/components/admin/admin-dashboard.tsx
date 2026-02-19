@@ -21,10 +21,6 @@ import { collection, doc } from 'firebase/firestore';
 import type { Zone, User, DensityCategory } from '@/lib/types';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
-interface AdminDashboardProps {
-  userId: string;
-}
-
 function calculateDensity(count: number, capacity: number): DensityCategory {
   const ratio = count / capacity;
   if (ratio >= 1) return 'over-crowded';
@@ -33,7 +29,7 @@ function calculateDensity(count: number, capacity: number): DensityCategory {
   return 'free';
 }
 
-export function AdminDashboard({ userId }: AdminDashboardProps) {
+export function AdminDashboard({ userId }: { userId: string }) {
   const db = useFirestore();
 
   const zonesQuery = useMemoFirebase(() => collection(db, 'zones'), [db]);
@@ -48,20 +44,26 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     return zones.map(zone => {
       const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
       
-      // Safety and Staleness Logic:
-      // If the user count has changed since the manual override was set, revert to automatic.
-      const isOverrideStale = zone.manualDensity && zone.manualDensityAtCount !== undefined && count !== zone.manualDensityAtCount;
-      const density = (zone.manualDensity && !isOverrideStale) ? zone.density : calculateDensity(count, zone.capacity);
+      // Strict Staleness Logic:
+      // An override is stale if the current count is different from the count when the override was set.
+      const isOverrideStale = zone.manualDensity && 
+                              zone.manualDensityAtCount !== undefined && 
+                              count !== zone.manualDensityAtCount;
+      
+      const density = (zone.manualDensity && !isOverrideStale) 
+                      ? zone.density 
+                      : calculateDensity(count, zone.capacity);
       
       return { ...zone, userCount: count, density, isOverrideStale };
     });
   }, [zones, users]);
 
-  // Effect to clean up stale manual overrides in the database
+  // Effect to permanently reset stale manual overrides in the database
   useEffect(() => {
     enrichedZones.forEach(zone => {
       if (zone.isOverrideStale) {
         const zoneRef = doc(db, 'zones', zone.id);
+        // Clear the override in Firestore so it doesn't "revive" later
         updateDocumentNonBlocking(zoneRef, {
           manualDensity: false,
           manualDensityAtCount: null
