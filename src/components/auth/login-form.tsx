@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -20,11 +19,12 @@ import {
 } from '@/components/ui/select';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from 'lucide-react';
 import { loginUserAction } from '@/lib/actions';
 import { SESSION_LOGIN_TIMESTAMP_KEY } from '../user/user-dashboard';
+import { getAuth, signInAnonymously } from 'firebase/auth';
+import { initializeFirebase } from '@/firebase';
 
 export function LoginForm() {
   const [role, setRole] = useState('user');
@@ -39,32 +39,44 @@ export function LoginForm() {
     const username = formData.get('username') as string;
     
     startTransition(async () => {
-       const result = await loginUserAction({
-          email,
-          username,
-          role,
-          groupSize: 1 // Default group size for login
-       });
+       try {
+         // Initialize Firebase and Sign In Anonymously to ensure a valid Auth session
+         // even if we are using custom IDs for our Firestore documents.
+         const { auth } = initializeFirebase();
+         await signInAnonymously(auth);
 
-       if (result.success) {
-          toast({
-            title: 'Login Successful',
-            description: 'Redirecting to your dashboard...',
-          });
-          if (result.loginTimestamp && typeof window !== 'undefined') {
-            sessionStorage.setItem(SESSION_LOGIN_TIMESTAMP_KEY, result.loginTimestamp);
-          }
-          if (result.role === 'user') {
-            router.push(`/user?userId=${result.userId}`);
-          } else {
-            router.push(`/admin?userId=${result.userId}`);
-          }
-       } else {
+         const result = await loginUserAction({
+            email,
+            username,
+            role,
+            groupSize: 1
+         });
+
+         if (result.success) {
+            toast({
+              title: 'Login Successful',
+              description: 'Redirecting to your dashboard...',
+            });
+            
+            if (result.loginTimestamp && typeof window !== 'undefined') {
+              sessionStorage.setItem(SESSION_LOGIN_TIMESTAMP_KEY, result.loginTimestamp);
+            }
+
+            const targetPath = result.role === 'user' ? '/user' : '/admin';
+            router.push(`${targetPath}?userId=${result.userId}`);
+         } else {
             toast({
                 variant: 'destructive',
                 title: 'Login Failed',
                 description: result.error || 'An unexpected error occurred.',
             });
+         }
+       } catch (error: any) {
+         toast({
+           variant: 'destructive',
+           title: 'Authentication Error',
+           description: error.message || 'Could not connect to Firebase.',
+         });
        }
     });
   };
@@ -93,17 +105,17 @@ export function LoginForm() {
             <>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" placeholder="m@example.com" required />
+                <Input id="email" name="email" type="email" placeholder="admin@evacai.com" required disabled={isPending} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" name="password" type="password" required />
+                <Input id="password" name="password" type="password" required disabled={isPending} />
               </div>
             </>
           ) : (
              <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
-              <Input id="username" name="username" type="text" placeholder="e.g. John Doe" required />
+              <Input id="username" name="username" type="text" placeholder="e.g. kavin" required disabled={isPending} />
             </div>
           )}
         </CardContent>
