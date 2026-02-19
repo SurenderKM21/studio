@@ -153,7 +153,7 @@
         }
       ],
       "id": "zone-x9f2m4q",
-      "userCount": 2,
+      "userCount": 0,
       "density": "free",
       "notes": []
     }
@@ -187,46 +187,34 @@
       "status": "offline"
     },
     {
-      "id": "kavin",
-      "name": "Kavin",
+      "id": "admin2",
+      "name": "Admin",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T19:12:28.840Z",
-      "role": "user",
-      "status": "online",
-      "lastLatitude": 10.857167494106783,
-      "lastLongitude": 78.70428088103615,
-      "lastZoneId": "zone-x9f2m4q",
-      "sos": false
-    },
-    {
-      "id": "krishnan",
-      "name": "krishnan",
-      "groupSize": 1,
-      "lastSeen": "2026-01-23T12:53:05.147Z",
-      "role": "user",
-      "status": "offline",
-      "lastLatitude": 10.8573245,
-      "lastLongitude": 78.7033085,
-      "lastZoneId": "unknown"
+      "lastSeen": "2026-02-18T18:14:47.643Z",
+      "role": "admin",
+      "status": "offline"
     },
     {
       "id": "surenderkm",
       "name": "SurenderKM",
       "groupSize": 1,
-      "lastSeen": "2026-02-18T17:52:38.325Z",
+      "lastSeen": "2026-02-18T18:15:21.770Z",
       "role": "user",
-      "status": "online",
-      "lastLatitude": 10.857167494106783,
-      "lastLongitude": 78.70428088103615,
+      "status": "offline",
+      "lastLatitude": 10.857304166666665,
+      "lastLongitude": 78.70422916666666,
       "lastZoneId": "zone-x9f2m4q"
     },
     {
-      "id": "admin2",
-      "name": "Admin",
+      "id": "kavin",
+      "name": "Kavin",
       "groupSize": 1,
-      "lastSeen": "2026-01-23T18:33:01.531Z",
-      "role": "admin",
-      "status": "offline"
+      "lastSeen": "2026-02-19T11:07:11.272Z",
+      "role": "user",
+      "status": "offline",
+      "lastLatitude": 10.857294,
+      "lastLongitude": 78.70468950000001,
+      "lastZoneId": "zone-x9f2m4q"
     }
   ],
   "settings": {

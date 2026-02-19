@@ -1,0 +1,130 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * CROWDNAV SECURITY RULES - PROTOTYPING MODE
+     * 
+     * Core Philosophy:
+     * This ruleset enforces a strict user-ownership model for personal data (profiles and routes) 
+     * while utilizing role-based access control (RBAC) for administrative and global data.
+     * 
+     * Data Structure:
+     * - User-specific data is stored under /user_profiles/{userId}/ and its subcollections.
+     * - Global system data (zones, pathways, config) is stored in top-level collections.
+     * 
+     * Key Security Decisions:
+     * 1. Authorization Independence: Personal data access is validated directly against the path 
+     *    wildcard {userId} using the user's UID, avoiding unnecessary document lookups.
+     * 2. Role-Based Administration: Write access for zones, pathways, and global settings 
+     *    requires an 'admin' userType, verified via the user's own profile document.
+     * 3. Privacy: User profiles are private. Users can only access their own profile and routes.
+     * 4. Denormalization for Integrity: The 'userId' is enforced within document bodies to 
+     *    ensure consistency between the database structure and the data payload.
+     * 
+     * Prototyping Mode:
+     * Rules strictly enforce WHO can access data but do NOT enforce the specific schema 
+     * (data types or optional fields) to allow for rapid frontend development.
+     */
+
+    // --- Helper Functions ---
+
+    /** Checks if the request is from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** Checks if the authenticated user's UID matches the provided userId. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** Checks if the authenticated user has an 'admin' role in their profile. */
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/user_profiles/$(request.auth.uid)).data.userType == 'admin';
+    }
+
+    /** Combines ownership check with existence check for safe updates/deletes. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    /** Combines admin check with existence check for safe updates/deletes. */
+    function isExistingAdmin() {
+      return resource != null && isAdmin();
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for individual user profiles. Users manage their own profiles.
+     * @path /user_profiles/{userId}
+     * @allow (get) Authenticated user 'abc' reads document /user_profiles/abc
+     * @deny (list) Authenticated user 'abc' attempts to list all documents in /user_profiles
+     * @principle Path-based ownership and relational integrity validation.
+     */
+    match /user_profiles/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Rules for routes generated for a specific user.
+       * @path /user_profiles/{userId}/routes/{routeId}
+       * @allow (create) User 'abc' creates a route under /user_profiles/abc/routes/xyz
+       * @deny (get) User 'def' attempts to read a route belonging to user 'abc'
+       * @principle Hierarchical paths for user-owned data and immutable ownership fields.
+       */
+      match /routes/{routeId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+
+    /**
+     * @description Global application settings. Public read for users, admin-only writes.
+     * @path /app_configuration/global-settings
+     * @allow (get) Any signed-in user reads the global configuration.
+     * @deny (update) A non-admin user attempts to change the location update frequency.
+     * @principle Shared access for reads with role-restricted writes.
+     */
+    match /app_configuration/{configId} {
+      allow get, list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isExistingAdmin();
+      allow delete: if isExistingAdmin();
+    }
+
+    /**
+     * @description Geographical zones used for crowd management. Public read, admin-only writes.
+     * @path /zones/{zoneId}
+     * @allow (list) A user lists all zones to see crowd density categories.
+     * @deny (delete) A non-admin user attempts to delete a zone.
+     * @principle Public consumption of system-defined spatial entities.
+     */
+    match /zones/{zoneId} {
+      allow get, list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isExistingAdmin();
+      allow delete: if isExistingAdmin();
+    }
+
+    /**
+     * @description Pathways connecting zones. Public read, admin-only writes.
+     * @path /pathways/{pathwayId}
+     * @allow (get) A user fetches a specific pathway to calculate a route.
+     * @deny (create) A non-admin user attempts to create a new pathway document.
+     * @principle Role-based access control for infrastructure data.
+     */
+    match /pathways/{pathwayId} {
+      allow get, list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update: if isExistingAdmin();
+      allow delete: if isExistingAdmin();
+    }
+  }
+}
