@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/header';
@@ -16,22 +16,29 @@ function AdminAuthGuard({ userId, decodedUserId }: { userId: string, decodedUser
   const userRef = useMemoFirebase(() => doc(firestore, 'users', decodedUserId), [firestore, decodedUserId]);
   const { data: profile, isLoading: isProfileLoading } = useDoc(userRef);
 
-  // For the prototype, we trust the admin@evacai.com email directly
-  const isAdminByEmail = user?.email === 'admin@evacai.com';
-  const isAdminByRole = profile?.role === 'admin';
+  // Derived values for the effect
+  const userEmail = user?.email;
+  const userRole = profile?.role;
 
   useEffect(() => {
-    if (!isUserLoading && !isProfileLoading) {
-      if (!user) {
-        router.push('/login');
-      } else if (!isAdminByEmail && profile && profile.role !== 'admin') {
-        // Only redirect regular users away if they aren't the special admin email
-        router.push('/user?userId=' + userId);
-      }
-    }
-  }, [user, isUserLoading, profile, isProfileLoading, router, userId, isAdminByEmail]);
+    // Only act when initial loading is finished
+    if (isUserLoading || isProfileLoading) return;
 
-  if (isUserLoading || (isProfileLoading && !isAdminByEmail)) {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    // For the prototype, we trust the admin email or the explicit role
+    const isAdminByEmail = userEmail === 'admin@evacai.com';
+    const isAdminByRole = userRole === 'admin';
+
+    if (!isAdminByEmail && !isAdminByRole) {
+      router.push('/user?userId=' + userId);
+    }
+  }, [user, isUserLoading, isProfileLoading, userEmail, userRole, router, userId]);
+
+  if (isUserLoading || isProfileLoading) {
     return (
       <div className="flex h-screen items-center justify-center gap-2">
         <Loader className="h-6 w-6 animate-spin text-primary" />
@@ -40,8 +47,10 @@ function AdminAuthGuard({ userId, decodedUserId }: { userId: string, decodedUser
     );
   }
 
-  // If not admin by email and (profile loaded but not admin by role)
-  if (!isAdminByEmail && !isProfileLoading && profile?.role !== 'admin') {
+  const isAdminByEmail = user?.email === 'admin@evacai.com';
+  const isAdminByRole = profile?.role === 'admin';
+
+  if (!isAdminByEmail && !isAdminByRole) {
     return (
       <div className="flex flex-col h-screen items-center justify-center gap-4 text-center p-8">
         <Lock className="h-12 w-12 text-destructive" />
@@ -68,21 +77,32 @@ export default function AdminPage() {
   const router = useRouter();
   const userId = searchParams.get('userId');
 
-  if (!userId) {
-    useEffect(() => {
+  // Handle missing userId unconditionally with a hook
+  useEffect(() => {
+    if (!userId) {
       router.push('/login');
-    }, [router]);
-    return null;
-  }
+    }
+  }, [userId, router]);
 
-  let decodedUserId;
-  try {
-    decodedUserId = Buffer.from(userId, 'base64').toString('utf-8');
-  } catch (e) {
-    console.error("Failed to decode userId:", e);
-    useEffect(() => {
+  // Decode the userId safely
+  const decodedUserId = useMemo(() => {
+    if (!userId) return null;
+    try {
+      return Buffer.from(userId, 'base64').toString('utf-8');
+    } catch (e) {
+      console.error("Failed to decode userId:", e);
+      return null;
+    }
+  }, [userId]);
+
+  // Redirect if decoding fails
+  useEffect(() => {
+    if (userId && !decodedUserId) {
       router.push('/login');
-    }, [router]);
+    }
+  }, [userId, decodedUserId, router]);
+
+  if (!userId || !decodedUserId) {
     return null;
   }
 

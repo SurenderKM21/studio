@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { UserDashboard } from '@/components/user/user-dashboard';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/header';
@@ -41,21 +41,32 @@ export default function UserPage() {
   const router = useRouter();
   const userId = searchParams.get('userId');
 
-  if (!userId) {
-    useEffect(() => {
+  // Handle missing userId unconditionally with a hook
+  useEffect(() => {
+    if (!userId) {
       router.push('/login');
-    }, [router]);
-    return null;
-  }
+    }
+  }, [userId, router]);
 
-  let decodedUserId;
-  try {
-    decodedUserId = Buffer.from(userId, 'base64').toString('utf-8');
-  } catch (e) {
-    console.error("Failed to decode userId:", e);
-    useEffect(() => {
+  // Decode the userId safely
+  const decodedUserId = useMemo(() => {
+    if (!userId) return null;
+    try {
+      return Buffer.from(userId, 'base64').toString('utf-8');
+    } catch (e) {
+      console.error("Failed to decode userId:", e);
+      return null;
+    }
+  }, [userId]);
+
+  // Redirect if decoding fails
+  useEffect(() => {
+    if (userId && !decodedUserId) {
       router.push('/login');
-    }, [router]);
+    }
+  }, [userId, decodedUserId, router]);
+
+  if (!userId || !decodedUserId) {
     return null;
   }
 
