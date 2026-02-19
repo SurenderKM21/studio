@@ -1,11 +1,26 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import fs from 'fs';
+import path from 'path';
 
 /**
- * Server actions for authentication and basic utility.
- * Most data operations are now handled client-side via Firestore SDK.
+ * Server actions for EvacAI.
+ * Consolidates authentication and data utility logic for Firestore migration.
  */
+
+export async function getLocalDataAction() {
+  const dbPath = path.resolve(process.cwd(), 'src/lib/db.json');
+  try {
+    if (fs.existsSync(dbPath)) {
+      const jsonString = fs.readFileSync(dbPath, 'utf8');
+      return JSON.parse(jsonString);
+    }
+  } catch (error) {
+    console.error('Error reading local DB:', error);
+  }
+  return { zones: [], users: [], settings: {}, alerts: [] };
+}
 
 export async function loginUserAction(data) {
   const { role, username, email } = data;
@@ -29,26 +44,12 @@ export async function logoutUserAction() {
   redirect('/');
 }
 
-// Stubs for functions that might be called during build or by server components
 export async function getUserById(id) {
-  // This is now primarily handled client-side in UserDashboard.
-  // We return a skeleton to prevent server-side crashes.
+  // Skeleton to prevent server-side crashes; data is managed in Firestore
   return { id };
 }
 
-export async function getZones() {
-  return [];
-}
-
-export async function getSettings() {
-  return {};
-}
-
-export async function getUsers() {
-  return [];
-}
-
-// Pathfinding utilities remain here as they are CPU-intensive logic, not DB access
+// Logic-based Pathfinding utilities for the client to call
 const DENSITY_COST = {
   'free': 1,
   'moderate': 3,
