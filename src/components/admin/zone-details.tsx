@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -44,7 +43,7 @@ export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
     deleteDocumentNonBlocking(zoneRef);
     toast({
       title: 'Zone Deleted',
-      description: `The "${zoneName}" zone is being removed.`,
+      description: `The "${zoneName}" zone is being removed from the cloud.`,
     });
   };
 
@@ -53,7 +52,7 @@ export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
       <CardHeader>
         <CardTitle>Existing Zones</CardTitle>
         <CardDescription>
-          A detailed list of all currently configured zones.
+          A detailed list of all currently configured zones in the cloud.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -112,6 +111,13 @@ export function ZoneDetails({ initialZones }: { initialZones: Zone[] }) {
                 </TableCell>
               </TableRow>
             ))}
+            {initialZones.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground italic">
+                  No zones found. Add one in the "Add New Zone" section or use the Migration Tool.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>

@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -71,7 +70,7 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
 
     toast({
       title: 'Note Added',
-      description: 'The note is being added to the cloud.',
+      description: 'The note is being broadcast to all users.',
     });
     setNoteText('');
   };
@@ -84,16 +83,16 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
 
     toast({
       title: 'Note Deleted',
-      description: 'The note is being removed from the cloud.',
+      description: 'The note has been removed.',
     });
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Zone Notes</CardTitle>
+        <CardTitle>Zone Notes & Safety Alerts</CardTitle>
         <CardDescription>
-          Add, view, and manage notes for each zone. Visible notes will be shown to users on their map in real-time.
+          Add and manage notes for each zone. Notes marked as "Visible" will appear in the map tooltips for all users.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -103,13 +102,13 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
               <AccordionTrigger className='font-bold'>{zone.name}</AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-4">
-                  <div className="p-4 border rounded-lg space-y-4">
-                    <h4 className="font-semibold">Add New Note</h4>
+                  <div className="p-4 border rounded-lg space-y-4 bg-muted/30">
+                    <h4 className="font-semibold">Add New Note for {zone.name}</h4>
                     <div className="space-y-2">
                       <Label htmlFor={`note-text-${zone.id}`}>Note Content</Label>
                       <Input
                         id={`note-text-${zone.id}`}
-                        placeholder="e.g., Slippery floor"
+                        placeholder="e.g., Use Exit B for quicker access"
                         value={noteText}
                         onChange={(e) => setNoteText(e.target.value)}
                       />
@@ -127,15 +126,15 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
                       onClick={() => handleAddNote(zone.id, zone.notes || [])}
                     >
                       <Plus className="mr-2 h-4 w-4" />
-                      Add Note
+                      Save Note to Cloud
                     </Button>
                   </div>
                   <div className="space-y-2">
                      <h4 className="font-semibold">Existing Notes</h4>
                      {zone.notes && zone.notes.length > 0 ? (
                         zone.notes.map((note) => (
-                            <div key={note.id} className="flex items-center justify-between p-2 border rounded-md bg-muted/50">
-                                <div className='flex items-center gap-4'>
+                            <div key={note.id} className="flex items-center justify-between p-3 border rounded-md bg-background">
+                                <div className='flex items-center gap-4 flex-1'>
                                    <Badge variant={note.visibleToUser ? 'default' : 'secondary'}>
                                         {note.visibleToUser ? <Eye className="mr-2 h-3 w-3" /> : <EyeOff className="mr-2 h-3 w-3" />}
                                         {note.visibleToUser ? 'Visible' : 'Hidden'}
@@ -144,21 +143,21 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
                                 </div>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive ml-2">
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
-                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                            <AlertDialogTitle>Delete Note?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                This will permanently delete this note. This action cannot be undone.
+                                                This will remove the note from the system. Users will no longer see it.
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                                             <AlertDialogAction onClick={() => handleDeleteNote(zone.id, note.id, zone.notes || [])} className="bg-destructive hover:bg-destructive/90">
-                                                Delete Note
+                                                Delete
                                             </AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
@@ -166,13 +165,18 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
                             </div>
                         ))
                      ) : (
-                        <p className="text-sm text-muted-foreground text-center py-4">No notes for this zone.</p>
+                        <p className="text-sm text-muted-foreground text-center py-4 italic">No notes created for this zone yet.</p>
                      )}
                   </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
           ))}
+          {initialZones.length === 0 && (
+             <div className="text-center py-8 text-muted-foreground italic">
+                No zones available to add notes.
+             </div>
+          )}
         </Accordion>
       </CardContent>
     </Card>
