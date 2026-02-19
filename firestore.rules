@@ -5,9 +5,8 @@ service cloud.firestore {
     /**
      * EVACAI SECURITY RULES - PROTOTYPING MODE
      * 
-     * In prototyping mode, we allow all reads and writes to unblock development.
-     * This is necessary because the app uses custom-formatted IDs (e.g., usernames)
-     * which do not naturally align with Firebase Auth UIDs without custom logic.
+     * Force-triggering deployment with explicit permissions for 'list' and 'get' operations.
+     * This allows all reads and writes to unblock development across all collections.
      */
 
     match /users/{userId} {
@@ -24,7 +23,7 @@ service cloud.firestore {
 
     // Support for any other collections created during prototyping
     match /{document=**} {
-      allow read, write: if true;
+      allow get, list, create, update, delete: if true;
     }
   }
 }
