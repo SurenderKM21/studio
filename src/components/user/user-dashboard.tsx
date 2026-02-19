@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Zone, RouteDetails, User, AlertMessage } from '@/lib/types';
+import type { Zone, RouteDetails, AlertMessage } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -56,6 +56,12 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   const [isPlanning, setIsPlanning] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [latestAlert, setLatestAlert] = useState<AlertMessage | null>(null);
+  const [mountedTime, setMountedTime] = useState<Date | null>(null);
+
+  useEffect(() => {
+    // Avoid hydration mismatch by setting time after mount
+    setMountedTime(new Date());
+  }, []);
 
   // Alert Handling
   useEffect(() => {
@@ -108,6 +114,7 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     setIsPlanning(true);
     setRouteDetails(null);
     setRoutingError(null);
+    // Use zones from current cloud state
     const result = await getRouteAction(sourceZone, destinationZone, zones);
     if (result.error) {
       setRoutingError(result.error);
@@ -151,7 +158,7 @@ export function UserDashboard({ userId }: UserDashboardProps) {
           <LocationTracker 
             currentZoneName={userProfile?.lastZoneId ?? 'Locating...'} 
             isSending={false}
-            lastUpdated={new Date()}
+            lastUpdated={mountedTime}
             coordinates={currentUserLocation}
           />
           <RoutePlanner zones={zones} onPlanRoute={handlePlanRoute} isPlanning={isPlanning} />

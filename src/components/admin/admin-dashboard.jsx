@@ -1,9 +1,8 @@
-
 'use client';
 
 import React, { useState, useEffect, useTransition } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Map, Users, Settings, Siren, RefreshCw, List, AlertTriangle, MessageSquareWarning, NotebookPen } from 'lucide-react';
+import { Map, Users, Settings, Siren, RefreshCw, MessageSquareWarning, NotebookPen } from 'lucide-react';
 import { ZoneManager } from './zone-manager';
 import { DensityControl } from './density-control';
 import { SettingsPanel } from './settings-panel';
@@ -20,19 +19,21 @@ import { useToast } from '@/hooks/use-toast';
 export function AdminDashboard({ initialZones = [], initialSettings = {}, initialUsers = [] }) {
   const [zones, setZones] = useState(initialZones);
   const [users, setUsers] = useState(initialUsers);
-  const [lastSyncTime, setLastSyncTime] = useState(new Date().toLocaleTimeString());
+  const [lastSyncTime, setLastSyncTime] = useState(null);
   const [isRefreshing, startRefresh] = useTransition();
   const { toast } = useToast();
 
   useEffect(() => {
+    // Set initial sync time on mount to avoid hydration mismatch
+    setLastSyncTime(new Date().toLocaleTimeString());
     setZones(initialZones);
     setUsers(initialUsers);
-    setLastSyncTime(new Date().toLocaleTimeString());
   }, [initialZones, initialUsers]);
 
   const handleRefresh = () => {
     startRefresh(async () => {
       await refreshDataAction();
+      setLastSyncTime(new Date().toLocaleTimeString());
       toast({
         title: 'Data Refreshed',
         description: 'The dashboard has been updated with the latest local data.',
@@ -44,21 +45,23 @@ export function AdminDashboard({ initialZones = [], initialSettings = {}, initia
     const interval = setInterval(() => {
        startRefresh(async () => {
         await refreshDataAction();
+        setLastSyncTime(new Date().toLocaleTimeString());
       });
-    }, 15000); // Periodic local refresh
+    }, 15000); 
 
     return () => clearInterval(interval);
   }, []);
 
   const sosCount = (users || []).filter(u => u.sos && u.status === 'online').length;
-  const overCrowdedCount = (zones || []).filter(z => z.density === 'over-crowded').length;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-4xl font-headline font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Local Monitoring (db.json). Last sync: {lastSyncTime}</p>
+          <p className="text-muted-foreground text-sm">
+            Local Monitoring (db.json). {lastSyncTime ? `Last sync: ${lastSyncTime}` : 'Connecting...'}
+          </p>
         </div>
         <Button onClick={handleRefresh} disabled={isRefreshing}>
           <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
