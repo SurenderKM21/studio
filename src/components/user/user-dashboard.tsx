@@ -41,7 +41,8 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   
   // Real-time Firestore Queries
   const zonesQuery = useMemoFirebase(() => collection(db, 'zones'), [db]);
-  const { data: zones = [] } = useCollection(zonesQuery);
+  const { data: zonesData } = useCollection(zonesQuery);
+  const zones = zonesData || [];
 
   const userRef = useMemoFirebase(() => doc(db, 'users', userId), [db, userId]);
   const { data: userProfile } = useDoc(userRef);
@@ -58,7 +59,7 @@ export function UserDashboard({ userId }: UserDashboardProps) {
 
   // Alert Handling
   useEffect(() => {
-    if (alerts.length > 0) {
+    if (alerts && alerts.length > 0) {
       const newAlert = alerts[0] as AlertMessage;
       const lastSeen = localStorage.getItem(LAST_SEEN_ALERT_KEY);
       if (newAlert.timestamp !== lastSeen) {

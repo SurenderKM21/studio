@@ -26,10 +26,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const db = useFirestore();
 
   const zonesQuery = useMemoFirebase(() => collection(db, 'zones'), [db]);
-  const { data: zones = [] } = useCollection(zonesQuery);
+  const { data: zonesData } = useCollection(zonesQuery);
+  const zones = zonesData || [];
 
   const usersQuery = useMemoFirebase(() => collection(db, 'users'), [db]);
-  const { data: users = [] } = useCollection(usersQuery);
+  const { data: usersData } = useCollection(usersQuery);
+  const users = usersData || [];
 
   const sosCount = users.filter(u => u.sos).length;
   const overCrowdedCount = zones.filter(z => z.density === 'over-crowded').length;

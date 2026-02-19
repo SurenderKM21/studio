@@ -34,7 +34,7 @@ const highlightedDensityStyles: Record<
 };
 
 interface MapViewProps {
-  zones: Zone[];
+  zones: Zone[] | null;
   route: string[];
   alternativeRoute: string[];
 }
@@ -44,13 +44,15 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [isHighlighting, setIsHighlighting] = useState(false);
   
+  const safeZones = zones || [];
+
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   useEffect(() => {
     // When a new route is provided, start the animation and highlighting.
-    if (route.length > 0) {
+    if (route && route.length > 0) {
       setIsAnimating(true);
       setIsHighlighting(true);
       
@@ -74,7 +76,7 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
   }, [route]);
 
   const getRoutePoints = (path: string[]) => {
-    if (!isClient) return [];
+    if (!isClient || !path) return [];
     
     return path
       .map((zoneId) => {
@@ -98,8 +100,8 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
       .filter((p): p is { x: number; y: number } => p !== null);
   };
   
-  const routePoints = useMemo(() => getRoutePoints(route), [route, zones, isClient]);
-  const altRoutePoints = useMemo(() => getRoutePoints(alternativeRoute), [alternativeRoute, zones, isClient]);
+  const routePoints = useMemo(() => getRoutePoints(route), [route, safeZones, isClient]);
+  const altRoutePoints = useMemo(() => getRoutePoints(alternativeRoute), [alternativeRoute, safeZones, isClient]);
 
 
   return (
@@ -107,10 +109,10 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
       <div className="relative w-full min-h-[550px] bg-muted/30 rounded-lg border-dashed border-2 p-4">
         <div className="relative grid grid-cols-3 grid-rows-3 gap-4 h-[520px]">
           {/* Render zones */}
-          {zones.map((zone) => {
+          {safeZones.map((zone) => {
             const visibleNotes = zone.notes?.filter(n => n.visibleToUser) ?? [];
-            const isInRecommendedRoute = route.includes(zone.id);
-            const isInConsideredPath = isInRecommendedRoute || alternativeRoute.includes(zone.id);
+            const isInRecommendedRoute = route?.includes(zone.id);
+            const isInConsideredPath = isInRecommendedRoute || alternativeRoute?.includes(zone.id);
 
             const currentStyles = (isInRecommendedRoute && isHighlighting) 
                 ? highlightedDensityStyles[zone.density] 
@@ -159,6 +161,11 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
               </TooltipContent>
             </Tooltip>
           )})}
+          {safeZones.length === 0 && (
+            <div className="col-span-3 row-span-3 flex items-center justify-center text-muted-foreground italic">
+              Loading map data...
+            </div>
+          )}
         </div>
         
         {/* Draw route lines */}
