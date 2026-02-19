@@ -71,7 +71,7 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
 
     toast({
       title: 'Note Added',
-      description: 'The note is being added to the zone.',
+      description: 'The note is being added to the cloud.',
     });
     setNoteText('');
   };
@@ -84,7 +84,7 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
 
     toast({
       title: 'Note Deleted',
-      description: 'The note is being removed.',
+      description: 'The note is being removed from the cloud.',
     });
   };
 
@@ -93,7 +93,7 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
       <CardHeader>
         <CardTitle>Zone Notes</CardTitle>
         <CardDescription>
-          Add, view, and manage notes for each zone. Visible notes will be shown to users on their map.
+          Add, view, and manage notes for each zone. Visible notes will be shown to users on their map in real-time.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -110,6 +110,7 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
                       <Input
                         id={`note-text-${zone.id}`}
                         placeholder="e.g., Slippery floor"
+                        value={noteText}
                         onChange={(e) => setNoteText(e.target.value)}
                       />
                     </div>
@@ -123,7 +124,7 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
                     </div>
                     <Button
                       size="sm"
-                      onClick={() => handleAddNote(zone.id, zone.notes)}
+                      onClick={() => handleAddNote(zone.id, zone.notes || [])}
                     >
                       <Plus className="mr-2 h-4 w-4" />
                       Add Note
@@ -156,7 +157,7 @@ export function ZoneNotesManager({ initialZones }: ZoneNotesManagerProps) {
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteNote(zone.id, note.id, zone.notes)} className="bg-destructive hover:bg-destructive/90">
+                                            <AlertDialogAction onClick={() => handleDeleteNote(zone.id, note.id, zone.notes || [])} className="bg-destructive hover:bg-destructive/90">
                                                 Delete Note
                                             </AlertDialogAction>
                                         </AlertDialogFooter>

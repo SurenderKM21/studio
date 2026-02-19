@@ -2,7 +2,7 @@
 'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Map, Users, Settings, Siren, MessageSquareWarning, AlertTriangle, Database } from 'lucide-react';
+import { Map, Users, Settings, Siren, MessageSquareWarning, AlertTriangle, Database, NotebookPen } from 'lucide-react';
 import { ZoneManager } from './zone-manager';
 import { DensityControl } from './density-control';
 import { SettingsPanel } from './settings-panel';
@@ -12,13 +12,14 @@ import { ZoneDetails } from './zone-details';
 import { OvercrowdedZones } from './overcrowded-zones';
 import { AlertManager } from './alert-manager';
 import { MigrationTool } from './migration-tool';
+import { ZoneNotesManager } from './zone-notes-manager';
 import { 
   useCollection, 
   useMemoFirebase, 
   useFirestore 
 } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import type { Zone, User } from '@/lib/types';
+import type { Zone } from '@/lib/types';
 
 interface AdminDashboardProps {
   userId: string;
@@ -29,7 +30,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
   const zonesQuery = useMemoFirebase(() => collection(db, 'zones'), [db]);
   const { data: zonesData } = useCollection(zonesQuery);
-  const zones = zonesData || [];
+  const zones = (zonesData as Zone[]) || [];
 
   const usersQuery = useMemoFirebase(() => collection(db, 'users'), [db]);
   const { data: usersData } = useCollection(usersQuery);
@@ -43,13 +44,13 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-4xl font-headline font-bold">Admin Central</h1>
-          <p className="text-muted-foreground text-sm">Real-time Firestore Management</p>
+          <p className="text-muted-foreground text-sm">Real-time Cloud Management</p>
         </div>
       </div>
 
       <Tabs defaultValue="sos" className="w-full">
         <TabsList className="flex flex-wrap h-auto bg-muted p-1">
-          <TabsTrigger value="sos" className={sosCount > 0 ? 'text-destructive font-bold' : ''}>
+          <TabsTrigger value="sos" className={sosCount > 0 ? 'text-destructive font-bold animate-pulse' : ''}>
             <Siren className="mr-2 h-4 w-4" /> SOS ({sosCount})
           </TabsTrigger>
           <TabsTrigger value="zones">
@@ -60,6 +61,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           </TabsTrigger>
           <TabsTrigger value="alerts">
             <MessageSquareWarning className="mr-2 h-4 w-4" /> Alerts
+          </TabsTrigger>
+          <TabsTrigger value="notes">
+            <NotebookPen className="mr-2 h-4 w-4" /> Notes
           </TabsTrigger>
           <TabsTrigger value="overcrowded">
             <AlertTriangle className="mr-2 h-4 w-4" /> Overcrowded ({overCrowdedCount})
@@ -87,6 +91,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </TabsContent>
         <TabsContent value="alerts">
           <AlertManager zones={zones} />
+        </TabsContent>
+        <TabsContent value="notes">
+          <ZoneNotesManager initialZones={zones} />
         </TabsContent>
         <TabsContent value="overcrowded">
           <OvercrowdedZones zones={zones} />

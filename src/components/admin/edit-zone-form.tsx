@@ -55,7 +55,7 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
     
     toast({
       title: 'Zone Updated',
-      description: 'The zone details have been updated.',
+      description: 'The zone details are being updated in the cloud.',
     });
     setIsOpen(false);
   };
@@ -72,17 +72,17 @@ export function EditZoneForm({ zone }: EditZoneFormProps) {
           <DialogHeader>
             <DialogTitle>Edit Zone: {zone.name}</DialogTitle>
             <DialogDescription>
-              Make changes to your zone here. Click save when you're done.
+              Make changes to your zone here. Changes will be reflected in real-time on all user maps.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Zone Name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="capacity">Max Capacity</Label>
-              <Input id="capacity" type="number" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} min="1" />
+              <Input id="capacity" type="number" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} min="1" required />
             </div>
             
             <GoogleMapsZoneSelector coordinates={coordinates} onCoordinatesChange={setCoordinates} />
