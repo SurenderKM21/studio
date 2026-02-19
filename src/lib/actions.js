@@ -44,9 +44,35 @@ export async function logoutUserAction() {
   redirect('/');
 }
 
-export async function getUserById(id) {
-  // Skeleton to prevent server-side crashes; data is managed in Firestore
-  return { id };
+export async function refreshDataAction() {
+    // Used for cache revalidation in server-side contexts
+}
+
+/**
+ * Ray-Casting Algorithm to determine if a point is inside a polygon.
+ */
+export async function isPointInPolygonAction(lat, lng, polygon) {
+  let isInside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].lat, yi = polygon[i].lng;
+    const xj = polygon[j].lat, yj = polygon[j].lng;
+    const intersect = ((yi > lng) !== (yj > lng)) &&
+        (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+    if (intersect) isInside = !isInside;
+  }
+  return isInside;
+}
+
+/**
+ * Utility to find which zone a user is currently in.
+ */
+export async function identifyZoneAction(lat, lng, zones) {
+    for (const zone of zones) {
+        if (await isPointInPolygonAction(lat, lng, zone.coordinates)) {
+            return zone.id;
+        }
+    }
+    return null;
 }
 
 // Logic-based Pathfinding utilities for the client to call
