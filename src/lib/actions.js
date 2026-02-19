@@ -1,12 +1,10 @@
-
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 /**
- * server actions for authentication and basic data retrieval.
- * Logic for Dijkstra and Ray-casting remains here but works with data passed from client hooks.
+ * Server actions for authentication and basic utility.
+ * Most data operations are now handled client-side via Firestore SDK.
  */
 
 export async function loginUserAction(data) {
@@ -31,8 +29,26 @@ export async function logoutUserAction() {
   redirect('/');
 }
 
-// Dijkstra and Adjacency Logic (Generic utilities used by Client Components)
+// Stubs for functions that might be called during build or by server components
+export async function getUserById(id) {
+  // This is now primarily handled client-side in UserDashboard.
+  // We return a skeleton to prevent server-side crashes.
+  return { id };
+}
 
+export async function getZones() {
+  return [];
+}
+
+export async function getSettings() {
+  return {};
+}
+
+export async function getUsers() {
+  return [];
+}
+
+// Pathfinding utilities remain here as they are CPU-intensive logic, not DB access
 const DENSITY_COST = {
   'free': 1,
   'moderate': 3,
@@ -63,8 +79,8 @@ function areZonesAdjacent(zone1, zone2) {
 }
 
 export async function getRouteAction(sourceZone, destinationZone, zones) {
-  if (!sourceZone || !destinationZone) {
-    return { error: 'Source and destination zones are required.' };
+  if (!sourceZone || !destinationZone || !zones || zones.length === 0) {
+    return { error: 'Source, destination, and zones are required.' };
   }
 
   const findPath = (startId, endId, allZones, useCongestion = true) => {

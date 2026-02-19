@@ -1,15 +1,12 @@
-
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { Zone, RouteDetails, User, AppSettings, AlertMessage } from '@/lib/types';
+import { useState, useEffect, useCallback } from 'react';
+import type { Zone, RouteDetails, User, AlertMessage } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { RouteInfo } from './route-info';
-import { Button } from '../ui/button';
-import { RefreshCw, Siren } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Siren } from 'lucide-react';
 import { DensityLegend } from './density-legend';
 import { LocationTracker } from './location-tracker';
 import { SOSButton } from './sos-button';
@@ -18,11 +15,11 @@ import {
   useDoc, 
   useMemoFirebase, 
   useFirestore, 
-  errorEmitter, 
-  FirestorePermissionError 
+  errorEmitter 
 } from '@/firebase';
-import { collection, doc, query, orderBy, limit, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, query, orderBy, limit, setDoc } from 'firebase/firestore';
 import { getRouteAction } from '@/lib/actions';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 import {
   AlertDialog,
@@ -34,30 +31,26 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface UserDashboardProps {
-  initialZones: Zone[];
-  initialUser: User;
-  settings: AppSettings;
+  userId: string;
 }
 
 const LAST_SEEN_ALERT_KEY = 'evacai-last-seen-alert-timestamp';
 
-export function UserDashboard({ initialUser }: UserDashboardProps) {
+export function UserDashboard({ userId }: UserDashboardProps) {
   const db = useFirestore();
-  const { toast } = useToast();
   
   // Real-time Firestore Queries
   const zonesQuery = useMemoFirebase(() => collection(db, 'zones'), [db]);
-  const { data: zones = [] } = useCollection<Zone>(zonesQuery);
+  const { data: zones = [] } = useCollection(zonesQuery);
 
-  const userRef = useMemoFirebase(() => doc(db, 'users', initialUser.id), [db, initialUser.id]);
-  const { data: userProfile } = useDoc<User>(userRef);
+  const userRef = useMemoFirebase(() => doc(db, 'users', userId), [db, userId]);
+  const { data: userProfile } = useDoc(userRef);
 
   const alertsQuery = useMemoFirebase(() => query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(1)), [db]);
-  const { data: alerts = [] } = useCollection<AlertMessage>(alertsQuery);
+  const { data: alerts = [] } = useCollection(alertsQuery);
 
   const [routeDetails, setRouteDetails] = useState<RouteDetails | null>(null);
   const [routingError, setRoutingError] = useState<string | null>(null);
-  const [currentZoneName, setCurrentZoneName] = useState<string>('Locating...');
   const [currentUserLocation, setCurrentUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isPlanning, setIsPlanning] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
@@ -66,7 +59,7 @@ export function UserDashboard({ initialUser }: UserDashboardProps) {
   // Alert Handling
   useEffect(() => {
     if (alerts.length > 0) {
-      const newAlert = alerts[0];
+      const newAlert = alerts[0] as AlertMessage;
       const lastSeen = localStorage.getItem(LAST_SEEN_ALERT_KEY);
       if (newAlert.timestamp !== lastSeen) {
         setLatestAlert(newAlert);
@@ -84,7 +77,6 @@ export function UserDashboard({ initialUser }: UserDashboardProps) {
   const updateLocation = useCallback((lat: number, lng: number) => {
     setCurrentUserLocation({ lat, lng });
     const userUpdate = {
-      ...initialUser,
       lastLatitude: lat,
       lastLongitude: lng,
       lastSeen: new Date().toISOString(),
@@ -98,7 +90,7 @@ export function UserDashboard({ initialUser }: UserDashboardProps) {
         requestResourceData: userUpdate
       }));
     });
-  }, [userRef, initialUser]);
+  }, [userRef]);
 
   useEffect(() => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -152,11 +144,11 @@ export function UserDashboard({ initialUser }: UserDashboardProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <SOSButton userId={initialUser.id} initialSOSState={userProfile?.sos ?? false} />
+              <SOSButton userId={userId} initialSOSState={userProfile?.sos ?? false} />
             </CardContent>
           </Card>
           <LocationTracker 
-            currentZoneName={currentZoneName} 
+            currentZoneName={userProfile?.lastZoneId ?? 'Locating...'} 
             isSending={false}
             lastUpdated={new Date()}
             coordinates={currentUserLocation}

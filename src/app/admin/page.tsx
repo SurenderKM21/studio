@@ -1,9 +1,7 @@
-
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
-import { getZones, getSettings, getUsers, getUserById } from '@/lib/actions';
 import { redirect } from 'next/navigation';
 import { Header } from '@/components/layout/header';
-
+import { FirebaseClientProvider } from '@/firebase';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,23 +24,12 @@ export default async function AdminPage({
     redirect('/login');
   }
 
-  const adminUser = await getUserById(decodedUserId);
-
-  // Ensure the user exists and has the admin role
-  if (!adminUser || adminUser.role !== 'admin') {
-      redirect('/login');
-  }
-
-  const zones = await getZones();
-  const settings = await getSettings();
-  const users = await getUsers();
-
   return (
-    <>
+    <FirebaseClientProvider>
       <Header section="Admin" userId={userId} />
       <div className="container mx-auto py-8 px-4">
-        <AdminDashboard initialZones={zones} initialSettings={settings} initialUsers={users} />
+        <AdminDashboard userId={decodedUserId} />
       </div>
-    </>
+    </FirebaseClientProvider>
   );
 }

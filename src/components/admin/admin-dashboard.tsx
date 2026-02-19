@@ -1,8 +1,7 @@
-
 'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Map, Users, Settings, Siren, MessageSquareWarning, NotebookPen, AlertTriangle } from 'lucide-react';
+import { Map, Users, Settings, Siren, MessageSquareWarning, AlertTriangle } from 'lucide-react';
 import { ZoneManager } from './zone-manager';
 import { DensityControl } from './density-control';
 import { SettingsPanel } from './settings-panel';
@@ -11,23 +10,26 @@ import { UserMonitor } from './user-monitor';
 import { ZoneDetails } from './zone-details';
 import { OvercrowdedZones } from './overcrowded-zones';
 import { AlertManager } from './alert-manager';
-import { ZoneNotesManager } from './zone-notes-manager';
 import { 
   useCollection, 
   useMemoFirebase, 
   useFirestore 
 } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import type { Zone, User, AppSettings } from '@/lib/types';
+import type { Zone, User } from '@/lib/types';
 
-export function AdminDashboard({ initialSettings }: { initialSettings: AppSettings }) {
+interface AdminDashboardProps {
+  userId: string;
+}
+
+export function AdminDashboard({ userId }: AdminDashboardProps) {
   const db = useFirestore();
 
   const zonesQuery = useMemoFirebase(() => collection(db, 'zones'), [db]);
-  const { data: zones = [] } = useCollection<Zone>(zonesQuery);
+  const { data: zones = [] } = useCollection(zonesQuery);
 
   const usersQuery = useMemoFirebase(() => collection(db, 'users'), [db]);
-  const { data: users = [] } = useCollection<User>(usersQuery);
+  const { data: users = [] } = useCollection(usersQuery);
 
   const sosCount = users.filter(u => u.sos).length;
   const overCrowdedCount = zones.filter(z => z.density === 'over-crowded').length;
@@ -83,7 +85,7 @@ export function AdminDashboard({ initialSettings }: { initialSettings: AppSettin
           <OvercrowdedZones zones={zones} />
         </TabsContent>
         <TabsContent value="settings">
-          <SettingsPanel initialSettings={initialSettings} />
+          <SettingsPanel initialSettings={{}} />
         </TabsContent>
       </Tabs>
     </div>

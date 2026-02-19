@@ -1,12 +1,9 @@
-
 import { UserDashboard } from '@/components/user/user-dashboard';
-import { User } from '@/lib/types';
 import { redirect } from 'next/navigation';
 import { Header } from '@/components/layout/header';
-import { getZones, getSettings, getUserById } from '@/lib/actions';
+import { FirebaseClientProvider } from '@/firebase';
 
 export const dynamic = 'force-dynamic';
-
 
 export default async function UserPage({
   searchParams,
@@ -27,21 +24,12 @@ export default async function UserPage({
     redirect('/login');
   }
 
-  const user = await getUserById(decodedUserId);
-
-  if (!user) {
-    redirect('/login');
-  }
-  
-  const zones = await getZones();
-  const settings = await getSettings();
-  
   return (
-    <>
+    <FirebaseClientProvider>
       <Header section="User" userId={userId} />
       <div className="container mx-auto py-8">
-        <UserDashboard initialZones={zones} initialUser={user} settings={settings} />
+        <UserDashboard userId={decodedUserId} />
       </div>
-    </>
+    </FirebaseClientProvider>
   );
 }
