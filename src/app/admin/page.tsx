@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, Suspense } from 'react';
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/header';
@@ -72,7 +72,7 @@ function AdminAuthGuard({ userId, decodedUserId }: { userId: string, decodedUser
   );
 }
 
-export default function AdminPage() {
+function AdminPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const userId = searchParams.get('userId');
@@ -103,12 +103,30 @@ export default function AdminPage() {
   }, [userId, decodedUserId, router]);
 
   if (!userId || !decodedUserId) {
-    return null;
+    return (
+      <div className="flex h-screen items-center justify-center gap-2">
+        <Loader className="h-6 w-6 animate-spin text-primary" />
+        <span className="text-muted-foreground">Redirecting to login...</span>
+      </div>
+    );
   }
 
   return (
     <FirebaseClientProvider>
       <AdminAuthGuard userId={userId} decodedUserId={decodedUserId} />
     </FirebaseClientProvider>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center gap-2">
+        <Loader className="h-6 w-6 animate-spin text-primary" />
+        <span className="text-muted-foreground">Initializing Admin Dashboard...</span>
+      </div>
+    }>
+      <AdminPageContent />
+    </Suspense>
   );
 }
