@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Zone, RouteDetails, AlertMessage, User, DensityCategory } from '@/lib/types';
+import type { Zone, RouteDetails, AlertMessage, User, DensityCategory, Coordinate } from '@/lib/types';
 import { MapView } from './map-view';
 import { RoutePlanner } from './route-planner';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -18,7 +19,7 @@ import {
   errorEmitter 
 } from '@/firebase';
 import { collection, doc, query, orderBy, limit, setDoc } from 'firebase/firestore';
-import { getRouteAction, identifyZoneAction } from '@/lib/actions';
+import { getRouteAction } from '@/lib/actions';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
@@ -36,6 +37,19 @@ interface UserDashboardProps {
 }
 
 const LAST_SEEN_ALERT_KEY = 'evacai-last-seen-alert-timestamp';
+
+// Helper for local zone identification (to avoid server action pings)
+function isPointInPolygon(lat: number, lng: number, polygon: Coordinate[]) {
+  let isInside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].lat, yi = polygon[i].lng;
+    const xj = polygon[j].lat, yj = polygon[j].lng;
+    const intersect = ((yi > lng) !== (yj > lng)) &&
+        (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+    if (intersect) isInside = !isInside;
+  }
+  return isInside;
+}
 
 function calculateDensity(count: number, capacity: number): DensityCategory {
   const ratio = count / capacity;
@@ -60,12 +74,22 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   const userRef = useMemoFirebase(() => doc(db, 'users', userId), [db, userId]);
   const { data: userProfile } = useDoc(userRef);
 
+  // Use refs to store latest data for the GPS watcher (to keep the watcher stable)
+  const zonesRef = useRef<Zone[]>(zones);
+  const userRefCurrent = useRef(userRef);
+
+  useEffect(() => {
+    zonesRef.current = zones;
+  }, [zones]);
+
+  useEffect(() => {
+    userRefCurrent.current = userRef;
+  }, [userRef]);
+
   const enrichedZones = useMemo(() => {
     return zones.map(zone => {
       const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
       
-      // Dynamic Derivation with staleness check:
-      // If the zone has a manual override, it is ONLY valid while the count is exactly what it was when set.
       const isOverrideStale = zone.manualDensity && 
                               zone.manualDensityAtCount !== undefined && 
                               count !== zone.manualDensityAtCount;
@@ -78,7 +102,7 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     });
   }, [zones, users]);
 
-  // Self-Healing Logic: Even users help clean up stale overrides to prevent them from "reviving"
+  // Self-Healing Logic for overrides
   useEffect(() => {
     enrichedZones.forEach(zone => {
       if (zone.isOverrideStale) {
@@ -104,7 +128,6 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   const [latestAlert, setLatestAlert] = useState<AlertMessage | null>(null);
   const [mountedTime, setMountedTime] = useState<Date | null>(null);
 
-  // Track session and zone entry times to avoid showing "old" alerts
   const sessionStartTime = useRef<Date>(new Date());
   const zoneEntryTime = useRef<Date>(new Date());
   const lastZoneId = useRef<string | null>(null);
@@ -113,7 +136,6 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     setMountedTime(new Date());
   }, []);
 
-  // Update zone entry time when the user enters a new zone
   useEffect(() => {
     if (userProfile?.lastZoneId && userProfile.lastZoneId !== lastZoneId.current) {
       zoneEntryTime.current = new Date();
@@ -121,7 +143,6 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     }
   }, [userProfile?.lastZoneId]);
 
-  // Targeted Alert Logic: Freshness check
   useEffect(() => {
     if (alerts && alerts.length > 0 && userProfile) {
       const applicableAlert = alerts.find(alert => {
@@ -153,7 +174,15 @@ export function UserDashboard({ userId }: UserDashboardProps) {
 
   const updateLocation = useCallback(async (lat: number, lng: number) => {
     setCurrentUserLocation({ lat, lng });
-    const identifiedZoneId = await identifyZoneAction(lat, lng, zones);
+    
+    // Identify zone locally on the client
+    let identifiedZoneId = null;
+    for (const zone of zonesRef.current) {
+      if (isPointInPolygon(lat, lng, zone.coordinates)) {
+        identifiedZoneId = zone.id;
+        break;
+      }
+    }
     
     const userUpdate = {
       lastLatitude: lat,
@@ -163,14 +192,17 @@ export function UserDashboard({ userId }: UserDashboardProps) {
       status: 'online'
     };
     
-    setDoc(userRef, userUpdate, { merge: true }).catch(async (e) => {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: userRef.path,
-        operation: 'update',
-        requestResourceData: userUpdate
-      }));
-    });
-  }, [userRef, zones]);
+    const currentRef = userRefCurrent.current;
+    if (currentRef) {
+      setDoc(currentRef, userUpdate, { merge: true }).catch(async (e) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: currentRef.path,
+          operation: 'update',
+          requestResourceData: userUpdate
+        }));
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -190,7 +222,7 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     const result = await getRouteAction(sourceZone, destinationZone, enrichedZones);
     if (result.error) {
       setRoutingError(result.error);
-    } else {
+    } else if (result.data) {
       setRouteDetails(result.data);
     }
     setIsPlanning(false);
