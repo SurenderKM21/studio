@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useTransition } from 'react';
@@ -6,11 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { updateSettingsAction } from '@/lib/actions';
 import { Settings } from 'lucide-react';
 
+/**
+ * Legacy wrapper for system settings. 
+ * Resolves to actions.ts automatically.
+ */
 export function SettingsPanel({ initialSettings = {} }) {
   const [interval, setIntervalValue] = useState(initialSettings.locationUpdateInterval || 30);
   const [threshold, setThreshold] = useState(initialSettings.zoneSnappingThreshold || 15);
@@ -25,7 +27,7 @@ export function SettingsPanel({ initialSettings = {} }) {
       });
       toast({
         title: 'Settings Saved',
-        description: 'Global app preferences have been updated in db.json.',
+        description: 'Global app preferences have been updated.',
       });
     });
   };

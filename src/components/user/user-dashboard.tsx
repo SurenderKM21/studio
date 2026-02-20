@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -38,7 +37,6 @@ interface UserDashboardProps {
 
 const LAST_SEEN_ALERT_KEY = 'evacai-last-seen-alert-timestamp';
 
-// Helper for local zone identification (to avoid server action pings)
 function isPointInPolygon(lat: number, lng: number, polygon: Coordinate[]) {
   let isInside = false;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -62,7 +60,6 @@ function calculateDensity(count: number, capacity: number): DensityCategory {
 export function UserDashboard({ userId }: UserDashboardProps) {
   const db = useFirestore();
   
-  // Real-time Firestore Queries
   const zonesQuery = useMemoFirebase(() => collection(db, 'zones'), [db]);
   const { data: zonesData } = useCollection(zonesQuery);
   const zones = (zonesData as Zone[]) || [];
@@ -74,8 +71,8 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   const userRef = useMemoFirebase(() => doc(db, 'users', userId), [db, userId]);
   const { data: userProfile } = useDoc(userRef);
 
-  // Use refs to store latest data for the GPS watcher (to keep the watcher stable)
-  const zonesRef = useRef<Zone[]>(zones);
+  // Use refs to track real-time values within the geolocation watcher without triggering re-renders of the watcher itself
+  const zonesRef = useRef<Zone[]>([]);
   const userRefCurrent = useRef(userRef);
 
   useEffect(() => {
@@ -89,20 +86,16 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   const enrichedZones = useMemo(() => {
     return zones.map(zone => {
       const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
-      
       const isOverrideStale = zone.manualDensity && 
                               zone.manualDensityAtCount !== undefined && 
                               count !== zone.manualDensityAtCount;
-      
       const density = (zone.manualDensity && !isOverrideStale) 
                       ? zone.density 
                       : calculateDensity(count, zone.capacity);
-      
       return { ...zone, userCount: count, density, isOverrideStale };
     });
   }, [zones, users]);
 
-  // Self-Healing Logic for overrides
   useEffect(() => {
     enrichedZones.forEach(zone => {
       if (zone.isOverrideStale) {
@@ -115,7 +108,6 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     });
   }, [enrichedZones, db]);
 
-  // Fetch the 5 most recent alerts
   const alertsQuery = useMemoFirebase(() => query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(5)), [db]);
   const { data: alertsData = [] } = useCollection(alertsQuery);
   const alerts = alertsData as AlertMessage[];
@@ -175,7 +167,6 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   const updateLocation = useCallback(async (lat: number, lng: number) => {
     setCurrentUserLocation({ lat, lng });
     
-    // Identify zone locally on the client
     let identifiedZoneId = null;
     for (const zone of zonesRef.current) {
       if (isPointInPolygon(lat, lng, zone.coordinates)) {
@@ -204,6 +195,7 @@ export function UserDashboard({ userId }: UserDashboardProps) {
     }
   }, []);
 
+  // Stabilize the geolocation watcher by using an empty dependency array
   useEffect(() => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(

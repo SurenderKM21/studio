@@ -41,27 +41,17 @@ function UserPageContent() {
   const router = useRouter();
   const userId = searchParams.get('userId');
 
-  // Handle missing userId unconditionally with a hook
-  useEffect(() => {
-    if (!userId) {
-      router.push('/login');
-    }
-  }, [userId, router]);
-
-  // Decode the userId safely
   const decodedUserId = useMemo(() => {
     if (!userId) return null;
     try {
       return Buffer.from(userId, 'base64').toString('utf-8');
     } catch (e) {
-      console.error("Failed to decode userId:", e);
       return null;
     }
   }, [userId]);
 
-  // Redirect if decoding fails
   useEffect(() => {
-    if (userId && !decodedUserId) {
+    if (!userId || !decodedUserId) {
       router.push('/login');
     }
   }, [userId, decodedUserId, router]);

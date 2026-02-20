@@ -16,29 +16,27 @@ function AdminAuthGuard({ userId, decodedUserId }: { userId: string, decodedUser
   const userRef = useMemoFirebase(() => doc(firestore, 'users', decodedUserId), [firestore, decodedUserId]);
   const { data: profile, isLoading: isProfileLoading } = useDoc(userRef);
 
-  // Derived values for the effect
-  const userEmail = user?.email;
-  const userRole = profile?.role;
+  // Derive simple stable values for the dependency array to prevent "size changed" errors
+  const isAuthenticated = !!user;
+  const isAdminByEmail = user?.email === 'admin@evacai.com';
+  const isAdminByRole = profile?.role === 'admin';
+  const isAuthorized = isAdminByEmail || isAdminByRole;
+  const isDataReady = !isUserLoading && !isProfileLoading;
 
   useEffect(() => {
-    // Only act when initial loading is finished
-    if (isUserLoading || isProfileLoading) return;
+    if (!isDataReady) return;
 
-    if (!user) {
+    if (!isAuthenticated) {
       router.push('/login');
       return;
     }
 
-    // For the prototype, we trust the admin email or the explicit role
-    const isAdminByEmail = userEmail === 'admin@evacai.com';
-    const isAdminByRole = userRole === 'admin';
-
-    if (!isAdminByEmail && !isAdminByRole) {
-      router.push('/user?userId=' + userId);
+    if (!isAuthorized) {
+      router.push(`/user?userId=${userId}`);
     }
-  }, [user, isUserLoading, isProfileLoading, userEmail, userRole, router, userId]);
+  }, [isDataReady, isAuthenticated, isAuthorized, router, userId]);
 
-  if (isUserLoading || isProfileLoading) {
+  if (!isDataReady) {
     return (
       <div className="flex h-screen items-center justify-center gap-2">
         <Loader className="h-6 w-6 animate-spin text-primary" />
@@ -47,10 +45,7 @@ function AdminAuthGuard({ userId, decodedUserId }: { userId: string, decodedUser
     );
   }
 
-  const isAdminByEmail = user?.email === 'admin@evacai.com';
-  const isAdminByRole = profile?.role === 'admin';
-
-  if (!isAdminByEmail && !isAdminByRole) {
+  if (!isAuthorized) {
     return (
       <div className="flex flex-col h-screen items-center justify-center gap-4 text-center p-8">
         <Lock className="h-12 w-12 text-destructive" />
@@ -77,27 +72,17 @@ function AdminPageContent() {
   const router = useRouter();
   const userId = searchParams.get('userId');
 
-  // Handle missing userId unconditionally with a hook
-  useEffect(() => {
-    if (!userId) {
-      router.push('/login');
-    }
-  }, [userId, router]);
-
-  // Decode the userId safely
   const decodedUserId = useMemo(() => {
     if (!userId) return null;
     try {
       return Buffer.from(userId, 'base64').toString('utf-8');
     } catch (e) {
-      console.error("Failed to decode userId:", e);
       return null;
     }
   }, [userId]);
 
-  // Redirect if decoding fails
   useEffect(() => {
-    if (userId && !decodedUserId) {
+    if (!userId || !decodedUserId) {
       router.push('/login');
     }
   }, [userId, decodedUserId, router]);

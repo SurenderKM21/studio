@@ -1,11 +1,8 @@
 'use client';
-
 import React from 'react';
 import AdminPageTSX from './page.tsx';
-
 /**
- * Wrapper to ensure the .jsx version uses the latest .tsx logic.
- * This resolves naming conflicts during the Firestore migration.
+ * Simple wrapper to resolve to the TSX version.
  */
 export default function AdminPage() {
   return <AdminPageTSX />;

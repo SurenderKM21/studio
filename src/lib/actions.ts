@@ -2,13 +2,13 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import type { Zone, AppSettings, DensityCategory, Coordinate, User, AlertMessage } from './types';
+import type { Zone, Coordinate, RouteDetails } from './types';
 import { redirect } from 'next/navigation';
 
 /**
  * Server Actions for EvacAI.
  * Data mutations are primarily handled client-side via Firestore SDK.
- * These actions handle server-side specific tasks like login session management and pathfinding logic.
+ * Pathfinding logic is handled here for complex routing calculations.
  */
 
 const loginUserSchema = z.object({
@@ -40,40 +40,7 @@ export async function logoutUserAction(userId: string) {
     redirect('/');
 }
 
-export async function refreshDataAction() {
-    revalidatePath('/admin');
-    revalidatePath('/user');
-}
-
-/**
- * Ray-Casting Algorithm to determine if a point is inside a polygon.
- * Used for real-time zone identification.
- */
-export async function isPointInPolygonAction(lat: number, lng: number, polygon: Coordinate[]) {
-  let isInside = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const xi = polygon[i].lat, yi = polygon[i].lng;
-    const xj = polygon[j].lat, yj = polygon[j].lng;
-    const intersect = ((yi > lng) !== (yj > lng)) &&
-        (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
-    if (intersect) isInside = !isInside;
-  }
-  return isInside;
-}
-
-/**
- * Utility to find which zone a user is currently in.
- */
-export async function identifyZoneAction(lat: number, lng: number, zones: Zone[]) {
-    for (const zone of zones) {
-        if (await isPointInPolygonAction(lat, lng, zone.coordinates)) {
-            return zone.id;
-        }
-    }
-    return null;
-}
-
-// Logic-based Pathfinding utilities for the client to call via getRouteAction
+// Logic-based Pathfinding utilities
 const DENSITY_COST: Record<string, number> = {
     'free': 1,
     'moderate': 3,
