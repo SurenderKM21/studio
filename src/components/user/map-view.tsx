@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import type { Zone, DensityCategory, ZoneNote } from '@/lib/types';
+import type { Zone, DensityCategory } from '@/lib/types';
 import { useMemo, useEffect, useState } from 'react';
 import {
   Tooltip,
@@ -9,8 +9,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Separator } from '../ui/separator';
-import { NotebookPen } from 'lucide-react';
 
 const densityStyles: Record<
   DensityCategory,
@@ -22,7 +20,6 @@ const densityStyles: Record<
   'over-crowded': { background: 'bg-red-500/20', border: 'border-red-500', dot: 'bg-red-500' },
 };
 
-// Darker styles for highlighting the route
 const highlightedDensityStyles: Record<
   DensityCategory,
   { background: string; border: string; dot: string }
@@ -51,17 +48,16 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
   }, []);
 
   useEffect(() => {
-    // When a new route is provided, start the animation and highlighting.
     if (route && route.length > 0) {
       setIsAnimating(true);
       setIsHighlighting(true);
       
       const animationTimer = setTimeout(() => {
-        setIsAnimating(false); // Stop path animation after 15 seconds
+        setIsAnimating(false);
       }, 15000);
       
       const highlightTimer = setTimeout(() => {
-        setIsHighlighting(false); // Stop color highlight after 15 seconds
+        setIsHighlighting(false);
       }, 15000);
 
       return () => {
@@ -69,7 +65,6 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
         clearTimeout(highlightTimer);
       };
     } else {
-      // If the route is cleared, ensure animations are stopped.
       setIsAnimating(false);
       setIsHighlighting(false);
     }
@@ -108,9 +103,7 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
     <TooltipProvider>
       <div className="relative w-full min-h-[550px] bg-muted/30 rounded-lg border-dashed border-2 p-4">
         <div className="relative grid grid-cols-3 grid-rows-3 gap-4 h-[520px]">
-          {/* Render zones */}
           {safeZones.map((zone) => {
-            const visibleNotes = zone.notes?.filter(n => n.visibleToUser) ?? [];
             const isInRecommendedRoute = route?.includes(zone.id);
             const isInConsideredPath = isInRecommendedRoute || alternativeRoute?.includes(zone.id);
 
@@ -145,19 +138,6 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
                 <p>
                   Users: {zone.userCount} / {zone.capacity}
                 </p>
-                {visibleNotes.length > 0 && (
-                    <>
-                        <Separator className="my-2" />
-                        <div className="space-y-1">
-                            {visibleNotes.map(note => (
-                                <div key={note.id} className="flex items-center gap-2">
-                                    <NotebookPen className="h-4 w-4 text-muted-foreground" />
-                                    <p className="text-xs">{note.text}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </>
-                )}
               </TooltipContent>
             </Tooltip>
           )})}
@@ -168,7 +148,6 @@ export function MapView({ zones, route, alternativeRoute }: MapViewProps) {
           )}
         </div>
         
-        {/* Draw route lines */}
         {isClient && (
             <svg
             className="absolute top-0 left-0 w-full h-full"

@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { User, Zone } from '@/lib/types';
@@ -41,7 +40,7 @@ export function SOSMonitor({ initialUsers, initialZones }: SOSMonitorProps) {
     updateDocumentNonBlocking(userRef, { sos: false });
     toast({
       title: 'SOS Resolved',
-      description: `User "${userName}" has been marked as safe.`,
+      description: `User "${userName || userId}" has been marked as safe.`,
     });
   };
 
@@ -71,7 +70,7 @@ export function SOSMonitor({ initialUsers, initialZones }: SOSMonitorProps) {
               {sosUsers.length > 0 ? (
                 sosUsers.map((user) => (
                   <TableRow key={user.id} className="bg-destructive/10">
-                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell className="font-medium">{user.name || user.id}</TableCell>
                     <TableCell>
                       {user.lastZoneId
                         ? zoneMap.get(user.lastZoneId) ?? 'Unknown'
@@ -80,7 +79,7 @@ export function SOSMonitor({ initialUsers, initialZones }: SOSMonitorProps) {
                     <TableCell className="text-right">
                       <Button
                         size="sm"
-                        onClick={() => handleResolveSOS(user.id, user.name)}
+                        onClick={() => handleResolveSOS(user.id, user.name || user.id)}
                       >
                         <ShieldCheck className="mr-2 h-4 w-4" />
                         Mark as Safe

@@ -71,7 +71,6 @@ export function UserDashboard({ userId }: UserDashboardProps) {
   const userRef = useMemoFirebase(() => doc(db, 'users', userId), [db, userId]);
   const { data: userProfile } = useDoc(userRef);
 
-  // Use refs to track real-time values within the geolocation watcher without triggering re-renders of the watcher itself
   const zonesRef = useRef<Zone[]>([]);
   const userRefCurrent = useRef(userRef);
 
@@ -175,7 +174,11 @@ export function UserDashboard({ userId }: UserDashboardProps) {
       }
     }
     
+    // Derived display name from the decoded userId (which is the username)
+    const displayName = userId.charAt(0).toUpperCase() + userId.slice(1);
+
     const userUpdate = {
+      name: displayName,
       lastLatitude: lat,
       lastLongitude: lng,
       lastSeen: new Date().toISOString(),
@@ -193,9 +196,8 @@ export function UserDashboard({ userId }: UserDashboardProps) {
         }));
       });
     }
-  }, []);
+  }, [userId]);
 
-  // Stabilize the geolocation watcher by using an empty dependency array
   useEffect(() => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       const watchId = navigator.geolocation.watchPosition(

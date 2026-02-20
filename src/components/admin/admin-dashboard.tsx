@@ -2,16 +2,14 @@
 
 import { useMemo, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Map, Users, Settings, Siren, MessageSquareWarning, AlertTriangle, NotebookPen, Activity } from 'lucide-react';
+import { Map, Users, Siren, MessageSquareWarning, AlertTriangle, Activity } from 'lucide-react';
 import { ZoneManager } from './zone-manager';
 import { DensityControl } from './density-control';
-import { SettingsPanel } from './settings-panel';
 import { SOSMonitor } from './sos-monitor';
 import { UserMonitor } from './user-monitor';
 import { ZoneDetails } from './zone-details';
 import { OvercrowdedZones } from './overcrowded-zones';
 import { AlertManager } from './alert-manager';
-import { ZoneNotesManager } from './zone-notes-manager';
 import { 
   useCollection, 
   useMemoFirebase, 
@@ -44,8 +42,6 @@ export function AdminDashboard({ userId }: { userId: string }) {
     return zones.map(zone => {
       const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
       
-      // Strict Staleness Logic:
-      // An override is stale if the current count is different from the count when the override was set.
       const isOverrideStale = zone.manualDensity && 
                               zone.manualDensityAtCount !== undefined && 
                               count !== zone.manualDensityAtCount;
@@ -58,12 +54,10 @@ export function AdminDashboard({ userId }: { userId: string }) {
     });
   }, [zones, users]);
 
-  // Effect to permanently reset stale manual overrides in the database
   useEffect(() => {
     enrichedZones.forEach(zone => {
       if (zone.isOverrideStale) {
         const zoneRef = doc(db, 'zones', zone.id);
-        // Clear the override in Firestore so it doesn't "revive" later
         updateDocumentNonBlocking(zoneRef, {
           manualDensity: false,
           manualDensityAtCount: null
@@ -101,14 +95,8 @@ export function AdminDashboard({ userId }: { userId: string }) {
           <TabsTrigger value="alerts">
             <MessageSquareWarning className="mr-2 h-4 w-4" /> Alerts
           </TabsTrigger>
-          <TabsTrigger value="notes">
-            <NotebookPen className="mr-2 h-4 w-4" /> Notes
-          </TabsTrigger>
           <TabsTrigger value="overcrowded">
             <AlertTriangle className="mr-2 h-4 w-4" /> Overcrowded ({overCrowdedCount})
-          </TabsTrigger>
-          <TabsTrigger value="settings">
-            <Settings className="mr-2 h-4 w-4" /> Settings
           </TabsTrigger>
         </TabsList>
 
@@ -130,14 +118,8 @@ export function AdminDashboard({ userId }: { userId: string }) {
         <TabsContent value="alerts">
           <AlertManager zones={enrichedZones} />
         </TabsContent>
-        <TabsContent value="notes">
-          <ZoneNotesManager initialZones={enrichedZones} />
-        </TabsContent>
         <TabsContent value="overcrowded">
           <OvercrowdedZones zones={enrichedZones} />
-        </TabsContent>
-        <TabsContent value="settings">
-          <SettingsPanel initialSettings={{}} />
         </TabsContent>
       </Tabs>
     </div>

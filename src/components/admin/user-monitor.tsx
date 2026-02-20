@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { User, Zone } from '@/lib/types';
@@ -102,8 +101,8 @@ export function UserMonitor({ initialUsers, initialZones }: UserMonitorProps) {
             {users.length > 0 ? (
               users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.id}</TableCell>
-                  <TableCell>{user.name}</TableCell>
+                  <TableCell className="font-medium text-xs">{user.id}</TableCell>
+                  <TableCell>{user.name || user.id}</TableCell>
                   <TableCell>
                     {user.lastZoneId
                       ? zoneMap.get(user.lastZoneId) ?? 'Unknown'
@@ -121,12 +120,12 @@ export function UserMonitor({ initialUsers, initialZones }: UserMonitorProps) {
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This will permanently remove the user <strong>{user.name}</strong>. This action cannot be undone.
+                                    This will permanently remove the user <strong>{user.name || user.id}</strong>. This action cannot be undone.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleRemoveUser(user.id, user.name)} className="bg-destructive hover:bg-destructive/90">
+                                <AlertDialogAction onClick={() => handleRemoveUser(user.id, user.name || user.id)} className="bg-destructive hover:bg-destructive/90">
                                     Remove User
                                 </AlertDialogAction>
                             </AlertDialogFooter>
