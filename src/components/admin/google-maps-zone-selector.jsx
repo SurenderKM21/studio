@@ -44,24 +44,8 @@ export function GoogleMapsZoneSelector({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
   });
   
-  const [adminLocation, setAdminLocation] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
   const lastFocusedRef = useRef('');
-
-  // Get user location for fallback only
-  useEffect(() => {
-    if (typeof window !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setAdminLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        () => {}
-      );
-    }
-  }, []);
 
   // Strict focus logic using LatLngBounds
   const focusOnZone = useCallback(() => {
@@ -73,7 +57,7 @@ export function GoogleMapsZoneSelector({
     // fitBounds is the most reliable way to ignore "center" and show the specific area
     mapInstance.fitBounds(bounds);
     
-    // Prevent excessive zoom for single points or small areas
+    // Prevent excessive zoom for small areas
     const listener = window.google.maps.event.addListener(mapInstance, 'idle', () => {
       if (mapInstance.getZoom() > 20) mapInstance.setZoom(19);
       window.google.maps.event.removeListener(listener);
@@ -85,7 +69,8 @@ export function GoogleMapsZoneSelector({
     if (mapInstance && coordinates && coordinates.length > 0) {
       const currentHash = JSON.stringify(coordinates);
       // Only snap if coordinates actually changed (prevents snapping back while dragging)
-      if (lastFocusedRef.current !== currentHash) {
+      // or if this is the very first time the map loads with coordinates
+      if (lastFocusedRef.current === '') {
         focusOnZone();
         lastFocusedRef.current = currentHash;
       }
@@ -95,9 +80,7 @@ export function GoogleMapsZoneSelector({
   const handleMapClick = (event) => {
     if (coordinates.length < 10 && event.latLng) {
       const newCoord = { lat: event.latLng.lat(), lng: event.latLng.lng() };
-      const updated = [...coordinates, newCoord];
-      lastFocusedRef.current = JSON.stringify(updated); // Update ref so we don't snap back immediately
-      onCoordinatesChange(updated);
+      onCoordinatesChange([...coordinates, newCoord]);
     }
   };
 
@@ -105,7 +88,6 @@ export function GoogleMapsZoneSelector({
     if (event.latLng) {
       const newCoords = [...coordinates];
       newCoords[index] = { lat: event.latLng.lat(), lng: event.latLng.lng() };
-      lastFocusedRef.current = JSON.stringify(newCoords); // Update ref so we don't snap back while editing
       onCoordinatesChange(newCoords);
     }
   };
@@ -133,19 +115,10 @@ export function GoogleMapsZoneSelector({
     return <Skeleton className="h-[400px] w-full rounded-md" />;
   }
 
-  const userMarkerOptions = {
-    path: 'M-10,0a10,10 0 1,0 20,0a10,10 0 1,0 -20,0',
-    fillColor: '#4285F4',
-    fillOpacity: 1,
-    strokeColor: 'white',
-    strokeWeight: 2,
-    scale: 0.6
-  };
-
-  // Determine initial map center strictly: Zone first, then Geolocation, then default
+  // Determine initial map center strictly: Zone first, then default
   const initialCenter = coordinates.length > 0 
     ? coordinates[0] 
-    : (adminLocation || defaultCenter);
+    : defaultCenter;
 
   return (
     <div className="space-y-2">
@@ -211,19 +184,10 @@ export function GoogleMapsZoneSelector({
         {coordinates.length > 2 && (
           <Polygon paths={coordinates} options={polygonOptions} />
         )}
-
-        {adminLocation && coordinates.length === 0 && (
-          <Marker 
-            position={adminLocation} 
-            icon={userMarkerOptions}
-            zIndex={0}
-            title="Your Current Location"
-          />
-        )}
       </GoogleMap>
       
       <p className="text-xs text-muted-foreground italic bg-muted/50 p-2 rounded">
-        The map automatically snaps to the zone shape. Drag numbered red markers to adjust boundaries.
+        When editing, the map strictly focuses on the zone markers. Drag numbered markers to adjust.
       </p>
     </div>
   );

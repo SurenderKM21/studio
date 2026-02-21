@@ -1,6 +1,5 @@
 /**
  * Project Type Definitions (Documentation Only)
- * In JavaScript, these serve as a reference for the data structures used in the app.
  * 
  * DensityCategory: 'free' | 'moderate' | 'crowded' | 'over-crowded'
  * Coordinate: { lat, lng }
