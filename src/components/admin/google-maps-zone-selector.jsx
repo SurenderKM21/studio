@@ -46,10 +46,9 @@ export function GoogleMapsZoneSelector({
   
   const [adminLocation, setAdminLocation] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
-  const hasFocusedRef = useRef(false);
-  const currentZoneIdRef = useRef(null);
+  const lastFocusedRef = useRef('');
 
-  // Initialize admin location for fallback centering
+  // Get user location for fallback only
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -64,30 +63,31 @@ export function GoogleMapsZoneSelector({
     }
   }, []);
 
-  // Use fitBounds to strictly focus on the zone coordinates
+  // Strict focus logic using LatLngBounds
   const focusOnZone = useCallback(() => {
     if (!mapInstance || !coordinates || coordinates.length === 0) return;
 
     const bounds = new window.google.maps.LatLngBounds();
     coordinates.forEach(coord => bounds.extend(coord));
     
-    // fitBounds is much more reliable than panTo for centering shapes
+    // fitBounds is the most reliable way to ignore "center" and show the specific area
     mapInstance.fitBounds(bounds);
     
-    // If it's a very tight zone, prevent extreme zoom
+    // Prevent excessive zoom for single points or small areas
     const listener = window.google.maps.event.addListener(mapInstance, 'idle', () => {
       if (mapInstance.getZoom() > 20) mapInstance.setZoom(19);
       window.google.maps.event.removeListener(listener);
     });
   }, [mapInstance, coordinates]);
 
-  // Focus when map instance is ready or coordinates change initially
+  // Effect to handle initial load and snaps
   useEffect(() => {
     if (mapInstance && coordinates && coordinates.length > 0) {
-      const zoneFingerprint = JSON.stringify(coordinates);
-      if (currentZoneIdRef.current !== zoneFingerprint) {
+      const currentHash = JSON.stringify(coordinates);
+      // Only snap if coordinates actually changed (prevents snapping back while dragging)
+      if (lastFocusedRef.current !== currentHash) {
         focusOnZone();
-        currentZoneIdRef.current = zoneFingerprint;
+        lastFocusedRef.current = currentHash;
       }
     }
   }, [mapInstance, coordinates, focusOnZone]);
@@ -95,7 +95,9 @@ export function GoogleMapsZoneSelector({
   const handleMapClick = (event) => {
     if (coordinates.length < 10 && event.latLng) {
       const newCoord = { lat: event.latLng.lat(), lng: event.latLng.lng() };
-      onCoordinatesChange([...coordinates, newCoord]);
+      const updated = [...coordinates, newCoord];
+      lastFocusedRef.current = JSON.stringify(updated); // Update ref so we don't snap back immediately
+      onCoordinatesChange(updated);
     }
   };
 
@@ -103,13 +105,14 @@ export function GoogleMapsZoneSelector({
     if (event.latLng) {
       const newCoords = [...coordinates];
       newCoords[index] = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+      lastFocusedRef.current = JSON.stringify(newCoords); // Update ref so we don't snap back while editing
       onCoordinatesChange(newCoords);
     }
   };
 
   const clearCoordinates = () => {
     onCoordinatesChange([]);
-    currentZoneIdRef.current = null;
+    lastFocusedRef.current = '';
   };
 
   if (loadError) {
@@ -138,6 +141,11 @@ export function GoogleMapsZoneSelector({
     strokeWeight: 2,
     scale: 0.6
   };
+
+  // Determine initial map center strictly: Zone first, then Geolocation, then default
+  const initialCenter = coordinates.length > 0 
+    ? coordinates[0] 
+    : (adminLocation || defaultCenter);
 
   return (
     <div className="space-y-2">
@@ -175,7 +183,7 @@ export function GoogleMapsZoneSelector({
       
       <GoogleMap
         mapContainerStyle={containerStyle}
-        center={coordinates.length > 0 ? coordinates[0] : (adminLocation || defaultCenter)}
+        center={initialCenter}
         zoom={18}
         onClick={handleMapClick}
         onLoad={(map) => setMapInstance(map)}
@@ -204,18 +212,18 @@ export function GoogleMapsZoneSelector({
           <Polygon paths={coordinates} options={polygonOptions} />
         )}
 
-        {adminLocation && (
+        {adminLocation && coordinates.length === 0 && (
           <Marker 
             position={adminLocation} 
             icon={userMarkerOptions}
             zIndex={0}
-            title="Your Location"
+            title="Your Current Location"
           />
         )}
       </GoogleMap>
       
       <p className="text-xs text-muted-foreground italic bg-muted/50 p-2 rounded">
-        Drag markers to adjust. Sequence is numbered. The map centers on the zone shape automatically.
+        The map automatically snaps to the zone shape. Drag numbered red markers to adjust boundaries.
       </p>
     </div>
   );
