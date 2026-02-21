@@ -81,27 +81,10 @@ export function UserDashboard({ userId }) {
   const enrichedZones = useMemo(() => {
     return zones.map(zone => {
       const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
-      const isOverrideStale = zone.manualDensity && 
-                              zone.manualDensityAtCount !== undefined && 
-                              count !== zone.manualDensityAtCount;
-      const density = (zone.manualDensity && !isOverrideStale) 
-                      ? zone.density 
-                      : calculateDensity(count, zone.capacity);
-      return { ...zone, userCount: count, density, isOverrideStale };
+      const density = calculateDensity(count, zone.capacity);
+      return { ...zone, userCount: count, density };
     });
   }, [zones, users]);
-
-  useEffect(() => {
-    enrichedZones.forEach(zone => {
-      if (zone.isOverrideStale) {
-        const zoneRef = doc(db, 'zones', zone.id);
-        updateDocumentNonBlocking(zoneRef, {
-          manualDensity: false,
-          manualDensityAtCount: null
-        });
-      }
-    });
-  }, [enrichedZones, db]);
 
   const alertsQuery = useMemoFirebase(() => query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(5)), [db]);
   const { data: alertsData = [] } = useCollection(alertsQuery);
@@ -113,43 +96,14 @@ export function UserDashboard({ userId }) {
   const [isPlanning, setIsPlanning] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [latestAlert, setLatestAlert] = useState(null);
-  const [mountedTime, setMountedTime] = useState(null);
-
-  const sessionStartTime = useRef(new Date());
-  const zoneEntryTime = useRef(new Date());
-  const lastZoneId = useRef(null);
-
-  useEffect(() => {
-    setMountedTime(new Date());
-  }, []);
-
-  useEffect(() => {
-    if (userProfile?.lastZoneId && userProfile.lastZoneId !== lastZoneId.current) {
-      zoneEntryTime.current = new Date();
-      lastZoneId.current = userProfile.lastZoneId;
-    }
-  }, [userProfile?.lastZoneId]);
 
   useEffect(() => {
     if (alerts && alerts.length > 0 && userProfile) {
-      const applicableAlert = alerts.find(alert => {
-        const isTargeted = !alert.zoneId || alert.zoneId === userProfile.lastZoneId;
-        if (!isTargeted) return false;
-
-        const alertTime = new Date(alert.timestamp);
-        const afterSessionStart = alertTime > sessionStartTime.current;
-        const entryThreshold = new Date(zoneEntryTime.current.getTime() - 5000);
-        const afterZoneEntry = alert.zoneId ? alertTime > entryThreshold : true;
-
-        return afterSessionStart && afterZoneEntry;
-      });
-
-      if (applicableAlert) {
-        const lastSeen = localStorage.getItem(LAST_SEEN_ALERT_KEY);
-        if (applicableAlert.timestamp !== lastSeen) {
-          setLatestAlert(applicableAlert);
-          setShowAlert(true);
-        }
+      const applicableAlert = alerts[0];
+      const lastSeen = localStorage.getItem(LAST_SEEN_ALERT_KEY);
+      if (applicableAlert.timestamp !== lastSeen) {
+        setLatestAlert(applicableAlert);
+        setShowAlert(true);
       }
     }
   }, [alerts, userProfile]);
@@ -171,7 +125,6 @@ export function UserDashboard({ userId }) {
     }
     
     const displayName = userId.charAt(0).toUpperCase() + userId.slice(1);
-
     const userUpdate = {
       name: displayName,
       lastLatitude: lat,
@@ -217,12 +170,6 @@ export function UserDashboard({ userId }) {
     setIsPlanning(false);
   };
 
-  const getFriendlyZoneName = (zoneId) => {
-      if (!zoneId || zoneId === 'Locating...') return 'Locating...';
-      if (zoneId === 'outside') return 'Outside Event Area';
-      return zones.find(z => z.id === zoneId)?.name || 'Outside Event Area';
-  }
-
   return (
     <div>
       <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
@@ -235,11 +182,9 @@ export function UserDashboard({ userId }) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-4xl font-headline font-bold">Event Navigator</h1>
-          <p className="text-muted-foreground">Navigate smarter, not harder.</p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-4xl font-headline font-bold">Event Navigator</h1>
+        <p className="text-muted-foreground">Navigate smarter, not harder.</p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -255,9 +200,7 @@ export function UserDashboard({ userId }) {
             </CardContent>
           </Card>
           <LocationTracker 
-            currentZoneName={getFriendlyZoneName(userProfile?.lastZoneId)} 
-            isSending={false}
-            lastUpdated={mountedTime}
+            currentZoneName={zones.find(z => z.id === userProfile?.lastZoneId)?.name || 'Outside Area'} 
             coordinates={currentUserLocation}
           />
           <RoutePlanner zones={enrichedZones} onPlanRoute={handlePlanRoute} isPlanning={isPlanning} />

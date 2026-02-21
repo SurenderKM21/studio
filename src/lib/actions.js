@@ -1,14 +1,10 @@
 
 'use server';
-import { z } from 'zod';
 import { redirect } from 'next/navigation';
 
-const loginUserSchema = z.object({
-  email: z.string().optional(),
-  username: z.string().optional(),
-  role: z.string(),
-  groupSize: z.number(),
-});
+/**
+ * Server Actions for EvacAI.
+ */
 
 export async function loginUserAction(data) {
     const { role, username, email } = data;
