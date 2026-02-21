@@ -38,7 +38,7 @@ export function GoogleMapsZoneSelector({
   coordinates,
   onCoordinatesChange,
 }) {
-  const { isLoaded } = useJsApiLoader({
+  const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
   });
@@ -80,18 +80,21 @@ export function GoogleMapsZoneSelector({
     onCoordinatesChange([]);
   };
 
+  if (loadError) {
+    return (
+      <div className="h-[400px] w-full rounded-md border-2 border-dashed flex flex-col items-center justify-center text-center p-8 space-y-4">
+          <p className="text-destructive font-bold text-lg">Google Maps API Error</p>
+          <div className="text-sm space-y-2">
+            <p>If you see <strong>RefererNotAllowedMapError</strong>, please go to the <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" className="underline text-primary">Google Cloud Console</a>.</p>
+            <p>Add your development domain to the API Key restrictions:</p>
+            <code className="bg-muted p-1 block rounded text-xs">{window.location.origin}/*</code>
+          </div>
+      </div>
+    );
+  }
+
   if (!isLoaded) {
     return <Skeleton className="h-[400px] w-full rounded-md" />;
-  }
-  
-  if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY') {
-    return (
-      <div className="h-[400px] w-full rounded-md border-2 border-dashed flex items-center justify-center text-center p-4">
-          <p className="text-destructive font-semibold">
-              Google Maps API Key is missing or incorrectly configured. Please check your .env file and Google Cloud Console restrictions.
-          </p>
-      </div>
-    )
   }
 
   const blueDot = {

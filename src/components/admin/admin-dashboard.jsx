@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Map, Users, Siren, MessageSquareWarning, AlertTriangle, Activity } from 'lucide-react';
 import { ZoneManager } from './zone-manager';
@@ -16,7 +15,8 @@ import {
   useMemoFirebase, 
   useFirestore 
 } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 function calculateDensity(count, capacity) {
   const ratio = count / capacity;
@@ -40,10 +40,30 @@ export function AdminDashboard({ userId }) {
   const enrichedZones = useMemo(() => {
     return zones.map(zone => {
       const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
-      const density = zone.manualDensity ? zone.density : calculateDensity(count, zone.capacity);
-      return { ...zone, userCount: count, density };
+      
+      const isOverrideStale = zone.manualDensity && 
+                              zone.manualDensityAtCount !== undefined && 
+                              count !== zone.manualDensityAtCount;
+      
+      const density = (zone.manualDensity && !isOverrideStale) 
+                      ? zone.density 
+                      : calculateDensity(count, zone.capacity);
+      
+      return { ...zone, userCount: count, density, isOverrideStale };
     });
   }, [zones, users]);
+
+  useEffect(() => {
+    enrichedZones.forEach(zone => {
+      if (zone.isOverrideStale) {
+        const zoneRef = doc(db, 'zones', zone.id);
+        updateDocumentNonBlocking(zoneRef, {
+          manualDensity: false,
+          manualDensityAtCount: null
+        });
+      }
+    });
+  }, [enrichedZones, db]);
 
   const sosCount = users.filter(u => u.sos).length;
   const overCrowdedCount = enrichedZones.filter(z => z.density === 'over-crowded').length;
@@ -59,7 +79,7 @@ export function AdminDashboard({ userId }) {
 
       <Tabs defaultValue="zones" className="w-full">
         <TabsList className="flex flex-wrap h-auto bg-muted p-1">
-          <TabsTrigger value="sos" className={sosCount > 0 ? 'text-destructive font-bold' : ''}>
+          <TabsTrigger value="sos" className={sosCount > 0 ? 'text-destructive font-bold animate-pulse' : ''}>
             <Siren className="mr-2 h-4 w-4" /> SOS ({sosCount})
           </TabsTrigger>
           <TabsTrigger value="zones">
