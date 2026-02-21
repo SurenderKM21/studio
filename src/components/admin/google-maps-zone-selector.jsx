@@ -6,9 +6,9 @@ import {
   Marker,
   Polygon,
 } from '@react-google-maps/api';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '../ui/button';
-import { Trash2, AlertTriangle } from 'lucide-react';
+import { Trash2, AlertTriangle, MapPin } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Card, CardContent } from '../ui/card';
 
@@ -45,7 +45,9 @@ export function GoogleMapsZoneSelector({
   });
   
   const [adminLocation, setAdminLocation] = useState(null);
+  const [mapInstance, setMapInstance] = useState(null);
 
+  // Initialize admin location
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -61,6 +63,14 @@ export function GoogleMapsZoneSelector({
       );
     }
   }, []);
+
+  // Determine the initial center: Priority 1: Existing coords, Priority 2: Admin loc, Priority 3: Default
+  const mapCenter = useMemo(() => {
+    if (coordinates && coordinates.length > 0) {
+      return coordinates[0];
+    }
+    return adminLocation || defaultCenter;
+  }, [coordinates, adminLocation]);
 
   const handleMapClick = (event) => {
     if (coordinates.length < 4 && event.latLng) {
@@ -111,13 +121,18 @@ export function GoogleMapsZoneSelector({
     fillOpacity: 1,
     strokeColor: 'white',
     strokeWeight: 2,
-    scale: 1
+    scale: 0.8
   };
 
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
-        <p className="text-sm font-medium">Define Zone on Map</p>
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-primary" />
+          <p className="text-sm font-medium">
+            {coordinates.length > 0 ? 'Edit Zone Boundaries' : 'Define Zone on Map'}
+          </p>
+        </div>
         <Button
           type="button"
           variant="outline"
@@ -131,16 +146,27 @@ export function GoogleMapsZoneSelector({
       </div>
       <GoogleMap
         mapContainerStyle={containerStyle}
-        center={adminLocation || defaultCenter}
-        zoom={13}
+        center={mapCenter}
+        zoom={16}
         onClick={handleMapClick}
+        onLoad={(map) => setMapInstance(map)}
+        options={{
+          streetViewControl: false,
+          mapTypeControl: false,
+          fullscreenControl: false,
+        }}
       >
         {coordinates.map((pos, index) => (
           <Marker
-            key={index}
+            key={`${index}-${pos.lat}-${pos.lng}`}
             position={pos}
             draggable={true}
             onDragEnd={(e) => handleMarkerDragEnd(index, e)}
+            label={{
+              text: (index + 1).toString(),
+              color: 'white',
+              fontWeight: 'bold'
+            }}
           />
         ))}
         {coordinates.length > 2 && (
@@ -150,12 +176,15 @@ export function GoogleMapsZoneSelector({
           <Marker 
             position={adminLocation} 
             title="Your Location"
-            icon={blueDot} 
+            icon={blueDot}
+            zIndex={0}
           />
         )}
       </GoogleMap>
       <p className="text-xs text-muted-foreground">
-        Click on the map to add up to 4 corner points. Drag points to adjust.
+        {coordinates.length < 4 
+          ? 'Click on the map to add points (max 4). Drag existing markers to adjust boundary.'
+          : 'Max points reached. Drag markers to fine-tune the zone shape.'}
       </p>
     </div>
   );
