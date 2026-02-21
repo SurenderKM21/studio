@@ -54,6 +54,9 @@ const LAST_SEEN_ALERT_KEY = 'evacai-last-seen-alert-timestamp';
 export function UserDashboard({ userId }) {
   const db = useFirestore();
   
+  // Track when this specific dashboard session started to filter out old alerts
+  const sessionStartTime = useRef(new Date().toISOString());
+  
   const zonesQuery = useMemoFirebase(() => collection(db, 'zones'), [db]);
   const { data: zonesData } = useCollection(zonesQuery);
   const zones = zonesData || [];
@@ -80,8 +83,6 @@ export function UserDashboard({ userId }) {
     return zones.map(zone => {
       const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
       
-      // Check if manual override is active and not stale
-      // (Stale check matches the admin dashboard logic: count hasn't changed since override)
       const isOverrideActive = zone.manualDensity && 
                                (zone.manualDensityAtCount === undefined || count === zone.manualDensityAtCount);
       
@@ -108,7 +109,18 @@ export function UserDashboard({ userId }) {
     if (alerts && alerts.length > 0 && userProfile) {
       const applicableAlert = alerts[0];
       const lastSeen = localStorage.getItem(LAST_SEEN_ALERT_KEY);
-      if (applicableAlert.timestamp !== lastSeen) {
+      
+      // Logic Fix: Filter by Zone and Time
+      // 1. Check if the alert targets "All" (null zoneId) or the user's current zone
+      const isTargetedAtUser = !applicableAlert.zoneId || applicableAlert.zoneId === userProfile.lastZoneId;
+      
+      // 2. Check if the alert was sent after the user logged in/mounted this session
+      const isSentDuringSession = applicableAlert.timestamp > sessionStartTime.current;
+      
+      // 3. Check if the user hasn't already acknowledged this specific alert
+      const isNotAcknowledged = applicableAlert.timestamp !== lastSeen;
+
+      if (isTargetedAtUser && isSentDuringSession && isNotAcknowledged) {
         setLatestAlert(applicableAlert);
         setShowAlert(true);
       }
