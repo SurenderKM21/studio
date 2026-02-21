@@ -26,8 +26,7 @@ function readDb() {
 function writeDb(data) {
   try {
     fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf8');
-  } catch (error)
-  {
+  } catch (error) {
     console.error('Error writing to DB:', error);
   }
 }
@@ -130,7 +129,6 @@ export const db = {
   },
   clearAllUsers: () => {
     const data = readDb();
-    // Only keep online users and admin users
     data.users = data.users.filter(u => u.status === 'online' || u.role === 'admin');
     writeDb(data);
   },
@@ -144,7 +142,6 @@ export const db = {
       zoneId,
     };
     data.alerts.push(newAlert);
-    // Also update settings to track the latest alert
     data.settings.latestAlertTimestamp = timestamp;
     writeDb(data);
     return newAlert;

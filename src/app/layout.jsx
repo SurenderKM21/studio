@@ -1,3 +1,5 @@
+'use client';
+
 import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
@@ -13,11 +15,6 @@ const fontHeadline = Space_Grotesk({
   subsets: ['latin'],
   variable: '--font-headline',
 });
-
-export const metadata = {
-  title: 'EvacAI',
-  description: 'Intelligent Evacuation Guidance',
-};
 
 export default function RootLayout({ children }) {
   return (

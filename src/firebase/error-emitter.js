@@ -1,9 +1,5 @@
-
 'use client';
 
-/**
- * A strongly-typed pub/sub event emitter for JavaScript.
- */
 function createEventEmitter() {
   const events = {};
 

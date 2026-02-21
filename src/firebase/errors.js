@@ -1,10 +1,6 @@
-
 'use client';
 import { getAuth } from 'firebase/auth';
 
-/**
- * Builds a security-rule-compliant auth object from the Firebase User.
- */
 function buildAuthObject(currentUser) {
   if (!currentUser) return null;
 
