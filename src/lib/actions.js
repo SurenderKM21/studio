@@ -1,10 +1,9 @@
-
 'use server';
 
 import { redirect } from 'next/navigation';
 
 /**
- * Server Actions for EvacAI (JavaScript version).
+ * Server Actions for EvacAI.
  * Dijkstra's algorithm for density-weighted pathfinding.
  */
 
