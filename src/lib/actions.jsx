@@ -9,7 +9,11 @@ const DENSITY_COST = {
   'over-crowded': 100
 };
 
+/**
+ * Calculates the bounding box for a zone to determine adjacency.
+ */
 function getBoundingBox(zone) {
+  if (!zone.coordinates || zone.coordinates.length === 0) return { minLat: 0, maxLat: 0, minLng: 0, maxLng: 0 };
   const lats = zone.coordinates.map((c) => c.lat);
   const lngs = zone.coordinates.map((c) => c.lng);
   return {
@@ -20,10 +24,13 @@ function getBoundingBox(zone) {
   };
 }
 
+/**
+ * Checks if two zones are physically adjacent based on bounding box overlap.
+ */
 function areZonesAdjacent(zone1, zone2) {
   const box1 = getBoundingBox(zone1);
   const box2 = getBoundingBox(zone2);
-  const epsilon = 2e-4;
+  const epsilon = 0.0002; // Roughly 20 meters
 
   const latOverlap = box1.maxLat >= box2.minLat - epsilon && box1.minLat <= box2.maxLat + epsilon;
   const lngOverlap = box1.maxLng >= box2.minLng - epsilon && box1.minLng <= box2.maxLng + epsilon;
@@ -31,6 +38,9 @@ function areZonesAdjacent(zone1, zone2) {
   return latOverlap && lngOverlap;
 }
 
+/**
+ * Handles user login redirection and ID encoding.
+ */
 export async function loginUserAction(data) {
   const { role, username, email } = data;
   const loginTimestamp = new Date().toISOString();
@@ -49,10 +59,16 @@ export async function loginUserAction(data) {
   return { success: true, userId: encodedUserId, role: role, loginTimestamp };
 }
 
+/**
+ * Logs out the user and redirects home.
+ */
 export async function logoutUserAction(userId) {
   redirect('/');
 }
 
+/**
+ * Dijkstra's Algorithm implementation for route optimization.
+ */
 export async function getRouteAction(sourceZone, destinationZone, zones) {
   if (!sourceZone || !destinationZone || !zones || zones.length === 0) {
     return { error: 'Source, destination, and zones are required.' };
@@ -70,6 +86,7 @@ export async function getRouteAction(sourceZone, destinationZone, zones) {
       adjacencyList[zone.id] = [];
     });
 
+    // Build the graph
     for (let i = 0; i < allZones.length; i++) {
       for (let j = i + 1; j < allZones.length; j++) {
         if (areZonesAdjacent(allZones[i], allZones[j])) {
@@ -123,14 +140,15 @@ export async function getRouteAction(sourceZone, destinationZone, zones) {
       const zone = allZones.find(z => z.id === zoneId);
       if (zone) totalCost += (DENSITY_COST[zone.density] || 1);
     }
-    if (totalCost >= 10 * path.length / 2) return 'high';
-    if (totalCost > path.length) return 'moderate';
+    const avg = totalCost / path.length;
+    if (avg >= 5) return 'high';
+    if (avg > 1.5) return 'moderate';
     return 'low';
   };
 
   try {
     const optimalPath = findPath(sourceZone, destinationZone, zones, true);
-    if (optimalPath.length === 0) return { error: 'No route found.' };
+    if (optimalPath.length === 0) return { error: 'No route found between selected areas.' };
 
     const directPath = findPath(sourceZone, destinationZone, zones, false);
     const optimalCongestion = getOverallCongestion(optimalPath, zones);
@@ -145,6 +163,7 @@ export async function getRouteAction(sourceZone, destinationZone, zones) {
       }
     };
   } catch (e) {
-    return { error: 'Failed to generate route.' };
+    console.error('Routing error:', e);
+    return { error: 'An error occurred while calculating the route.' };
   }
 }

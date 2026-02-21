@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -20,7 +19,6 @@ import {
 import { collection, doc, query, orderBy, limit, setDoc } from 'firebase/firestore';
 import { getRouteAction } from '@/lib/actions';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 import {
   AlertDialog,
@@ -81,7 +79,16 @@ export function UserDashboard({ userId }) {
   const enrichedZones = useMemo(() => {
     return zones.map(zone => {
       const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
-      const density = calculateDensity(count, zone.capacity);
+      
+      // Check if manual override is active and not stale
+      // (Stale check matches the admin dashboard logic: count hasn't changed since override)
+      const isOverrideActive = zone.manualDensity && 
+                               (zone.manualDensityAtCount === undefined || count === zone.manualDensityAtCount);
+      
+      const density = isOverrideActive 
+                      ? zone.density 
+                      : calculateDensity(count, zone.capacity);
+                      
       return { ...zone, userCount: count, density };
     });
   }, [zones, users]);
