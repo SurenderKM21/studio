@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -45,8 +44,7 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
       coordinates,
       userCount: 0,
       density: 'free',
-      manualDensity: false,
-      notes: []
+      manualDensity: false
     });
 
     toast({

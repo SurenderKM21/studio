@@ -26,4 +26,4 @@ This document provides a high-level overview of the key algorithms used in the E
     3.  **Inside/Outside Determination**: 
         - If the number of intersections is **odd**, the user is **inside**.
         - If the number of intersections is **even**, the user is **outside**.
-    4.  **Performance**: By moving this to the client-side, we avoid sending a network request for every single GPS ping, allowing for near-instant zone identification without server lag.
+    4.  **Performance**: By performing this check on the client-side, we avoid the latency of a server request for every GPS update, providing instant feedback on the user's current zone.

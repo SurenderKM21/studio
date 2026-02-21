@@ -2,13 +2,6 @@ export type DensityCategory = 'free' | 'moderate' | 'crowded' | 'over-crowded';
 
 export type Coordinate = { lat: number; lng: number };
 
-export type ZoneNote = {
-  id: string;
-  text: string;
-  visibleToUser: boolean;
-  createdAt: string;
-};
-
 export type Zone = {
   id: string;
   name: string;
@@ -18,7 +11,6 @@ export type Zone = {
   density: DensityCategory;
   manualDensity?: boolean;
   manualDensityAtCount?: number;
-  notes?: ZoneNote[];
 };
 
 export type RouteDetails = {
@@ -26,12 +18,6 @@ export type RouteDetails = {
   congestionLevel: string;
   alternativeRouteAvailable: boolean;
   alternativeRoute?: string[];
-};
-
-export type AppSettings = {
-  locationUpdateInterval?: number; // in seconds
-  zoneSnappingThreshold?: number; // in meters
-  latestAlertTimestamp?: string;
 };
 
 export type User = {
