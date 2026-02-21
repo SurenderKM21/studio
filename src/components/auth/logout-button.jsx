@@ -6,7 +6,7 @@ import { LogOut, Loader } from 'lucide-react';
 import { logoutUserAction } from '@/lib/actions';
 import { useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { updateDocumentNonBlocking } from '@/firebase';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export function LogoutButton({ userId }) {
   const [isPending, startTransition] = useTransition();
