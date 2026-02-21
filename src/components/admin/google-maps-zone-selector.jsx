@@ -6,7 +6,7 @@ import {
   Marker,
   Polygon,
 } from '@react-google-maps/api';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Trash2, AlertTriangle, MapPin } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
@@ -46,6 +46,7 @@ export function GoogleMapsZoneSelector({
   
   const [adminLocation, setAdminLocation] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
+  const hasPannedRef = useRef(false);
 
   // Initialize admin location
   useEffect(() => {
@@ -64,7 +65,16 @@ export function GoogleMapsZoneSelector({
     }
   }, []);
 
-  // Determine the initial center: Priority 1: Existing coords, Priority 2: Admin loc, Priority 3: Default
+  // Pan to the zone coordinates when the map loads or when editing starts
+  useEffect(() => {
+    if (mapInstance && coordinates && coordinates.length > 0 && !hasPannedRef.current) {
+      mapInstance.panTo(coordinates[0]);
+      mapInstance.setZoom(18);
+      hasPannedRef.current = true;
+    }
+  }, [mapInstance, coordinates]);
+
+  // Determine the initial center
   const mapCenter = useMemo(() => {
     if (coordinates && coordinates.length > 0) {
       return coordinates[0];
@@ -89,6 +99,7 @@ export function GoogleMapsZoneSelector({
 
   const clearCoordinates = () => {
     onCoordinatesChange([]);
+    hasPannedRef.current = false;
   };
 
   if (loadError) {
@@ -103,7 +114,7 @@ export function GoogleMapsZoneSelector({
               <p className="font-mono bg-muted p-2 rounded text-xs break-all">
                 {typeof window !== 'undefined' ? window.location.origin : 'Current domain'}
               </p>
-              <p>Please update your API Key restrictions in the <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google Cloud Console</a> to allow this referer.</p>
+              <p>Please update your API Key restrictions in the Google Cloud Console to allow this referer.</p>
             </div>
           </div>
         </CardContent>
@@ -130,7 +141,7 @@ export function GoogleMapsZoneSelector({
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-primary" />
           <p className="text-sm font-medium">
-            {coordinates.length > 0 ? 'Edit Zone Boundaries' : 'Define Zone on Map'}
+            {coordinates.length > 0 ? 'Adjust Zone Boundaries' : 'Define Zone on Map'}
           </p>
         </div>
         <Button
@@ -141,19 +152,20 @@ export function GoogleMapsZoneSelector({
           disabled={coordinates.length === 0}
         >
           <Trash2 className="mr-2 h-4 w-4" />
-          Clear Points
+          Reset Points
         </Button>
       </div>
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={mapCenter}
-        zoom={16}
+        zoom={17}
         onClick={handleMapClick}
         onLoad={(map) => setMapInstance(map)}
         options={{
           streetViewControl: false,
           mapTypeControl: false,
           fullscreenControl: false,
+          mapTypeId: 'hybrid' // Use hybrid view for better boundary placement
         }}
       >
         {coordinates.map((pos, index) => (
@@ -181,10 +193,10 @@ export function GoogleMapsZoneSelector({
           />
         )}
       </GoogleMap>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground italic">
         {coordinates.length < 4 
-          ? 'Click on the map to add points (max 4). Drag existing markers to adjust boundary.'
-          : 'Max points reached. Drag markers to fine-tune the zone shape.'}
+          ? 'Click to add corner points. Drag markers to adjust shape.'
+          : 'Boundary complete. Drag existing markers to fine-tune the zone.'}
       </p>
     </div>
   );

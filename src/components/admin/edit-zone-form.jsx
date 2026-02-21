@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Pencil } from 'lucide-react';
+import { Pencil, Loader } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { GoogleMapsZoneSelector } from './google-maps-zone-selector';
 import { useFirestore } from '@/firebase';
@@ -28,13 +28,14 @@ export function EditZoneForm({ zone }) {
 
   const [name, setName] = useState(zone.name);
   const [capacity, setCapacity] = useState(zone.capacity);
-  const [coordinates, setCoordinates] = useState(zone.coordinates);
+  const [coordinates, setCoordinates] = useState(zone.coordinates || []);
 
+  // Sync state when dialog opens or zone changes
   useEffect(() => {
     if (isOpen) {
       setName(zone.name);
       setCapacity(zone.capacity);
-      setCoordinates(zone.coordinates);
+      setCoordinates(zone.coordinates || []);
     }
   }, [isOpen, zone]);
 
@@ -43,8 +44,8 @@ export function EditZoneForm({ zone }) {
     if (coordinates.length < 3) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Zones must have at least 3 points.',
+        title: 'Invalid Boundary',
+        description: 'Zones must have at least 3 points to form a shape.',
       });
       return;
     }
@@ -52,13 +53,13 @@ export function EditZoneForm({ zone }) {
     const zoneRef = doc(db, 'zones', zone.id);
     updateDocumentNonBlocking(zoneRef, {
       name,
-      capacity,
+      capacity: Number(capacity),
       coordinates,
     });
     
     toast({
       title: 'Zone Updated',
-      description: `Changes for "${name}" are being synced to the cloud.`,
+      description: `Saving changes for "${name}"...`,
     });
     setIsOpen(false);
   };
@@ -70,33 +71,53 @@ export function EditZoneForm({ zone }) {
           <Pencil className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Edit Zone: {zone.name}</DialogTitle>
             <DialogDescription>
-              Modify the zone parameters or adjust its boundary on the map.
+              Update the zone properties or redraw its boundaries on the satellite map.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          
+          <div className="grid gap-6 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Zone Name</Label>
-                <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} required />
+                <Input 
+                  id="edit-name" 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                  placeholder="e.g. Main Entrance"
+                  required 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-capacity">Max Capacity</Label>
-                <Input id="edit-capacity" type="number" value={capacity} onChange={(e) => setCapacity(Number(e.target.value))} min="1" required />
+                <Input 
+                  id="edit-capacity" 
+                  type="number" 
+                  value={capacity} 
+                  onChange={(e) => setCapacity(e.target.value)} 
+                  min="1" 
+                  required 
+                />
               </div>
             </div>
             
-            <GoogleMapsZoneSelector coordinates={coordinates} onCoordinatesChange={setCoordinates} />
+            <div className="border rounded-lg p-2 bg-muted/30">
+              <GoogleMapsZoneSelector 
+                coordinates={coordinates} 
+                onCoordinatesChange={setCoordinates} 
+              />
+            </div>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="gap-2 sm:gap-0">
             <DialogClose asChild>
-              <Button type="button" variant="secondary">Cancel</Button>
+              <Button type="button" variant="ghost">Cancel</Button>
             </DialogClose>
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit">Update Zone</Button>
           </DialogFooter>
         </form>
       </DialogContent>
