@@ -8,8 +8,9 @@ import {
 } from '@react-google-maps/api';
 import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
+import { Card, CardContent } from '../ui/card';
 
 const containerStyle = {
   width: '100%',
@@ -46,7 +47,7 @@ export function GoogleMapsZoneSelector({
   const [adminLocation, setAdminLocation] = useState(null);
 
   useEffect(() => {
-    if (navigator.geolocation) {
+    if (typeof window !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setAdminLocation({
@@ -82,14 +83,21 @@ export function GoogleMapsZoneSelector({
 
   if (loadError) {
     return (
-      <div className="h-[400px] w-full rounded-md border-2 border-dashed flex flex-col items-center justify-center text-center p-8 space-y-4">
-          <p className="text-destructive font-bold text-lg">Google Maps API Error</p>
-          <div className="text-sm space-y-2">
-            <p>If you see <strong>RefererNotAllowedMapError</strong>, please go to the <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" className="underline text-primary">Google Cloud Console</a>.</p>
-            <p>Add your development domain to the API Key restrictions:</p>
-            <code className="bg-muted p-1 block rounded text-xs">{window.location.origin}/*</code>
+      <Card className="border-destructive bg-destructive/5">
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center justify-center text-center space-y-4">
+            <AlertTriangle className="h-12 w-12 text-destructive" />
+            <h3 className="font-bold text-lg text-destructive">Google Maps Authorization Error</h3>
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p>The site URL is not authorized for the provided Google Maps API Key.</p>
+              <p className="font-mono bg-muted p-2 rounded text-xs break-all">
+                {typeof window !== 'undefined' ? window.location.origin : 'Current domain'}
+              </p>
+              <p>Please update your API Key restrictions in the <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google Cloud Console</a> to allow this referer.</p>
+            </div>
           </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 

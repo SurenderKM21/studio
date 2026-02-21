@@ -1,82 +1,68 @@
 'use server';
-import { z } from 'zod';
+
 import { redirect } from 'next/navigation';
 
-/**
- * Server Actions for EvacAI.
- * Data mutations are primarily handled client-side via Firestore SDK.
- * Pathfinding logic is handled here for complex routing calculations.
- */
-
-const loginUserSchema = z.object({
-  email: z.string().optional(),
-  username: z.string().optional(),
-  role: z.string(),
-  groupSize: z.number(),
-});
-
-export async function loginUserAction(data: z.infer<typeof loginUserSchema>) {
-    const { role, username, email } = data;
-    const loginTimestamp = new Date().toISOString();
-    let userId;
-
-    if (role === 'admin') {
-        if (!email) return { success: false, error: 'Admin email is required.' };
-        userId = email.split('@')[0].toLowerCase();
-    } else if (username) {
-        userId = username.toLowerCase().replace(/\s/g, '-') || `user-${Math.random().toString(36).substring(2, 9)}`;
-    } else {
-        return { success: false, error: 'Invalid login details.' };
-    }
-
-    const encodedUserId = Buffer.from(userId).toString('base64');
-    return { success: true, userId: encodedUserId, role: role, loginTimestamp };
-}
-
-export async function logoutUserAction(userId: string) {
-    redirect('/');
-}
-
-// Logic-based Pathfinding utilities
-const DENSITY_COST: Record<string, number> = {
-    'free': 1,
-    'moderate': 3,
-    'crowded': 10,
-    'over-crowded': 100
+const DENSITY_COST = {
+  'free': 1,
+  'moderate': 3,
+  'crowded': 10,
+  'over-crowded': 100
 };
 
-function getBoundingBox(zone: any) {
-    const lats = zone.coordinates.map((c: any) => c.lat);
-    const lngs = zone.coordinates.map((c: any) => c.lng);
-    return {
-        minLat: Math.min(...lats),
-        maxLat: Math.max(...lats),
-        minLng: Math.min(...lngs),
-        maxLng: Math.max(...lngs),
-    };
+function getBoundingBox(zone) {
+  const lats = zone.coordinates.map((c) => c.lat);
+  const lngs = zone.coordinates.map((c) => c.lng);
+  return {
+    minLat: Math.min(...lats),
+    maxLat: Math.max(...lats),
+    minLng: Math.min(...lngs),
+    maxLng: Math.max(...lngs),
+  };
 }
 
-function areZonesAdjacent(zone1: any, zone2: any) {
-    const box1 = getBoundingBox(zone1);
-    const box2 = getBoundingBox(zone2);
-    const epsilon = 2e-4;
+function areZonesAdjacent(zone1, zone2) {
+  const box1 = getBoundingBox(zone1);
+  const box2 = getBoundingBox(zone2);
+  const epsilon = 2e-4;
 
-    const latOverlap = box1.maxLat >= box2.minLat - epsilon && box1.minLat <= box2.maxLat + epsilon;
-    const lngOverlap = box1.maxLng >= box2.minLng - epsilon && box1.minLng <= box2.maxLng + epsilon;
-    
-    return latOverlap && lngOverlap;
+  const latOverlap = box1.maxLat >= box2.minLat - epsilon && box1.minLat <= box2.maxLat + epsilon;
+  const lngOverlap = box1.maxLng >= box2.minLng - epsilon && box1.minLng <= box2.maxLng + epsilon;
+  
+  return latOverlap && lngOverlap;
 }
 
-export async function getRouteAction(sourceZone: string, destinationZone: string, zones: any[]) {
+export async function loginUserAction(data) {
+  const { role, username, email } = data;
+  const loginTimestamp = new Date().toISOString();
+  let userId;
+
+  if (role === 'admin') {
+    if (!email) return { success: false, error: 'Admin email is required.' };
+    userId = email.split('@')[0].toLowerCase();
+  } else if (username) {
+    userId = username.toLowerCase().replace(/\s/g, '-') || `user-${Math.random().toString(36).substring(2, 9)}`;
+  } else {
+    return { success: false, error: 'Invalid login details.' };
+  }
+
+  const encodedUserId = Buffer.from(userId).toString('base64');
+  return { success: true, userId: encodedUserId, role: role, loginTimestamp };
+}
+
+export async function logoutUserAction(userId) {
+  redirect('/');
+}
+
+export async function getRouteAction(sourceZone, destinationZone, zones) {
   if (!sourceZone || !destinationZone || !zones || zones.length === 0) {
     return { error: 'Source, destination, and zones are required.' };
   }
 
-  const findPath = (startId: string, endId: string, allZones: any[], useCongestion = true) => {
-    const costs: Record<string, number> = {};
-    const previous: Record<string, string | null> = {};
-    const queue: string[] = [];
-    const adjacencyList: Record<string, string[]> = {};
+  const findPath = (startId, endId, allZones, useCongestion = true) => {
+    const costs = {};
+    const previous = {};
+    const queue = [];
+    const adjacencyList = {};
 
     allZones.forEach(zone => {
       costs[zone.id] = Infinity;
@@ -98,11 +84,11 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
 
     while (queue.length > 0) {
       queue.sort((a, b) => costs[a] - costs[b]);
-      const currentId = queue.shift()!;
+      const currentId = queue.shift();
 
       if (currentId === endId) {
         const path = [];
-        let current: string | null = endId;
+        let current = endId;
         while (current) {
           path.unshift(current);
           current = previous[current];
@@ -131,7 +117,7 @@ export async function getRouteAction(sourceZone: string, destinationZone: string
     return [];
   };
 
-  const getOverallCongestion = (path: string[], allZones: any[]) => {
+  const getOverallCongestion = (path, allZones) => {
     let totalCost = 0;
     for (const zoneId of path) {
       const zone = allZones.find(z => z.id === zoneId);
