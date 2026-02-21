@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useMemo, Suspense } from 'react';
