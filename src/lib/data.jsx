@@ -15,8 +15,5 @@ export const db = {
   getUsers: () => {
     // In a real-time app, users are typically fetched via useCollection hook
     return [];
-  },
-  addAlert: async (firestore, message, zoneId) => {
-    // Alerts are handled via addDocumentNonBlocking in the AlertManager component
   }
 };
