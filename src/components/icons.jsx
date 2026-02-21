@@ -1,2 +1,4 @@
-// This file is a placeholder for custom SVG icons.
+import React from 'react';
+
+// This file serves as a placeholder for custom SVG icons.
 export {};
