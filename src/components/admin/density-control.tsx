@@ -23,13 +23,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import type { Zone, DensityCategory } from '@/lib/types';
-import { manualUpdateDensityAction } from '@/lib/actions';
-import { useState, useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Clock } from 'lucide-react';
+import { ShieldCheck, Activity, RotateCcw } from 'lucide-react';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const densityColors: Record<DensityCategory, string> = {
   free: 'bg-green-500',
@@ -39,34 +41,45 @@ const densityColors: Record<DensityCategory, string> = {
 };
 
 export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
-  const [zones, setZones] = useState<Zone[]>(initialZones);
-  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const db = useFirestore();
 
-  const handleDensityChange = (zoneId: string, value: DensityCategory) => {
-    startTransition(async () => {
-      await manualUpdateDensityAction(zoneId, value);
-      
-      const expiryTime = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-      const updatedZones = zones.map(z => 
-        z.id === zoneId ? { ...z, density: value, manualDensityUntil: expiryTime } : z
-      );
-      setZones(updatedZones);
+  const handleDensityChange = (zoneId: string, value: DensityCategory, currentCount: number) => {
+    const zoneRef = doc(db, 'zones', zoneId);
+    updateDocumentNonBlocking(zoneRef, { 
+      density: value, 
+      manualDensity: true,
+      manualDensityAtCount: currentCount
+    });
 
-      toast({
-        title: 'Density Updated',
-        description: `Zone density has been manually set to ${value}.`,
-      });
+    toast({
+      title: 'Density Updated',
+      description: `Zone density has been manually set to ${value}. It will reset if the user count changes.`,
+    });
+  };
+
+  const handleResetToAuto = (zoneId: string) => {
+    const zoneRef = doc(db, 'zones', zoneId);
+    updateDocumentNonBlocking(zoneRef, { 
+      manualDensity: false,
+      manualDensityAtCount: null
+    });
+
+    toast({
+      title: 'Reset to Automatic',
+      description: 'The system will now calculate density based on live occupancy.',
     });
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Manual Density Override</CardTitle>
+        <div className="flex items-center gap-2">
+          <Activity className="h-6 w-6 text-primary" />
+          <CardTitle>Crowd Density Management</CardTitle>
+        </div>
         <CardDescription>
-          Manually set the crowd density for each zone. This will override
-          automatic classification for 5 minutes.
+          Override the automatic density classification. Changes are temporary and will reset automatically if the occupancy count changes.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -74,50 +87,72 @@ export function DensityControl({ initialZones }: { initialZones: Zone[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>Zone Name</TableHead>
-              <TableHead>Current Density</TableHead>
-              <TableHead className="text-right">Set Density</TableHead>
+              <TableHead>Users</TableHead>
+              <TableHead>Current Status</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {zones.map((zone) => (
+            {initialZones.map((zone) => (
               <TableRow key={zone.id}>
                 <TableCell className="font-medium">{zone.name}</TableCell>
+                <TableCell>{zone.userCount} / {zone.capacity}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Badge
                       className={cn(
-                        'text-white',
+                        'text-white capitalize',
                         densityColors[zone.density]
                       )}
                     >
                       {zone.density}
                     </Badge>
-                     {zone.manualDensityUntil && new Date(zone.manualDensityUntil) > new Date() && (
-                      <Clock className="h-4 w-4 text-primary" title="Manual override active" />
+                     {zone.manualDensity && (
+                      <Badge variant="outline" className="flex items-center gap-1 border-primary text-primary">
+                        <ShieldCheck className="h-3 w-3" /> Manual
+                      </Badge>
                     )}
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Select
-                    onValueChange={(value: DensityCategory) =>
-                      handleDensityChange(zone.id, value)
-                    }
-                    defaultValue={zone.density}
-                    disabled={isPending}
-                  >
-                    <SelectTrigger className="w-[180px] ml-auto">
-                      <SelectValue placeholder="Set density" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="free">Free</SelectItem>
-                      <SelectItem value="moderate">Moderate</SelectItem>
-                      <SelectItem value="crowded">Crowded</SelectItem>
-                      <SelectItem value="over-crowded">Over-crowded</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center justify-end gap-2">
+                    {zone.manualDensity && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleResetToAuto(zone.id)}
+                        title="Reset to Automatic"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Select
+                      onValueChange={(value: DensityCategory) =>
+                        handleDensityChange(zone.id, value, zone.userCount)
+                      }
+                      value={zone.density}
+                    >
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Set density" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="free">Free</SelectItem>
+                        <SelectItem value="moderate">Moderate</SelectItem>
+                        <SelectItem value="crowded">Crowded</SelectItem>
+                        <SelectItem value="over-crowded">Over-crowded</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
+            {initialZones.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground italic">
+                  No zones found.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>

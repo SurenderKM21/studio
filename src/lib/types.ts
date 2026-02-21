@@ -9,7 +9,8 @@ export type Zone = {
   capacity: number;
   userCount: number;
   density: DensityCategory;
-  manualDensityUntil?: string; // ISO 8601 string
+  manualDensity?: boolean;
+  manualDensityAtCount?: number;
 };
 
 export type RouteDetails = {
@@ -19,11 +20,6 @@ export type RouteDetails = {
   alternativeRoute?: string[];
 };
 
-export type AppSettings = {
-  locationUpdateInterval?: number; // in seconds
-  zoneSnappingThreshold?: number; // in meters
-};
-
 export type User = {
   id: string;
   name: string;
@@ -31,4 +27,15 @@ export type User = {
   lastLatitude?: number;
   lastLongitude?: number;
   lastSeen?: string;
+  lastZoneId?: string;
+  status?: 'online' | 'offline';
+  role?: 'user' | 'admin';
+  sos?: boolean;
+};
+
+export type AlertMessage = {
+  id: string;
+  message: string;
+  timestamp: string;
+  zoneId?: string; // If undefined, it's a global alert
 };

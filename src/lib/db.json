@@ -1,56 +1,6 @@
 {
   "zones": [
     {
-      "name": "Area1",
-      "capacity": 7,
-      "coordinates": [
-        {
-          "lat": 12.854117,
-          "lng": 80.079509
-        },
-        {
-          "lat": 12.853813,
-          "lng": 80.079218
-        },
-        {
-          "lat": 12.853133,
-          "lng": 80.079527
-        },
-        {
-          "lat": 12.853648,
-          "lng": 80.080145
-        }
-      ],
-      "id": "zone-e7cq1vc",
-      "userCount": 0,
-      "density": "free"
-    },
-    {
-      "name": "Car parking",
-      "capacity": 90,
-      "coordinates": [
-        {
-          "lat": 12.854117,
-          "lng": 80.079509
-        },
-        {
-          "lat": 12.853813,
-          "lng": 80.079218
-        },
-        {
-          "lat": 12.853133,
-          "lng": 80.079527
-        },
-        {
-          "lat": 12.853648,
-          "lng": 80.080145
-        }
-      ],
-      "id": "zone-2y5edj3",
-      "userCount": 0,
-      "density": "free"
-    },
-    {
       "name": "IT Park",
       "capacity": 12,
       "coordinates": [
@@ -73,7 +23,8 @@
       ],
       "id": "zone-6iabs98",
       "userCount": 0,
-      "density": "free"
+      "density": "free",
+      "manualDensity": false
     },
     {
       "name": "Zone41",
@@ -98,119 +49,21 @@
       ],
       "id": "zone-y94kfbc",
       "userCount": 0,
-      "density": "free"
-    },
-    {
-      "name": "Zone5",
-      "capacity": 12,
-      "coordinates": [
-        {
-          "lat": 12.874883,
-          "lng": 80.062505
-        },
-        {
-          "lat": 12.874881,
-          "lng": 80.063084
-        },
-        {
-          "lat": 12.874535,
-          "lng": 80.062537
-        },
-        {
-          "lat": 12.874521,
-          "lng": 80.063028
-        }
-      ],
-      "id": "zone-4meyolm",
-      "userCount": 0,
-      "density": "over-crowded",
-      "manualDensityUntil": "2025-09-27T05:21:44.614Z"
-    },
-    {
-      "name": "Zone6",
-      "capacity": 23,
-      "coordinates": [
-        {
-          "lat": 12.874387,
-          "lng": 80.062393
-        },
-        {
-          "lat": 12.874309,
-          "lng": 80.063344
-        },
-        {
-          "lat": 12.873965,
-          "lng": 80.06223
-        },
-        {
-          "lat": 12.873743,
-          "lng": 80.063048
-        }
-      ],
-      "id": "zone-q0bnq8n",
-      "userCount": 0,
-      "density": "free"
-    },
-    {
-      "name": "Side Path",
-      "capacity": 15,
-      "coordinates": [
-        {
-          "lat": 12.874883,
-          "lng": 80.0632
-        },
-        {
-          "lat": 12.874881,
-          "lng": 80.0638
-        },
-        {
-          "lat": 12.874535,
-          "lng": 80.0632
-        },
-        {
-          "lat": 12.874521,
-          "lng": 80.0638
-        }
-      ],
-      "id": "zone-sidepath",
-      "userCount": 0,
-      "density": "free"
-    },
-    {
-      "name": "Mathura flats : Home",
-      "capacity": 1,
-      "coordinates": [
-        {
-          "lat": 12.859129,
-          "lng": 80.084309
-        },
-        {
-          "lat": 12.859055,
-          "lng": 80.0848
-        },
-        {
-          "lat": 12.858698,
-          "lng": 80.084305
-        },
-        {
-          "lat": 12.858697,
-          "lng": 80.084834
-        }
-      ],
-      "id": "zone-dxfb1gx",
-      "userCount": 1,
-      "density": "crowded"
+      "density": "free",
+      "manualDensity": false
     }
   ],
   "users": [
     {
-      "id": "user-1",
-      "name": "John Doe",
-      "lastLatitude": 12.858807194019377,
-      "lastLongitude": 80.08448888696243,
-      "lastSeen": "2025-09-27T05:17:31.631Z",
-      "groupSize": 1
+      "id": "admin",
+      "name": "Main Admin",
+      "email": "admin@evacai.com",
+      "role": "admin",
+      "status": "online"
     }
   ],
-  "settings": {}
+  "settings": {
+    "latestAlertTimestamp": ""
+  },
+  "alerts": []
 }

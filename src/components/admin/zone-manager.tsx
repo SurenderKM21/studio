@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Card,
@@ -11,102 +10,73 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { addZoneAction } from '@/lib/actions';
-import type { Zone } from '@/lib/types';
-import { useEffect, useRef } from 'react';
+import type { Zone, Coordinate } from '@/lib/types';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useActionState } from 'react';
 import { MapView } from '../user/map-view';
-
-const coordinateRegex = /^-?\d+(\.\d+)?,\s?-?\d+(\.\d+)?$/;
-
-const addZoneSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters'),
-  capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
-  coordinate1: z
-    .string()
-    .min(1, 'Coordinate 1 is required')
-    .regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
-  coordinate2: z
-    .string()
-    .min(1, 'Coordinate 2 is required')
-    .regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
-  coordinate3: z
-    .string()
-    .min(1, 'Coordinate 3 is required')
-    .regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
-  coordinate4: z
-    .string()
-    .min(1, 'Coordinate 4 is required')
-    .regex(coordinateRegex, 'Invalid format, use "lat,lng"'),
-});
-
-type AddZoneForm = z.infer<typeof addZoneSchema>;
-
-const initialState = {
-  error: undefined,
-  success: false,
-};
+import { GoogleMapsZoneSelector } from './google-maps-zone-selector';
+import { useFirestore } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
-  const [state, formAction] = useActionState(addZoneAction, initialState);
-  const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
+  const db = useFirestore();
+  const [coordinates, setCoordinates] = useState<Coordinate[]>([]);
+  const [name, setName] = useState('');
+  const [capacity, setCapacity] = useState(10);
 
-  const {
-    register,
-    reset,
-    formState: { errors },
-  } = useForm<AddZoneForm>({
-    resolver: zodResolver(addZoneSchema),
-  });
-
-  useEffect(() => {
-    if (state?.success) {
-      toast({
-        title: 'Success!',
-        description: 'New zone has been added.',
-      });
-      formRef.current?.reset();
-      reset();
-    } else if (state?.error) {
-      let errorMsg = 'An unexpected error occurred.';
-      if (typeof state.error === 'string') {
-        errorMsg = state.error;
-      } else if (typeof state.error === 'object' && state.error !== null) {
-        const fieldErrors = Object.values(state.error).flat();
-        if (fieldErrors.length > 0) {
-          errorMsg = fieldErrors.join(' ');
-        }
-      }
+  const handleAddZone = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (coordinates.length < 3) {
       toast({
         variant: 'destructive',
-        title: 'Error Adding Zone',
-        description: errorMsg,
+        title: 'Insufficient Coordinates',
+        description: 'Please define at least 3 points for the zone.',
       });
+      return;
     }
-  }, [state, toast, reset]);
+
+    const zonesRef = collection(db, 'zones');
+    addDocumentNonBlocking(zonesRef, {
+      name,
+      capacity,
+      coordinates,
+      userCount: 0,
+      density: 'free',
+      manualDensity: false
+    });
+
+    toast({
+      title: 'Success!',
+      description: 'New zone is being added.',
+    });
+    setName('');
+    setCapacity(10);
+    setCoordinates([]);
+  };
 
   return (
     <div className="grid lg:grid-cols-2 gap-8 items-start">
       <Card>
         <CardHeader>
-          <CardTitle>Add New Zone</CardTitle>
-          <CardDescription>
-            Define a new area with four corner GPS coordinates.
-          </CardDescription>
+            <div>
+              <CardTitle>Add New Zone</CardTitle>
+              <CardDescription>
+                Define a new area by clicking on the map.
+              </CardDescription>
+            </div>
         </CardHeader>
-        <form action={formAction} ref={formRef}>
+        <form onSubmit={handleAddZone}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Zone Name</Label>
               <Input
                 id="name"
-                {...register('name')}
                 placeholder="e.g., Main Stage"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
               />
             </div>
             <div className="space-y-2">
@@ -114,47 +84,16 @@ export function ZoneManager({ initialZones }: { initialZones: Zone[] }) {
               <Input
                 id="capacity"
                 type="number"
-                {...register('capacity')}
                 placeholder="e.g., 500"
                 min="1"
+                value={capacity}
+                onChange={(e) => setCapacity(Number(e.target.value))}
+                required
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="coordinate1">Coordinate 1 (Top-Left)</Label>
-                <Input
-                  id="coordinate1"
-                  {...register('coordinate1')}
-                  placeholder="lat,lng"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="coordinate2">Coordinate 2 (Top-Right)</Label>
-                <Input
-                  id="coordinate2"
-                  {...register('coordinate2')}
-                  placeholder="lat,lng"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="coordinate3">
-                  Coordinate 3 (Bottom-Right)
-                </Label>
-                <Input
-                  id="coordinate3"
-                  {...register('coordinate3')}
-                  placeholder="lat,lng"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="coordinate4">Coordinate 4 (Bottom-Left)</Label>
-                <Input
-                  id="coordinate4"
-                  {...register('coordinate4')}
-                  placeholder="lat,lng"
-                />
-              </div>
-            </div>
+            
+            <GoogleMapsZoneSelector coordinates={coordinates} onCoordinatesChange={setCoordinates} />
+
           </CardContent>
           <CardFooter>
             <Button type="submit">Add Zone</Button>

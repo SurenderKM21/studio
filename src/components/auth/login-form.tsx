@@ -19,9 +19,12 @@ import {
 } from '@/components/ui/select';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from 'lucide-react';
+import { loginUserAction } from '@/lib/actions';
+import { signInWithEmailAndPassword, signInAnonymously } from 'firebase/auth';
+import { initializeFirebase } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 export function LoginForm() {
   const [role, setRole] = useState('user');
@@ -29,34 +32,92 @@ export function LoginForm() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // In a real app, you'd handle authentication here.
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+    const username = formData.get('username') as string;
+    
+    startTransition(async () => {
+       try {
+         const { auth, firestore } = initializeFirebase();
+         
+         if (role === 'admin') {
+           await signInWithEmailAndPassword(auth, email, password);
+           
+           // Ensure admin profile exists in Firestore
+           const adminId = email.split('@')[0].toLowerCase();
+           const adminRef = doc(firestore, 'users', adminId);
+           await setDoc(adminRef, {
+             id: adminId,
+             name: 'Main Admin',
+             email: email,
+             role: 'admin',
+             status: 'online',
+             lastSeen: new Date().toISOString()
+           }, { merge: true });
 
-    startTransition(() => {
-      toast({
-        title: 'Login Successful',
-        description: 'Redirecting to your dashboard...',
-      });
-      if (role === 'user') {
-        router.push('/user');
-      } else {
-        router.push('/admin');
-      }
+         } else {
+           await signInAnonymously(auth);
+         }
+
+         const result = await loginUserAction({
+            email,
+            username,
+            role,
+            groupSize: 1
+         });
+
+         if (result.success) {
+            toast({
+              title: 'Login Successful',
+              description: role === 'admin' ? 'Admin session verified.' : 'Welcome to EvacAI!',
+            });
+            
+            const targetPath = result.role === 'user' ? '/user' : '/admin';
+            router.push(`${targetPath}?userId=${result.userId}`);
+         } else {
+            toast({
+                variant: 'destructive',
+                title: 'Sync Failed',
+                description: result.error || 'Could not synchronize session.',
+            });
+         }
+       } catch (error: any) {
+         let errorMessage = 'An unexpected error occurred.';
+         if (error.code === 'auth/invalid-credential') {
+           errorMessage = 'Invalid credentials. Please check your email and password.';
+         } else if (error.code === 'auth/user-not-found') {
+           errorMessage = 'Account not found.';
+         } else if (error.code === 'auth/wrong-password') {
+           errorMessage = 'Incorrect password.';
+         }
+
+         toast({
+           variant: 'destructive',
+           title: 'Authentication Error',
+           description: errorMessage,
+         });
+       }
     });
   };
 
   return (
-    <Card className="w-full max-w-md shadow-2xl">
+    <Card className="w-full max-w-md shadow-lg">
       <form onSubmit={handleSubmit}>
         <CardHeader>
           <CardTitle className="text-3xl font-headline">Login</CardTitle>
-          <CardDescription>Enter your credentials to access your account.</CardDescription>
+          <CardDescription>
+            {role === 'admin' 
+              ? 'Use default: admin@evacai.com / adminpassword' 
+              : 'Enter a username to start navigating.'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
            <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select onValueChange={setRole} defaultValue={role} disabled={isPending}>
+            <Select onValueChange={setRole} defaultValue={role} disabled={isPending} name="role">
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
@@ -69,32 +130,47 @@ export function LoginForm() {
           {role === 'admin' ? (
             <>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="m@example.com" required />
+                <Label htmlFor="email">Admin Email</Label>
+                <Input 
+                  id="email" 
+                  name="email" 
+                  type="email" 
+                  placeholder="admin@evacai.com" 
+                  required 
+                  disabled={isPending} 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" required />
+                <Input 
+                  id="password" 
+                  name="password" 
+                  type="password" 
+                  placeholder="adminpassword"
+                  required 
+                  disabled={isPending} 
+                />
               </div>
             </>
           ) : (
              <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
-              <Input id="username" type="text" placeholder="e.g. John Doe" required />
+              <Input 
+                id="username" 
+                name="username" 
+                type="text" 
+                placeholder="e.g. kavin" 
+                required 
+                disabled={isPending} 
+              />
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex flex-col gap-4">
+        <CardFooter>
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-            Login
+            {role === 'admin' ? 'Verify Admin' : 'Enter Dashboard'}
           </Button>
-          <p className="text-xs text-center text-muted-foreground">
-            Don't have an account?{' '}
-            <Link href="/register" className="underline text-primary">
-              Register here
-            </Link>
-          </p>
         </CardFooter>
       </form>
     </Card>

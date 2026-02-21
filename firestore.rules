@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * EVACAI SECURITY RULES - PROTOTYPING MODE
+     * 
+     * Force-triggering deployment with explicit permissions for 'list' and 'get' operations.
+     * This allows all reads and writes to unblock development across all collections.
+     */
+
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    match /zones/{zoneId} {
+      allow read, write: if true;
+    }
+
+    match /alerts/{alertId} {
+      allow read, write: if true;
+    }
+
+    // Support for any other collections created during prototyping
+    match /{document=**} {
+      allow get, list, create, update, delete: if true;
+    }
+  }
+}

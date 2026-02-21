@@ -22,7 +22,7 @@ import { ArrowRight, Loader } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface RoutePlannerProps {
-  zones: Zone[];
+  zones: Zone[] | null;
   onPlanRoute: (source: string, destination: string) => void;
   isPlanning: boolean;
 }
@@ -57,6 +57,8 @@ export function RoutePlanner({
     onPlanRoute(sourceZone, destinationZone);
   };
 
+  const safeZones = zones || [];
+
   return (
     <Card className="shadow-lg">
       <CardHeader>
@@ -69,12 +71,12 @@ export function RoutePlanner({
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="source">From</Label>
-            <Select onValueChange={setSourceZone} value={sourceZone}>
+            <Select onValueChange={setSourceZone} value={sourceZone} disabled={safeZones.length === 0}>
               <SelectTrigger id="source">
-                <SelectValue placeholder="Select a source zone" />
+                <SelectValue placeholder={safeZones.length === 0 ? "Loading zones..." : "Select a source zone"} />
               </SelectTrigger>
               <SelectContent>
-                {zones.map((zone) => (
+                {safeZones.map((zone) => (
                   <SelectItem key={zone.id} value={zone.id}>
                     {zone.name}
                   </SelectItem>
@@ -85,12 +87,12 @@ export function RoutePlanner({
 
           <div className="space-y-2">
             <Label htmlFor="destination">To</Label>
-            <Select onValueChange={setDestinationZone} value={destinationZone}>
+            <Select onValueChange={setDestinationZone} value={destinationZone} disabled={safeZones.length === 0}>
               <SelectTrigger id="destination">
-                <SelectValue placeholder="Select a destination zone" />
+                <SelectValue placeholder={safeZones.length === 0 ? "Loading zones..." : "Select a destination zone"} />
               </SelectTrigger>
               <SelectContent>
-                {zones.map((zone) => (
+                {safeZones.map((zone) => (
                   <SelectItem key={zone.id} value={zone.id}>
                     {zone.name}
                   </SelectItem>
@@ -99,7 +101,7 @@ export function RoutePlanner({
             </Select>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isPlanning}>
+          <Button type="submit" className="w-full" disabled={isPlanning || safeZones.length === 0}>
             {isPlanning ? (
               <Loader className="mr-2 h-4 w-4 animate-spin" />
             ) : (

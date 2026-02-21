@@ -5,24 +5,33 @@ import { useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { LogOut, Loader } from 'lucide-react';
 import { logoutUserAction } from '@/lib/actions';
-import { useToast } from '@/hooks/use-toast';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase';
 
 interface LogoutButtonProps {
-    userId: string;
+    userId: string; // Base64 encoded ID from search params
 }
 
 export function LogoutButton({ userId }: LogoutButtonProps) {
   const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
+  const db = useFirestore();
 
   const handleLogout = () => {
+    try {
+      // Decode the userId to get the actual Firestore document ID (e.g. "kavin")
+      const decodedId = Buffer.from(userId, 'base64').toString('utf-8');
+      
+      // Mark user as offline in Firestore
+      const userRef = doc(db, 'users', decodedId);
+      updateDocumentNonBlocking(userRef, { status: 'offline' });
+    } catch (e) {
+      console.error('Failed to mark user as offline during logout:', e);
+    }
+
+    // Trigger the logout action which performs the final redirect
     startTransition(() => {
-        logoutUserAction(userId).then(() => {
-            toast({
-                title: "Logged Out",
-                description: "You have been successfully logged out."
-            });
-        });
+        logoutUserAction(userId);
     });
   };
 
@@ -42,5 +51,3 @@ export function LogoutButton({ userId }: LogoutButtonProps) {
     </Button>
   );
 }
-
-    
