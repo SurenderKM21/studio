@@ -6,9 +6,9 @@ import {
   Marker,
   Polygon,
 } from '@react-google-maps/api';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Button } from '../ui/button';
-import { Trash2, AlertTriangle, MapPin } from 'lucide-react';
+import { Trash2, AlertTriangle, MapPin, Focus } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Card, CardContent } from '../ui/card';
 
@@ -22,9 +22,8 @@ const defaultCenter = {
   lng: 80.04,
 };
 
-// Distinct styling for the zone polygon
 const polygonOptions = {
-  fillColor: '#ef4444', // Red-500
+  fillColor: '#ef4444',
   fillOpacity: 0.35,
   strokeColor: '#ef4444',
   strokeOpacity: 0.9,
@@ -47,7 +46,8 @@ export function GoogleMapsZoneSelector({
   
   const [adminLocation, setAdminLocation] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
-  const lastPannedZoneRef = useRef(null);
+  const hasFocusedRef = useRef(false);
+  const currentZoneIdRef = useRef(null);
 
   // Initialize admin location for fallback centering
   useEffect(() => {
@@ -64,17 +64,33 @@ export function GoogleMapsZoneSelector({
     }
   }, []);
 
-  // Force pan to zone when it loads for editing
+  // Use fitBounds to strictly focus on the zone coordinates
+  const focusOnZone = useCallback(() => {
+    if (!mapInstance || !coordinates || coordinates.length === 0) return;
+
+    const bounds = new window.google.maps.LatLngBounds();
+    coordinates.forEach(coord => bounds.extend(coord));
+    
+    // fitBounds is much more reliable than panTo for centering shapes
+    mapInstance.fitBounds(bounds);
+    
+    // If it's a very tight zone, prevent extreme zoom
+    const listener = window.google.maps.event.addListener(mapInstance, 'idle', () => {
+      if (mapInstance.getZoom() > 20) mapInstance.setZoom(19);
+      window.google.maps.event.removeListener(listener);
+    });
+  }, [mapInstance, coordinates]);
+
+  // Focus when map instance is ready or coordinates change initially
   useEffect(() => {
     if (mapInstance && coordinates && coordinates.length > 0) {
-      const zoneFingerprint = JSON.stringify(coordinates[0]);
-      if (lastPannedZoneRef.current !== zoneFingerprint) {
-        mapInstance.panTo(coordinates[0]);
-        mapInstance.setZoom(19);
-        lastPannedZoneRef.current = zoneFingerprint;
+      const zoneFingerprint = JSON.stringify(coordinates);
+      if (currentZoneIdRef.current !== zoneFingerprint) {
+        focusOnZone();
+        currentZoneIdRef.current = zoneFingerprint;
       }
     }
-  }, [mapInstance, coordinates]);
+  }, [mapInstance, coordinates, focusOnZone]);
 
   const handleMapClick = (event) => {
     if (coordinates.length < 10 && event.latLng) {
@@ -93,7 +109,7 @@ export function GoogleMapsZoneSelector({
 
   const clearCoordinates = () => {
     onCoordinatesChange([]);
-    lastPannedZoneRef.current = null;
+    currentZoneIdRef.current = null;
   };
 
   if (loadError) {
@@ -132,16 +148,29 @@ export function GoogleMapsZoneSelector({
             {coordinates.length > 0 ? `${coordinates.length} points defined` : 'Click map to define zone'}
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={clearCoordinates}
-          disabled={coordinates.length === 0}
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Reset Zone
-        </Button>
+        <div className="flex gap-2">
+          {coordinates.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={focusOnZone}
+              title="Recenter on Zone"
+            >
+              <Focus className="h-4 w-4" />
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={clearCoordinates}
+            disabled={coordinates.length === 0}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Reset
+          </Button>
+        </div>
       </div>
       
       <GoogleMap
@@ -157,7 +186,6 @@ export function GoogleMapsZoneSelector({
           mapTypeId: 'hybrid' 
         }}
       >
-        {/* Render markers for each coordinate - default color is red */}
         {coordinates.map((pos, index) => (
           <Marker
             key={`marker-${index}-${pos.lat}-${pos.lng}`}
@@ -172,12 +200,10 @@ export function GoogleMapsZoneSelector({
           />
         ))}
 
-        {/* Render the resulting shape */}
         {coordinates.length > 2 && (
           <Polygon paths={coordinates} options={polygonOptions} />
         )}
 
-        {/* Current Admin Location indicator */}
         {adminLocation && (
           <Marker 
             position={adminLocation} 
@@ -189,7 +215,7 @@ export function GoogleMapsZoneSelector({
       </GoogleMap>
       
       <p className="text-xs text-muted-foreground italic bg-muted/50 p-2 rounded">
-        Markers are numbered in order. Drag any red marker to adjust the boundary.
+        Drag markers to adjust. Sequence is numbered. The map centers on the zone shape automatically.
       </p>
     </div>
   );
