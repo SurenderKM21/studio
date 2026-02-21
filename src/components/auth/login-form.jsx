@@ -46,7 +46,6 @@ export function LoginForm() {
          if (role === 'admin') {
            await signInWithEmailAndPassword(auth, email, password);
            
-           // Ensure admin profile exists in Firestore
            const adminId = email.split('@')[0].toLowerCase();
            const adminRef = doc(firestore, 'users', adminId);
            await setDoc(adminRef, {
@@ -159,7 +158,7 @@ export function LoginForm() {
                 id="username" 
                 name="username" 
                 type="text" 
-                placeholder="e.g. kavin" 
+                placeholder="e.g. user123" 
                 required 
                 disabled={isPending} 
               />

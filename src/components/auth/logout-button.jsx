@@ -14,17 +14,13 @@ export function LogoutButton({ userId }) {
 
   const handleLogout = () => {
     try {
-      // Decode the userId to get the actual Firestore document ID (e.g. "kavin")
       const decodedId = Buffer.from(userId, 'base64').toString('utf-8');
-      
-      // Mark user as offline in Firestore
       const userRef = doc(db, 'users', decodedId);
       updateDocumentNonBlocking(userRef, { status: 'offline' });
     } catch (e) {
       console.error('Failed to mark user as offline during logout:', e);
     }
 
-    // Trigger the logout action which performs the final redirect
     startTransition(() => {
         logoutUserAction(userId);
     });
