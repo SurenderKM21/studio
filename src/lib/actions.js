@@ -1,32 +1,12 @@
 
 'use server';
+
 import { redirect } from 'next/navigation';
 
 /**
- * Server Actions for EvacAI.
+ * Server Actions for EvacAI (JavaScript version).
+ * Dijkstra's algorithm for density-weighted pathfinding.
  */
-
-export async function loginUserAction(data) {
-    const { role, username, email } = data;
-    const loginTimestamp = new Date().toISOString();
-    let userId;
-
-    if (role === 'admin') {
-        if (!email) return { success: false, error: 'Admin email is required.' };
-        userId = email.split('@')[0].toLowerCase();
-    } else if (username) {
-        userId = username.toLowerCase().replace(/\s/g, '-') || `user-${Math.random().toString(36).substring(2, 9)}`;
-    } else {
-        return { success: false, error: 'Invalid login details.' };
-    }
-
-    const encodedUserId = Buffer.from(userId).toString('base64');
-    return { success: true, userId: encodedUserId, role: role, loginTimestamp };
-}
-
-export async function logoutUserAction(userId) {
-    redirect('/');
-}
 
 const DENSITY_COST = {
     'free': 1,
@@ -55,6 +35,28 @@ function areZonesAdjacent(zone1, zone2) {
     const lngOverlap = box1.maxLng >= box2.minLng - epsilon && box1.minLng <= box2.maxLng + epsilon;
     
     return latOverlap && lngOverlap;
+}
+
+export async function loginUserAction(data) {
+    const { role, username, email } = data;
+    const loginTimestamp = new Date().toISOString();
+    let userId;
+
+    if (role === 'admin') {
+        if (!email) return { success: false, error: 'Admin email is required.' };
+        userId = email.split('@')[0].toLowerCase();
+    } else if (username) {
+        userId = username.toLowerCase().replace(/\s/g, '-') || `user-${Math.random().toString(36).substring(2, 9)}`;
+    } else {
+        return { success: false, error: 'Invalid login details.' };
+    }
+
+    const encodedUserId = Buffer.from(userId).toString('base64');
+    return { success: true, userId: encodedUserId, role: role, loginTimestamp };
+}
+
+export async function logoutUserAction(userId) {
+    redirect('/');
 }
 
 export async function getRouteAction(sourceZone, destinationZone, zones) {

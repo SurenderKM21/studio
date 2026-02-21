@@ -170,6 +170,12 @@ export function UserDashboard({ userId }) {
     setIsPlanning(false);
   };
 
+  const getFriendlyZoneName = (zoneId) => {
+      if (!zoneId) return 'Locating...';
+      if (zoneId === 'outside') return 'Outside Event Area';
+      return zones.find(z => z.id === zoneId)?.name || 'Outside Event Area';
+  }
+
   return (
     <div>
       <AlertDialog open={showAlert} onOpenChange={setShowAlert}>
@@ -200,7 +206,7 @@ export function UserDashboard({ userId }) {
             </CardContent>
           </Card>
           <LocationTracker 
-            currentZoneName={zones.find(z => z.id === userProfile?.lastZoneId)?.name || 'Outside Area'} 
+            currentZoneName={getFriendlyZoneName(userProfile?.lastZoneId)} 
             coordinates={currentUserLocation}
           />
           <RoutePlanner zones={enrichedZones} onPlanRoute={handlePlanRoute} isPlanning={isPlanning} />
