@@ -19,57 +19,6 @@ import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Label } from '../ui/label';
-
-const desiredLanguages = [
-  { name: 'English', code: 'en' },
-  { name: 'Tamil', code: 'ta' },
-  { name: 'Hindi', code: 'hi' },
-  { name: 'Kannada', code: 'kn' },
-  { name: 'Telugu', code: 'te' },
-];
-
-const translations = {
-  'The suggested route is:': {
-    ta: 'பரிந்துரைக்கப்பட்ட பாதை:',
-    hi: 'सुझाया गया मार्ग है:',
-    kn: 'ಸೂಚಿಸಲಾದ ಮಾರ್ಗ:',
-    te: 'సూచించిన మార్గం:',
-  },
-  ', then to ': {
-    ta: ', பிறகு ',
-    hi: ', फिर ',
-    kn: ', ನಂತರ ',
-    te: ', ఆ తర్వాత ',
-  },
-  'A more direct but congested path was avoided.': {
-    ta: 'அதிக நெரிசல் காரணமாக நேரடியான பாதை தவிர்க்கப்பட்டது.',
-    hi: 'अधिक भीड़भाड़ वाला सीधा रास्ता टाला गया।',
-    kn: 'ಹೆಚ್ಚು ದಟ್ಟಣೆಯಿಂದಾಗಿ ನೇರ ಮಾರ್ಗವನ್ನು ತಪ್ಪಿಸಲಾಗಿದೆ.',
-    te: 'అధిక రద్దీ కారణంగా ప్రత్యక్ష మార్గం నివారించబడింది.',
-  },
-  Area1: { ta: 'பகுதி ஒன்று', hi: 'क्षेत्र एक', kn: 'ಪ್ರದೇಶ ಒಂದು', te: 'ప్రాంతం ఒకటి' },
-  KV_HOME: { ta: 'கேவி இல்லம்', hi: 'கேவி হোম', kn: 'ಕೆವಿ ಹೋಮ್', te: 'కెవి హోమ్' },
-  'IT Park': { ta: 'ஐடி பார்க்', hi: 'आईटी पार्क', kn: 'ಐಟಿ ಪಾರ್ಕ್', te: 'ఐటి పార్క్' },
-  Zone41: { ta: 'மண்டலம் நாற்பத்தி ஒன்று', hi: 'जोन इकतालीस', kn: 'ವಲಯ ನಲವತ್ತೊಂದು', te: 'జోన్ నలభై ఒకటి' },
-  Zone5: { ta: 'மண்டலம் ஐந்து', hi: 'जोन पांच', kn: 'ವಲಯ ಐದು', te: 'జోన్ ఐదు' },
-  Zone6: { ta: 'மண்டலம் ஆறு', hi: 'जोन छह', kn: 'ವಲಯ ಆರು', te: 'జోన్ ఆరు' },
-  'Side Path': { ta: 'பக்கவாட்டு பாதை', hi: 'साइड पथ', kn: 'ಬದಿಯ ದಾರಿ', te: 'ప్రక్క మార్గం' },
-  'Mathura flats : Home': {
-    ta: 'மதுரா குடியிருப்பு : இல்லம்',
-    hi: 'मथुरा फ्लैट्स : होम',
-    kn: 'ಮಥುರಾ ಫ್ಲಾಟ್ಸ್ : ಮನೆ',
-    te: 'మధుర ఫ్లాట్స్ : ఇల్లు',
-  },
-  Home: { ta: 'இல்லம்', hi: 'घर', kn: 'ಮನೆ', te: 'ఇల్లు' },
-};
 
 const congestionColors = {
   low: 'bg-green-500',
@@ -83,8 +32,7 @@ const getZoneName = (zoneId, zones) => {
 };
 
 export function RouteInfo({ routeDetails, isPlanning, zones, routingError }) {
-  const [supportedVoices, setSupportedVoices] = useState([]);
-  const [selectedLang, setSelectedLang] = useState('');
+  const [englishVoice, setEnglishVoice] = useState(null);
   const routeDetailsRef = useRef(null);
 
   useEffect(() => {
@@ -92,21 +40,12 @@ export function RouteInfo({ routeDetails, isPlanning, zones, routingError }) {
       if (typeof window === 'undefined' || !window.speechSynthesis) return;
       const availableVoices = window.speechSynthesis.getVoices();
       if (availableVoices.length > 0) {
-        const foundVoices = desiredLanguages
-          .map((lang) =>
-            availableVoices.find((voice) => voice.lang.startsWith(lang.code))
-          )
-          .filter((v) => v !== undefined);
-
-        setSupportedVoices(foundVoices);
-        
-        if (foundVoices.length > 0 && !selectedLang) {
-          const defaultVoice =
-            foundVoices.find((v) => v.lang.startsWith('en')) || foundVoices[0];
-          setSelectedLang(defaultVoice.lang);
-        }
+        // Find a standard English voice
+        const voice = availableVoices.find((v) => v.lang.startsWith('en')) || availableVoices[0];
+        setEnglishVoice(voice);
       }
     };
+    
     if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.onvoiceschanged = loadVoices;
         loadVoices();
@@ -117,9 +56,9 @@ export function RouteInfo({ routeDetails, isPlanning, zones, routingError }) {
           window.speechSynthesis.onvoiceschanged = null;
       }
     };
-  }, [selectedLang]);
+  }, []);
 
-  const handleSpeakRoute = useCallback((langOverride) => {
+  const handleSpeakRoute = useCallback(() => {
     if (
       !routeDetails?.route ||
       routeDetails.route.length === 0 ||
@@ -131,66 +70,38 @@ export function RouteInfo({ routeDetails, isPlanning, zones, routingError }) {
 
     window.speechSynthesis.cancel();
 
-    const langToUse = langOverride || selectedLang;
-    const selectedVoice = supportedVoices.find(v => v.lang === langToUse);
-    const langCode = selectedVoice ? selectedVoice.lang.split('-')[0] : 'en';
-
-    const translate = (text, lang) => {
-      if (lang === 'en') return text;
-      const zoneName = zones.find(z => z.name === text)?.name;
-      if (zoneName && translations[zoneName] && lang in translations[zoneName]) {
-        return translations[zoneName][lang];
-      }
-      if (translations[text] && lang in translations[text]) {
-        return translations[text][lang];
-      }
-      return text;
-    };
-
-    const translatedZoneNames = routeDetails.route.map((id) => {
-      const zoneName = getZoneName(id, zones);
-      return translate(zoneName, langCode);
-    });
-
-    const routePrefix = translate('The suggested route is:', langCode);
-    const separator = translate(', then to ', langCode);
+    const translatedZoneNames = routeDetails.route.map((id) => getZoneName(id, zones));
+    const routePrefix = 'The suggested route is:';
+    const separator = ', then to ';
 
     let textToSpeak = `${routePrefix} ${translatedZoneNames.join(separator)}.`;
 
     if (routeDetails.alternativeRouteAvailable) {
-      textToSpeak += ` ${translate(
-        'A more direct but congested path was avoided.',
-        langCode
-      )}`;
+      textToSpeak += ' A more direct but congested path was avoided.';
     }
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
 
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-      utterance.lang = selectedVoice.lang;
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+      utterance.lang = englishVoice.lang;
     } else {
       utterance.lang = 'en-US';
     }
 
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
-  }, [routeDetails, zones, selectedLang, supportedVoices]);
+  }, [routeDetails, zones, englishVoice]);
 
   useEffect(() => {
-    if (routeDetails && routeDetails !== routeDetailsRef.current && supportedVoices.length > 0) {
-      const englishVoice = supportedVoices.find((v) => v.lang.startsWith('en'));
-      if (englishVoice) {
-        handleSpeakRoute(englishVoice.lang);
-      } else if (supportedVoices.length > 0) {
-        handleSpeakRoute(supportedVoices[0].lang);
-      }
+    if (routeDetails && routeDetails !== routeDetailsRef.current && englishVoice) {
+      handleSpeakRoute();
       routeDetailsRef.current = routeDetails;
     }
     if (!routeDetails) {
       routeDetailsRef.current = null;
     }
-  }, [routeDetails, supportedVoices, handleSpeakRoute]);
+  }, [routeDetails, englishVoice, handleSpeakRoute]);
 
   if (isPlanning) {
     return (
@@ -268,9 +179,9 @@ export function RouteInfo({ routeDetails, isPlanning, zones, routingError }) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => handleSpeakRoute()}
+            onClick={handleSpeakRoute}
             aria-label="Speak route details"
-            disabled={supportedVoices.length === 0}
+            disabled={!englishVoice}
           >
             <Volume2 className="h-5 w-5" />
           </Button>
@@ -316,27 +227,6 @@ export function RouteInfo({ routeDetails, isPlanning, zones, routingError }) {
               </div>
             </div>
           )}
-
-        {supportedVoices.length > 0 && (
-          <div className="space-y-2 border-t pt-4">
-            <Label htmlFor="voice-select">Narration Language</Label>
-            <Select onValueChange={setSelectedLang} value={selectedLang}>
-              <SelectTrigger id="voice-select">
-                <SelectValue placeholder="Select a language" />
-              </SelectTrigger>
-              <SelectContent>
-                {supportedVoices.map((voice) => {
-                   const langInfo = desiredLanguages.find(l => voice.lang.startsWith(l.code));
-                   return (
-                      <SelectItem key={voice.voiceURI} value={voice.lang}>
-                        {langInfo?.name || voice.lang}
-                      </SelectItem>
-                   )
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
