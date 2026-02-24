@@ -4,25 +4,35 @@ import { useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { LogOut, Loader } from 'lucide-react';
 import { logoutUserAction } from '@/lib/actions';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { signOut } from 'firebase/auth';
+import { initializeFirebase } from '@/firebase';
 
-export function LogoutButton({ userId }) {
+export function LogoutButton() {
   const [isPending, startTransition] = useTransition();
   const db = useFirestore();
+  const { user } = useUser();
 
   const handleLogout = () => {
-    try {
-      const decodedId = Buffer.from(userId, 'base64').toString('utf-8');
-      const userRef = doc(db, 'users', decodedId);
-      updateDocumentNonBlocking(userRef, { status: 'offline' });
-    } catch (e) {
-      console.error('Failed to mark user as offline during logout:', e);
-    }
+    startTransition(async () => {
+       if (user) {
+          try {
+            const userRef = doc(db, 'users', user.uid);
+            updateDocumentNonBlocking(userRef, { status: 'offline' });
+          } catch (e) {
+            console.error('Failed to mark user as offline:', e);
+          }
+       }
 
-    startTransition(() => {
-        logoutUserAction(userId);
+       try {
+         const { auth } = initializeFirebase();
+         await signOut(auth);
+         await logoutUserAction();
+       } catch (e) {
+         console.error('Logout error:', e);
+       }
     });
   };
 

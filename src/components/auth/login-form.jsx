@@ -42,14 +42,15 @@ export function LoginForm() {
     startTransition(async () => {
        try {
          const { auth, firestore } = initializeFirebase();
+         let userCredential;
          
          if (role === 'admin') {
-           await signInWithEmailAndPassword(auth, email, password);
+           userCredential = await signInWithEmailAndPassword(auth, email, password);
+           const user = userCredential.user;
            
-           const adminId = email.split('@')[0].toLowerCase();
-           const adminRef = doc(firestore, 'users', adminId);
-           await setDoc(adminRef, {
-             id: adminId,
+           const userRef = doc(firestore, 'users', user.uid);
+           await setDoc(userRef, {
+             id: user.uid,
              name: 'Main Admin',
              email: email,
              role: 'admin',
@@ -58,15 +59,21 @@ export function LoginForm() {
            }, { merge: true });
 
          } else {
-           await signInAnonymously(auth);
+           userCredential = await signInAnonymously(auth);
+           const user = userCredential.user;
+
+           const userRef = doc(firestore, 'users', user.uid);
+           await setDoc(userRef, {
+             id: user.uid,
+             name: username || 'Guest User',
+             role: 'user',
+             status: 'online',
+             lastSeen: new Date().toISOString(),
+             sos: false
+           }, { merge: true });
          }
 
-         const result = await loginUserAction({
-            email,
-            username,
-            role,
-            groupSize: 1
-         });
+         const result = await loginUserAction({ email, username, role });
 
          if (result.success) {
             toast({
@@ -74,8 +81,7 @@ export function LoginForm() {
               description: role === 'admin' ? 'Admin session verified.' : 'Welcome to EvacAI!',
             });
             
-            const targetPath = result.role === 'user' ? '/user' : '/admin';
-            router.push(`${targetPath}?userId=${result.userId}`);
+            router.push(role === 'user' ? '/user' : '/admin');
          } else {
             toast({
                 variant: 'destructive',
@@ -85,12 +91,10 @@ export function LoginForm() {
          }
        } catch (error) {
          let errorMessage = 'An unexpected error occurred.';
-         if (error.code === 'auth/invalid-credential') {
+         if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
            errorMessage = 'Invalid credentials. Please check your email and password.';
          } else if (error.code === 'auth/user-not-found') {
            errorMessage = 'Account not found.';
-         } else if (error.code === 'auth/wrong-password') {
-           errorMessage = 'Incorrect password.';
          }
 
          toast({
@@ -109,7 +113,7 @@ export function LoginForm() {
           <CardTitle className="text-3xl font-headline">Login</CardTitle>
           <CardDescription>
             {role === 'admin' 
-              ? 'Use default: admin@evacai.com / adminpassword' 
+              ? 'Admin portal access.' 
               : 'Enter a username to start navigating.'}
           </CardDescription>
         </CardHeader>
@@ -145,7 +149,7 @@ export function LoginForm() {
                   id="password" 
                   name="password" 
                   type="password" 
-                  placeholder="adminpassword"
+                  placeholder="••••••••"
                   required 
                   disabled={isPending} 
                 />
@@ -158,7 +162,7 @@ export function LoginForm() {
                 id="username" 
                 name="username" 
                 type="text" 
-                placeholder="e.g. user123" 
+                placeholder="e.g. navigator1" 
                 required 
                 disabled={isPending} 
               />

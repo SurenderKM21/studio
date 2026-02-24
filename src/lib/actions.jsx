@@ -39,30 +39,25 @@ function areZonesAdjacent(zone1, zone2) {
 }
 
 /**
- * Handles user login redirection and ID encoding.
+ * Handles user login logic (Server-side validation if needed).
  */
 export async function loginUserAction(data) {
   const { role, username, email } = data;
   const loginTimestamp = new Date().toISOString();
-  let userId;
 
-  if (role === 'admin') {
-    if (!email) return { success: false, error: 'Admin email is required.' };
-    userId = email.split('@')[0].toLowerCase();
-  } else if (username) {
-    userId = username.toLowerCase().replace(/\s/g, '-') || `user-${Math.random().toString(36).substring(2, 9)}`;
-  } else {
-    return { success: false, error: 'Invalid login details.' };
+  if (role === 'admin' && !email) {
+    return { success: false, error: 'Admin email is required.' };
+  } else if (role === 'user' && !username) {
+    return { success: false, error: 'Username is required.' };
   }
 
-  const encodedUserId = Buffer.from(userId).toString('base64');
-  return { success: true, userId: encodedUserId, role: role, loginTimestamp };
+  return { success: true, role, loginTimestamp };
 }
 
 /**
  * Logs out the user and redirects home.
  */
-export async function logoutUserAction(userId) {
+export async function logoutUserAction() {
   redirect('/');
 }
 
@@ -86,7 +81,6 @@ export async function getRouteAction(sourceZone, destinationZone, zones) {
       adjacencyList[zone.id] = [];
     });
 
-    // Build the graph
     for (let i = 0; i < allZones.length; i++) {
       for (let j = i + 1; j < allZones.length; j++) {
         if (areZonesAdjacent(allZones[i], allZones[j])) {

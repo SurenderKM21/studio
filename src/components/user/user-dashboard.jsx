@@ -53,8 +53,6 @@ const LAST_SEEN_ALERT_KEY = 'evacai-last-seen-alert-timestamp';
 
 export function UserDashboard({ userId }) {
   const db = useFirestore();
-  
-  // Track when this specific dashboard session started to filter out old alerts
   const sessionStartTime = useRef(new Date().toISOString());
   
   const zonesQuery = useMemoFirebase(() => collection(db, 'zones'), [db]);
@@ -69,34 +67,22 @@ export function UserDashboard({ userId }) {
   const { data: userProfile } = useDoc(userRef);
 
   const zonesRef = useRef([]);
-  const userRefCurrent = useRef(userRef);
-
   useEffect(() => {
     zonesRef.current = zones;
   }, [zones]);
 
-  useEffect(() => {
-    userRefCurrent.current = userRef;
-  }, [userRef]);
-
   const enrichedZones = useMemo(() => {
     return zones.map(zone => {
       const count = users.filter(u => u.lastZoneId === zone.id && u.status === 'online').length;
-      
       const isOverrideActive = zone.manualDensity && 
                                (zone.manualDensityAtCount === undefined || count === zone.manualDensityAtCount);
-      
-      const density = isOverrideActive 
-                      ? zone.density 
-                      : calculateDensity(count, zone.capacity);
-                      
+      const density = isOverrideActive ? zone.density : calculateDensity(count, zone.capacity);
       return { ...zone, userCount: count, density };
     });
   }, [zones, users]);
 
   const alertsQuery = useMemoFirebase(() => query(collection(db, 'alerts'), orderBy('timestamp', 'desc'), limit(5)), [db]);
   const { data: alertsData = [] } = useCollection(alertsQuery);
-  const alerts = alertsData;
 
   const [routeDetails, setRouteDetails] = useState(null);
   const [routingError, setRoutingError] = useState(null);
@@ -106,18 +92,11 @@ export function UserDashboard({ userId }) {
   const [latestAlert, setLatestAlert] = useState(null);
 
   useEffect(() => {
-    if (alerts && alerts.length > 0 && userProfile) {
-      const applicableAlert = alerts[0];
+    if (alertsData.length > 0 && userProfile) {
+      const applicableAlert = alertsData[0];
       const lastSeen = localStorage.getItem(LAST_SEEN_ALERT_KEY);
-      
-      // Logic Fix: Filter by Zone and Time
-      // 1. Check if the alert targets "All" (null zoneId) or the user's current zone
       const isTargetedAtUser = !applicableAlert.zoneId || applicableAlert.zoneId === userProfile.lastZoneId;
-      
-      // 2. Check if the alert was sent after the user logged in/mounted this session
       const isSentDuringSession = applicableAlert.timestamp > sessionStartTime.current;
-      
-      // 3. Check if the user hasn't already acknowledged this specific alert
       const isNotAcknowledged = applicableAlert.timestamp !== lastSeen;
 
       if (isTargetedAtUser && isSentDuringSession && isNotAcknowledged) {
@@ -125,7 +104,7 @@ export function UserDashboard({ userId }) {
         setShowAlert(true);
       }
     }
-  }, [alerts, userProfile]);
+  }, [alertsData, userProfile]);
 
   const handleAcknowledgeAlert = () => {
     if (latestAlert) localStorage.setItem(LAST_SEEN_ALERT_KEY, latestAlert.timestamp);
@@ -143,9 +122,7 @@ export function UserDashboard({ userId }) {
       }
     }
     
-    const displayName = userId.charAt(0).toUpperCase() + userId.slice(1);
     const userUpdate = {
-      name: displayName,
       lastLatitude: lat,
       lastLongitude: lng,
       lastSeen: new Date().toISOString(),
@@ -153,17 +130,16 @@ export function UserDashboard({ userId }) {
       status: 'online'
     };
     
-    const currentRef = userRefCurrent.current;
-    if (currentRef) {
-      setDoc(currentRef, userUpdate, { merge: true }).catch(async (e) => {
+    if (userRef) {
+      setDoc(userRef, userUpdate, { merge: true }).catch(async (e) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
-          path: currentRef.path,
+          path: userRef.path,
           operation: 'update',
           requestResourceData: userUpdate
         }));
       });
     }
-  }, [userId]);
+  }, [userRef]);
 
   useEffect(() => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -208,7 +184,7 @@ export function UserDashboard({ userId }) {
       </AlertDialog>
 
       <div className="mb-6">
-        <h1 className="text-4xl font-headline font-bold">Event Navigator</h1>
+        <h1 className="text-4xl font-headline font-bold">Welcome, {userProfile?.name || 'User'}</h1>
         <p className="text-muted-foreground">Navigate smarter, not harder.</p>
       </div>
 

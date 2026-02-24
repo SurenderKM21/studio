@@ -1,25 +1,24 @@
 'use client';
 
-import { useEffect, useMemo, Suspense } from 'react';
+import { useEffect, Suspense } from 'react';
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/header';
 import { FirebaseClientProvider, initializeFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Loader, Lock } from 'lucide-react';
 
-function AdminAuthGuard({ userId, decodedUserId }) {
+function AdminAuthGuard() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const { firestore } = initializeFirebase();
   
-  const userRef = useMemoFirebase(() => doc(firestore, 'users', decodedUserId), [firestore, decodedUserId]);
+  const userRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [firestore, user]);
   const { data: profile, isLoading: isProfileLoading } = useDoc(userRef);
 
   const isAuthenticated = !!user;
-  const isAdminByEmail = user?.email === 'admin@evacai.com';
   const isAdminByRole = profile?.role === 'admin';
-  const isAuthorized = isAdminByEmail || isAdminByRole;
+  const isAuthorized = isAuthenticated && isAdminByRole;
   const isDataReady = !isUserLoading && !isProfileLoading;
 
   useEffect(() => {
@@ -31,9 +30,9 @@ function AdminAuthGuard({ userId, decodedUserId }) {
     }
 
     if (!isAuthorized) {
-      router.push(`/user?userId=${userId}`);
+      router.push('/user');
     }
-  }, [isDataReady, isAuthenticated, isAuthorized, router, userId]);
+  }, [isDataReady, isAuthenticated, isAuthorized, router]);
 
   if (!isDataReady) {
     return (
@@ -58,47 +57,11 @@ function AdminAuthGuard({ userId, decodedUserId }) {
 
   return (
     <>
-      <Header section="Admin" userId={userId} />
+      <Header section="Admin" />
       <div className="container mx-auto py-8 px-4">
-        <AdminDashboard userId={decodedUserId} />
+        <AdminDashboard userId={user.uid} />
       </div>
     </>
-  );
-}
-
-function AdminPageContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const userId = searchParams.get('userId');
-
-  const decodedUserId = useMemo(() => {
-    if (!userId) return null;
-    try {
-      return Buffer.from(userId, 'base64').toString('utf-8');
-    } catch (e) {
-      return null;
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    if (!userId || !decodedUserId) {
-      router.push('/login');
-    }
-  }, [userId, decodedUserId, router]);
-
-  if (!userId || !decodedUserId) {
-    return (
-      <div className="flex h-screen items-center justify-center gap-2">
-        <Loader className="h-6 w-6 animate-spin text-primary" />
-        <span className="text-muted-foreground">Redirecting to login...</span>
-      </div>
-    );
-  }
-
-  return (
-    <FirebaseClientProvider>
-      <AdminAuthGuard userId={userId} decodedUserId={decodedUserId} />
-    </FirebaseClientProvider>
   );
 }
 
@@ -110,7 +73,9 @@ export default function AdminPage() {
         <span className="text-muted-foreground">Initializing Admin Dashboard...</span>
       </div>
     }>
-      <AdminPageContent />
+      <FirebaseClientProvider>
+        <AdminAuthGuard />
+      </FirebaseClientProvider>
     </Suspense>
   );
 }
